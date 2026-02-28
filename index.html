@@ -497,14 +497,21 @@
         if (sortedSessionWeekly.length === 0) tbody2.innerHTML = '<tr><td colspan="7" class="text-center py-4 text-gray-400">데이터가 없습니다.</td></tr>';
         else {
             sortedSessionWeekly.forEach(item => {
+                const weekCells = [1, 2, 3, 4, 5].map(weekNum => {
+                    const count = item.weeks[weekNum];
+                    return count > 0
+                        ? `<td class="text-center text-gray-500 cursor-pointer underline" onclick="openSessionAttendeesModal('${item.name}', ${weekNum})">${count}</td>`
+                        : `<td class="text-center text-gray-500">-</td>`;
+                }).join('');
+
+                const totalCell = item.total > 0
+                    ? `<td class="text-right font-bold text-blue-600 cursor-pointer underline" onclick="openSessionAttendeesModal('${item.name}', null)">${item.total}</td>`
+                    : `<td class="text-right font-bold text-blue-600">${item.total}</td>`;
+
                 tbody2.innerHTML += `<tr>
-                    <td class="font-bold text-green-700 cursor-pointer hover:underline" onclick="openSessionAttendeesModal('${item.name}')">${item.name}</td>
-                    <td class="text-center text-gray-500">${item.weeks[1] || '-'}</td>
-                    <td class="text-center text-gray-500">${item.weeks[2] || '-'}</td>
-                    <td class="text-center text-gray-500">${item.weeks[3] || '-'}</td>
-                    <td class="text-center text-gray-500">${item.weeks[4] || '-'}</td>
-                    <td class="text-center text-gray-500">${item.weeks[5] || '-'}</td>
-                    <td class="text-right font-bold text-blue-600">${item.total}</td>
+                    <td class="font-bold text-green-700">${item.name}</td>
+                    ${weekCells}
+                    ${totalCell}
                 </tr>`;
             });
         }
@@ -886,17 +893,25 @@
     window.closeHistoryModal = function() { document.getElementById('history-modal').classList.add('hidden'); }
 
     // --- [NEW] Session Attendees Modal Logic ---
-    window.openSessionAttendeesModal = function(sessionName) {
+    window.openSessionAttendeesModal = function(sessionName, week) { // week is 1-5, or null for total
         const selectedMonth = document.getElementById('report-month').value;
         
-        const sessionLogs = logs.filter(log => 
+        let sessionLogs = logs.filter(log => 
             log.date.startsWith(selectedMonth) && log.sessionName === sessionName
         );
+
+        let subtitle;
+        if (week) {
+            sessionLogs = sessionLogs.filter(log => getWeekOfMonth(log.date) === week);
+            subtitle = `${selectedMonth}월 / ${week}주차`;
+        } else {
+            subtitle = `${selectedMonth}월 / 전체`;
+        }
 
         const attendees = [...new Set(sessionLogs.map(log => log.memberName))].sort((a, b) => a.localeCompare(b));
 
         document.getElementById('session-attendees-title').innerText = `[${sessionName}] 참석자`;
-        document.getElementById('session-attendees-subtitle').innerText = `${selectedMonth}월 / 총 ${attendees.length}명 (중복제외)`;
+        document.getElementById('session-attendees-subtitle').innerText = `${subtitle} / 총 ${attendees.length}명 (중복제외)`;
         
         const list = document.getElementById('session-attendees-list');
         list.innerHTML = '';
