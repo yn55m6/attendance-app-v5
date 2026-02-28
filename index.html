@@ -151,20 +151,30 @@
                 </div>
             </div>
 
-            <!-- Report 2: 월별 주차별 차수별 출석횟수 -->
+            <!-- NEW: 차수별 주간 출석 현황 -->
             <div class="card">
-                <h2 class="font-bold text-lg mb-2 text-green-700">📅 주차/차수별 현황</h2>
+                <h2 class="font-bold text-lg mb-2 text-green-700">📅 차수별 주간 출석</h2>
                 <div class="overflow-x-auto">
-                    <table class="report-table">
-                        <thead><tr><th>주차</th><th>차수(반)</th><th class="text-right">인원</th></tr></thead>
-                        <tbody id="report-session-body"></tbody>
+                    <table class="report-table" style="min-width: 320px;">
+                        <thead>
+                            <tr>
+                                <th>차수(반)</th>
+                                <th class="text-center">1주</th>
+                                <th class="text-center">2주</th>
+                                <th class="text-center">3주</th>
+                                <th class="text-center">4주</th>
+                                <th class="text-center">5주</th>
+                                <th class="text-right">계</th>
+                            </tr>
+                        </thead>
+                        <tbody id="report-session-weekly-body"></tbody>
                     </table>
                 </div>
             </div>
 
             <!-- Report 3: 월별 개인별 주차별 횟수 -->
             <div class="card">
-                <h2 class="font-bold text-lg mb-2 text-blue-700">👤 개인별 주차 상세</h2>
+                <h2 class="font-bold text-lg mb-2 text-blue-700">👤 개인별 주간 출석</h2>
                 <p class="text-xs text-gray-400 mb-2">* 이름을 클릭하면 상세 날짜를 볼 수 있습니다.</p>
                 <div class="overflow-x-auto">
                     <table class="report-table" style="min-width: 320px;">
@@ -198,55 +208,6 @@
             </div>
         </nav>
     </div>
-</div>
-
-<!-- Modal: QR Print View -->
-<div id="qr-print-modal" class="fixed inset-0 bg-white z-50 hidden overflow-y-auto">
-    <div class="p-6 max-w-2xl mx-auto" id="print-area">
-        <div class="flex justify-between items-center mb-6 no-print">
-            <h2 class="text-2xl font-bold">인쇄용 QR 코드</h2>
-            <button onclick="closeQRPrintModal()" class="text-gray-500 text-lg"><i class="fas fa-times"></i></button>
-        </div>
-        <div class="no-print mb-4 text-center">
-            <button onclick="window.print()" class="bg-blue-600 text-white px-6 py-2 rounded-lg font-bold shadow hover:bg-blue-700">
-                <i class="fas fa-print mr-2"></i>인쇄하기
-            </button>
-            <p class="text-xs text-red-500 mt-2">※ 주의: 이 QR 코드는 현재 웹사이트 주소 기반입니다.<br>서버 주소가 바뀌면 다시 출력해야 합니다.</p>
-        </div>
-        <div id="static-qr-list" class="grid grid-cols-1 gap-8 text-center"></div>
-    </div>
-</div>
-
-<!-- Modal: Paper Input (Text Area) -->
-<div id="paper-input-modal" class="fixed inset-0 bg-black bg-opacity-90 z-50 hidden flex flex-col justify-center items-center p-6 no-print">
-    <div class="bg-white w-full max-w-md rounded-xl p-6 relative">
-        <button onclick="closePaperInputModal()" class="absolute top-4 right-4 text-gray-400"><i class="fas fa-times"></i></button>
-        
-        <h3 class="text-xl font-bold mb-2 text-green-700"><i class="fas fa-edit mr-2"></i>종이 명부 입력</h3>
-        
-        <div class="mb-3">
-            <label class="block text-xs font-bold text-gray-500 mb-1">1. 날짜 선택</label>
-            <input type="date" id="paper-date" class="w-full p-2 border rounded bg-gray-50 font-bold text-gray-700" onchange="updateSessionOptions()">
-        </div>
-
-        <div class="mb-3">
-            <label class="block text-xs font-bold text-gray-500 mb-1">2. 시간(차수) 선택</label>
-            <select id="paper-session-select" class="w-full p-2 border rounded bg-gray-50 text-sm font-bold">
-                <!-- JS로 옵션 채움 -->
-            </select>
-        </div>
-
-        <div class="mb-4">
-            <label class="block text-xs font-bold text-gray-500 mb-1">3. 명단 입력 (이름만 입력 가능)</label>
-            <textarea id="paper-text-area" class="w-full h-32 p-3 border rounded bg-gray-50 text-sm font-mono" placeholder="김철수&#13;&#10;이영희&#13;&#10;박민수 5678"></textarea>
-            <p class="text-xs text-indigo-500 mt-1">* 없는 회원은 자동 가입됩니다.</p>
-        </div>
-        
-        <div class="flex gap-2">
-            <button onclick="processPaperInput()" class="flex-1 btn-primary bg-green-600">일괄 출석 처리</button>
-            <button onclick="closePaperInputModal()" class="w-1/3 py-2 bg-gray-200 text-gray-700 rounded-lg font-bold">닫기</button>
-        </div>
-    </nav>
 </div>
 
 <!-- Modal: QR Print View -->
@@ -490,26 +451,39 @@
             });
         }
 
-        // [Report 2] 월별 주차별 차수별 출석횟수
-        const weekSessionCounts = {};
+        // [NEW] 차수별 주간 출석 현황
+        const sessionWeeklyCounts = {};
         monthlyLogs.forEach(log => {
             const week = getWeekOfMonth(log.date);
-            const weekKey = `${week}주차`;
-            if (!weekSessionCounts[weekKey]) weekSessionCounts[weekKey] = {};
-            if (!weekSessionCounts[weekKey][log.sessionName]) weekSessionCounts[weekKey][log.sessionName] = 0;
-            weekSessionCounts[weekKey][log.sessionName]++;
+            const sessionName = log.sessionName;
+            if (!sessionWeeklyCounts[sessionName]) {
+                sessionWeeklyCounts[sessionName] = { 
+                    name: sessionName, 
+                    weeks: {1:0, 2:0, 3:0, 4:0, 5:0}, 
+                    total: 0 
+                };
+            }
+            if (sessionWeeklyCounts[sessionName].weeks[week] !== undefined) {
+                sessionWeeklyCounts[sessionName].weeks[week]++;
+            }
+            sessionWeeklyCounts[sessionName].total++;
         });
         
-        const tbody2 = document.getElementById('report-session-body');
+        const tbody2 = document.getElementById('report-session-weekly-body');
         tbody2.innerHTML = '';
-        const sortedWeeks = Object.keys(weekSessionCounts).sort();
-        if (sortedWeeks.length === 0) tbody2.innerHTML = '<tr><td colspan="3" class="text-center py-4 text-gray-400">데이터가 없습니다.</td></tr>';
+        const sortedSessionWeekly = Object.values(sessionWeeklyCounts).sort((a, b) => a.name.localeCompare(b.name));
+        if (sortedSessionWeekly.length === 0) tbody2.innerHTML = '<tr><td colspan="7" class="text-center py-4 text-gray-400">데이터가 없습니다.</td></tr>';
         else {
-            sortedWeeks.forEach(week => {
-                const sessions = weekSessionCounts[week];
-                Object.keys(sessions).sort().forEach(sessionName => {
-                    tbody2.innerHTML += `<tr><td>${week}</td><td>${sessionName}</td><td class="text-right font-bold">${sessions[sessionName]}명</td></tr>`;
-                });
+            sortedSessionWeekly.forEach(item => {
+                tbody2.innerHTML += `<tr>
+                    <td class="font-bold text-green-700">${item.name}</td>
+                    <td class="text-center text-gray-500">${item.weeks[1] || '-'}</td>
+                    <td class="text-center text-gray-500">${item.weeks[2] || '-'}</td>
+                    <td class="text-center text-gray-500">${item.weeks[3] || '-'}</td>
+                    <td class="text-center text-gray-500">${item.weeks[4] || '-'}</td>
+                    <td class="text-center text-gray-500">${item.weeks[5] || '-'}</td>
+                    <td class="text-right font-bold text-blue-600">${item.total}</td>
+                </tr>`;
             });
         }
 
@@ -686,6 +660,7 @@
         
         const batch = writeBatch(db);
         let tempMembers = [...members]; // Local cache for this batch operation
+        const processedInBatch = new Set(); // To prevent duplicates within the same bulk input
         
         lines.forEach(line => {
             let inputName = line; let inputPhone = null;
@@ -736,8 +711,9 @@
             
             if (targetMember) {
                 // Check logs in memory (since we have real-time sync)
-                const exists = logs.some(l => l.memberId === targetMember.id && l.date === dateStr && l.sessionCode === sessionCode);
-                if(exists) {
+                const alreadyExists = logs.some(l => l.memberId === targetMember.id && l.date === dateStr && l.sessionCode === sessionCode);
+                const alreadyInBatch = processedInBatch.has(targetMember.id);
+                if(alreadyExists || alreadyInBatch) {
                     duplicateCount++;
                 } else {
                     const newLogRef = doc(collection(db, "logs"));
@@ -749,6 +725,7 @@
                         sessionName: session.name, 
                         timestamp: new Date().toLocaleString() + " (명부입력)"
                     });
+                    processedInBatch.add(targetMember.id);
                     successCount++;
                 }
             }

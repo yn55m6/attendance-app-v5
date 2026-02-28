@@ -38,10 +38,11 @@ src/
 ## 4. 단계별 전환 절차 (Step-by-Step Migration)
 
 ### Phase 1: 환경 설정 및 기본 구조 잡기
-1.  Vite + React + TypeScript 프로젝트 생성.
-2.  Tailwind CSS 설치 및 설정 (`tailwind.config.js`).
-3.  Firebase SDK 설치 및 환경 변수(`.env`) 설정.
-4.  기본 폴더 구조 생성.
+1.  **Node.js 설치:** npm 사용을 위해 Node.js 공식 홈페이지에서 LTS 버전을 다운로드하여 설치합니다.
+2.  Vite + React + TypeScript 프로젝트 생성.
+3.  Tailwind CSS 설치 및 설정 (`tailwind.config.js`).
+4.  Firebase SDK 설치 및 환경 변수(`.env`) 설정.
+5.  기본 폴더 구조 생성.
 
 ### Phase 2: 공통 컴포넌트 및 레이아웃 구현
 1.  **Layout:** Header, Bottom Navigation Bar 컴포넌트화.
