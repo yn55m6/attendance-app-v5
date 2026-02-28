@@ -237,12 +237,23 @@
     <div class="bg-white w-full max-w-sm rounded-xl p-6 text-center">
         <h3 class="text-xl font-bold mb-2 text-indigo-600">출석 체크</h3>
         <p id="scan-info" class="text-gray-800 font-bold mb-1"></p>
-        <p class="text-gray-500 text-xs mb-4">본인의 이름을 선택해주세요.</p>
+        <p class="text-gray-500 text-xs mb-4">본인의 이름을 선택하거나 직접 입력하세요.</p>
         
-        <select id="check-user-select" class="w-full p-3 border rounded mb-4 bg-gray-50 text-lg">
-            <option value="">회원 선택...</option>
-        </select>
-        
+        <!-- Existing Member Select -->
+        <div id="check-existing-wrapper">
+            <select id="check-user-select" class="w-full p-3 border rounded mb-2 bg-gray-50 text-lg">
+                <option value="">회원 선택...</option>
+            </select>
+            <p class="text-right text-xs text-indigo-600 cursor-pointer mb-4 hover:underline" onclick="toggleCheckMode('manual')">명단에 없나요? 직접 입력 &gt;</p>
+        </div>
+
+        <!-- Manual Input -->
+        <div id="check-manual-wrapper" class="hidden">
+            <input type="text" id="check-manual-name" placeholder="이름 (필수)" class="w-full p-3 border rounded mb-2 bg-gray-50">
+            <input type="tel" id="check-manual-phone" placeholder="전화번호 뒷자리 (선택)" class="w-full p-3 border rounded mb-2 bg-gray-50">
+            <p class="text-right text-xs text-gray-500 cursor-pointer mb-4 hover:underline" onclick="toggleCheckMode('existing')">&lt; 명단에서 선택하기</p>
+        </div>
+
         <button onclick="confirmAttendance()" class="btn-primary mb-2">출석 확인</button>
         <button onclick="closeCheckModal()" class="text-gray-500 text-sm mt-4 underline">취소</button>
     </div>
@@ -658,6 +669,12 @@
         currentScanSession = session;
         const modal = document.getElementById('user-check-modal');
         document.getElementById('scan-info').innerText = `[${session.name}] 출석`;
+        
+        // Reset UI
+        toggleCheckMode('existing');
+        document.getElementById('check-manual-name').value = '';
+        document.getElementById('check-manual-phone').value = '';
+
         const select = document.getElementById('check-user-select');
         select.innerHTML = '<option value="">회원 선택...</option>';
         members.forEach(m => {
@@ -665,12 +682,45 @@
         });
         modal.classList.remove('hidden');
     }
+
+    window.toggleCheckMode = function(mode) {
+        if (mode === 'manual') {
+            document.getElementById('check-existing-wrapper').classList.add('hidden');
+            document.getElementById('check-manual-wrapper').classList.remove('hidden');
+        } else {
+            document.getElementById('check-existing-wrapper').classList.remove('hidden');
+            document.getElementById('check-manual-wrapper').classList.add('hidden');
+        }
+    }
+
     window.confirmAttendance = async function() {
-        const memberId = document.getElementById('check-user-select').value;
-        if(!memberId) return alert('회원을 선택해주세요.');
-        const member = members.find(m => m.id === memberId);
+        const isManual = !document.getElementById('check-manual-wrapper').classList.contains('hidden');
+        let member = null;
+
+        if (isManual) {
+            const name = document.getElementById('check-manual-name').value.trim();
+            const phone = document.getElementById('check-manual-phone').value.trim() || "0000";
+            if (!name) return alert('이름을 입력해주세요.');
+            
+            // Create new member
+            try {
+                const docRef = await addDoc(collection(db, "members"), { name, phone });
+                member = { id: docRef.id, name, phone };
+            } catch (e) {
+                console.error(e);
+                return alert("회원 등록 중 오류가 발생했습니다.");
+            }
+        } else {
+            const memberId = document.getElementById('check-user-select').value;
+            if(!memberId) return alert('회원을 선택해주세요.');
+            member = members.find(m => m.id === memberId);
+        }
+
+        if (!member) return alert('회원 정보를 찾을 수 없습니다.');
+
         const todayStr = new Date().toISOString().slice(0,10);
-        const alreadyChecked = logs.some(log => log.memberId === memberId && log.date === todayStr && log.sessionCode === currentScanSession.code);
+        const alreadyChecked = logs.some(log => log.memberId === member.id && log.date === todayStr && log.sessionCode === currentScanSession.code);
+        
         if(alreadyChecked) alert('⚠️ 이미 출석 처리되었습니다.');
         else {
             await addDoc(collection(db, "logs"), {
