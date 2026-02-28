@@ -266,11 +266,28 @@
     </div>
 </div>
 
-<script>
+<script type="module">
+    // --- 0. Firebase Setup ---
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+    import { getFirestore, collection, addDoc, deleteDoc, doc, onSnapshot, query, orderBy, writeBatch, getDocs } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+
+    // TODO: Firebase Console에서 발급받은 설정값을 아래에 입력해주세요.
+    const firebaseConfig = {
+        apiKey: "AIzaSyBeO3VsRM8x7pY9A5tktrUDIZPfCMKGZfQ",
+        authDomain: "smart-attendance-964dc.firebaseapp.com",
+        projectId: "smart-attendance-964dc",
+        storageBucket: "smart-attendance-964dc.firebasestorage.app",
+        messagingSenderId: "409196393524",
+        appId: "1:409196393524:web:f705254e8e62c415488661"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+
     // --- 1. Configuration ---
-    const SESSIONS = [];
-    const DAYS = ["일", "월", "화", "수", "목", "금", "토"];
-    const TIMES = [
+    window.SESSIONS = [];
+    window.DAYS = ["일", "월", "화", "수", "목", "금", "토"];
+    window.TIMES = [
         { id: "AM", name: "오전반", start: 6, end: 12 },
         { id: "PM", name: "오후반", start: 12, end: 18 },
         { id: "EVE", name: "저녁반", start: 18, end: 24 }
@@ -286,22 +303,27 @@
     SESSIONS.push({ code: "D6_PM", name: "토요일 오후반", day: 6, start: 12, end: 18 });
 
     // --- 2. Data Management ---
-    const DB_KEY_MEMBERS = 'att_members_v17'; // Version updated
-    const DB_KEY_LOGS = 'att_logs_v17';
-    
-    let members = JSON.parse(localStorage.getItem(DB_KEY_MEMBERS)) || [];
-    let logs = JSON.parse(localStorage.getItem(DB_KEY_LOGS)) || [];
+    // Local state for rendering (synced with Firebase)
+    window.members = [];
+    window.logs = [];
     let currentScanSession = null;
     let trendChartInstance = null; // Chart instance
 
-    function saveData() {
-        localStorage.setItem(DB_KEY_MEMBERS, JSON.stringify(members));
-        localStorage.setItem(DB_KEY_LOGS, JSON.stringify(logs));
+    // Real-time Listeners
+    // 1. Members
+    onSnapshot(query(collection(db, "members"), orderBy("name")), (snapshot) => {
+        window.members = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
         renderMembers();
-    }
+    });
+
+    // 2. Logs
+    onSnapshot(query(collection(db, "logs"), orderBy("timestamp", "desc")), (snapshot) => {
+        window.logs = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        renderReports();
+    });
 
     // --- 3. Helper Functions ---
-    function getWeekOfMonth(dateStr) {
+    window.getWeekOfMonth = function(dateStr) {
         const d = new Date(dateStr);
         const date = d.getDate();
         const firstDayOfMonth = new Date(d.getFullYear(), d.getMonth(), 1).getDay();
@@ -309,7 +331,7 @@
     }
 
     // --- 4. Report Logic ---
-    function renderReports() {
+    window.renderReports = function() {
         const monthInput = document.getElementById('report-month');
         if (!monthInput.value) {
             const now = new Date();
@@ -407,7 +429,7 @@
     }
 
     // [New] Render Trend Chart
-    function renderTrendChart(endMonthStr) {
+    window.renderTrendChart = function(endMonthStr) {
         const ctx = document.getElementById('trendChart').getContext('2d');
         
         // Calculate last 6 months
@@ -483,7 +505,7 @@
     }
 
     // --- 5. QR & Paper Input Logic ---
-    function openQRPrintModal() {
+    window.openQRPrintModal = function() {
         const container = document.getElementById('static-qr-list');
         container.innerHTML = '';
         const baseUrl = window.location.href.split('?')[0];
@@ -499,9 +521,9 @@
         });
         document.getElementById('qr-print-modal').classList.remove('hidden');
     }
-    function closeQRPrintModal() { document.getElementById('qr-print-modal').classList.add('hidden'); }
+    window.closeQRPrintModal = function() { document.getElementById('qr-print-modal').classList.add('hidden'); }
 
-    function openPaperInputModal() {
+    window.openPaperInputModal = function() {
         const modal = document.getElementById('paper-input-modal');
         document.getElementById('paper-date').value = new Date().toISOString().slice(0,10);
         updateSessionOptions();
@@ -509,7 +531,7 @@
         modal.classList.remove('hidden');
     }
 
-    function updateSessionOptions() {
+    window.updateSessionOptions = function() {
         const dateStr = document.getElementById('paper-date').value;
         if(!dateStr) return;
         const date = new Date(dateStr);
@@ -526,9 +548,9 @@
         }
     }
 
-    function closePaperInputModal() { document.getElementById('paper-input-modal').classList.add('hidden'); }
+    window.closePaperInputModal = function() { document.getElementById('paper-input-modal').classList.add('hidden'); }
 
-    function processPaperInput() {
+    window.processPaperInput = async function() {
         const dateStr = document.getElementById('paper-date').value;
         const sessionCode = document.getElementById('paper-session-select').value;
         const text = document.getElementById('paper-text-area').value;
@@ -542,44 +564,77 @@
         
         let successCount = 0; let newMemberCount = 0; let duplicateCount = 0;
         
+        const batch = writeBatch(db);
+        let tempMembers = [...members]; // Local cache for this batch operation
+        
         lines.forEach(line => {
             let inputName = line; let inputPhone = null;
             const match = line.match(/^(.*?)[\s]+(\d{4})$/);
             if (match) { inputName = match[1].trim(); inputPhone = match[2]; }
             
-            let candidates = members.filter(m => m.name === inputName);
+            let candidates = tempMembers.filter(m => m.name === inputName);
             let targetMember = null;
 
             if (candidates.length === 0) {
-                targetMember = { id: Date.now().toString() + Math.random().toString().slice(2,5), name: inputName, phone: inputPhone || "0000" };
-                members.push(targetMember); newMemberCount++;
+                // Create new member ref
+                const newMemberRef = doc(collection(db, "members"));
+                const newMemberData = { name: inputName, phone: inputPhone || "0000" };
+                batch.set(newMemberRef, newMemberData);
+                
+                targetMember = { id: newMemberRef.id, ...newMemberData };
+                tempMembers.push(targetMember);
+                newMemberCount++;
             } else if (candidates.length === 1) {
                 if (inputPhone && candidates[0].phone !== "0000" && candidates[0].phone !== inputPhone) {
-                    targetMember = { id: Date.now().toString() + Math.random().toString().slice(2,5), name: inputName, phone: inputPhone };
-                    members.push(targetMember); newMemberCount++;
+                    // Different person (same name, diff phone)
+                    const newMemberRef = doc(collection(db, "members"));
+                    const newMemberData = { name: inputName, phone: inputPhone };
+                    batch.set(newMemberRef, newMemberData);
+                    
+                    targetMember = { id: newMemberRef.id, ...newMemberData };
+                    tempMembers.push(targetMember);
+                    newMemberCount++;
                 } else {
                     targetMember = candidates[0];
-                    if(targetMember.phone === "0000" && inputPhone) targetMember.phone = inputPhone;
+                    if(targetMember.phone === "0000" && inputPhone) {
+                        // Update phone number
+                        batch.update(doc(db, "members", targetMember.id), { phone: inputPhone });
+                        targetMember.phone = inputPhone;
+                    }
                 }
             } else {
                 if (inputPhone) targetMember = candidates.find(m => m.phone === inputPhone);
                 if (!targetMember && inputPhone) {
-                    targetMember = { id: Date.now().toString() + Math.random().toString().slice(2,5), name: inputName, phone: inputPhone };
-                    members.push(targetMember); newMemberCount++;
+                    const newMemberRef = doc(collection(db, "members"));
+                    const newMemberData = { name: inputName, phone: inputPhone };
+                    batch.set(newMemberRef, newMemberData);
+                    targetMember = { id: newMemberRef.id, ...newMemberData };
+                    tempMembers.push(targetMember);
+                    newMemberCount++;
                 }
             }
             
             if (targetMember) {
+                // Check logs in memory (since we have real-time sync)
                 const exists = logs.some(l => l.memberId === targetMember.id && l.date === dateStr && l.sessionCode === sessionCode);
                 if(exists) {
                     duplicateCount++;
                 } else {
-                    logs.unshift({ id: Date.now() + Math.random(), memberId: targetMember.id, memberName: targetMember.name, date: dateStr, sessionCode: session.code, sessionName: session.name, timestamp: new Date().toLocaleString() + " (명부입력)" });
+                    const newLogRef = doc(collection(db, "logs"));
+                    batch.set(newLogRef, {
+                        memberId: targetMember.id, 
+                        memberName: targetMember.name, 
+                        date: dateStr, 
+                        sessionCode: session.code, 
+                        sessionName: session.name, 
+                        timestamp: new Date().toLocaleString() + " (명부입력)"
+                    });
                     successCount++;
                 }
             }
         });
-        saveData();
+        
+        await batch.commit();
         alert(`✅ 처리 완료: ${successCount}명\n(중복 제외: ${duplicateCount}명, 신규 가입: ${newMemberCount}명)`);
         
         // 입력창 초기화 (화면은 닫지 않음)
@@ -587,7 +642,7 @@
     }
 
     // --- 6. Attendance Logic (Scan) ---
-    function checkUrlForScan() {
+    window.checkUrlForScan = function() {
         const params = new URLSearchParams(window.location.search);
         const sessionCode = params.get('session');
         if (sessionCode) {
@@ -596,7 +651,7 @@
             else { alert("유효하지 않은 QR 코드입니다."); history.replaceState({}, document.title, window.location.pathname); }
         }
     }
-    function handleScan(session) {
+    window.handleScan = function(session) {
         const now = new Date();
         if (now.getDay() !== session.day) { alert(`❌ 출석 실패\n오늘은 ${DAYS[now.getDay()]}요일입니다.`); history.replaceState({}, document.title, window.location.pathname); return; }
         if (now.getHours() < session.start || now.getHours() >= session.end) { alert(`❌ 출석 실패\n지금은 ${session.name} 시간이 아닙니다.`); history.replaceState({}, document.title, window.location.pathname); return; }
@@ -610,7 +665,7 @@
         });
         modal.classList.remove('hidden');
     }
-    function confirmAttendance() {
+    window.confirmAttendance = async function() {
         const memberId = document.getElementById('check-user-select').value;
         if(!memberId) return alert('회원을 선택해주세요.');
         const member = members.find(m => m.id === memberId);
@@ -618,16 +673,22 @@
         const alreadyChecked = logs.some(log => log.memberId === memberId && log.date === todayStr && log.sessionCode === currentScanSession.code);
         if(alreadyChecked) alert('⚠️ 이미 출석 처리되었습니다.');
         else {
-            logs.unshift({ id: Date.now(), memberId: member.id, memberName: member.name, date: todayStr, sessionCode: currentScanSession.code, sessionName: currentScanSession.name, timestamp: new Date().toLocaleString() });
-            saveData();
+            await addDoc(collection(db, "logs"), {
+                memberId: member.id, 
+                memberName: member.name, 
+                date: todayStr, 
+                sessionCode: currentScanSession.code, 
+                sessionName: currentScanSession.name, 
+                timestamp: new Date().toLocaleString()
+            });
             alert(`✅ ${member.name}님 출석 완료!`);
         }
         closeCheckModal();
     }
-    function closeCheckModal() { document.getElementById('user-check-modal').classList.add('hidden'); history.replaceState({}, document.title, window.location.pathname); }
+    window.closeCheckModal = function() { document.getElementById('user-check-modal').classList.add('hidden'); history.replaceState({}, document.title, window.location.pathname); }
 
     // --- 7. History Modal Logic ---
-    function openHistoryModal(memberId) {
+    window.openHistoryModal = function(memberId) {
         const member = members.find(m => m.id === memberId);
         if(!member) return;
         document.getElementById('history-member-name').innerText = `${member.name} 님의 출석 이력`;
@@ -643,20 +704,20 @@
         }
         document.getElementById('history-modal').classList.remove('hidden');
     }
-    function closeHistoryModal() { document.getElementById('history-modal').classList.add('hidden'); }
+    window.closeHistoryModal = function() { document.getElementById('history-modal').classList.add('hidden'); }
 
     // --- 8. Common Functions ---
-    function addMember() {
+    window.addMember = async function() {
         const name = document.getElementById('new-member-name').value;
         let phone = document.getElementById('new-member-phone').value;
         if (!name) return alert('이름을 입력해주세요.');
         if (!phone) phone = "0000";
-        members.push({ id: Date.now().toString(), name, phone });
-        saveData();
+        
+        await addDoc(collection(db, "members"), { name, phone });
         document.getElementById('new-member-name').value = ''; document.getElementById('new-member-phone').value = '';
         alert('회원이 등록되었습니다.');
     }
-    function renderMembers() {
+    window.renderMembers = function() {
         const list = document.getElementById('member-list');
         document.getElementById('member-count').innerText = `(${members.length}명)`;
         list.innerHTML = '';
@@ -665,22 +726,30 @@
         });
     }
     
-    function deleteMember(id) {
+    window.deleteMember = async function(id) {
         const hasHistory = logs.some(log => log.memberId === id);
         if (hasHistory) {
             alert("❌ 삭제 실패\n이 회원의 출석 기록이 존재합니다.\n기록을 유지하기 위해 삭제할 수 없습니다.");
             return;
         }
         if(confirm('정말 삭제하시겠습니까?')) {
-            members = members.filter(m => m.id !== id);
-            saveData();
+            await deleteDoc(doc(db, "members", id));
             alert('삭제되었습니다.');
         }
     }
     
-    function resetData() { if(confirm('초기화 하시겠습니까?')) { localStorage.clear(); location.reload(); } }
+    window.resetData = async function() { 
+        if(confirm('⚠️ 정말 초기화 하시겠습니까?\n모든 회원 정보와 출석 기록이 영구적으로 삭제됩니다.')) { 
+            const batch = writeBatch(db);
+            members.forEach(m => batch.delete(doc(db, "members", m.id)));
+            logs.forEach(l => batch.delete(doc(db, "logs", l.id)));
+            await batch.commit();
+            alert("모든 데이터가 초기화되었습니다.");
+            location.reload(); 
+        } 
+    }
 
-    function switchPage(pageId) {
+    window.switchPage = function(pageId) {
         document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
         document.getElementById('page-' + pageId).classList.add('active');
         document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
@@ -690,8 +759,7 @@
 
     window.onload = function() {
         document.getElementById('current-url').innerText = window.location.href.split('?')[0];
-        renderMembers();
-        if(members.length === 0) { members = [{id: '1', name: '홍길동', phone: '1234'}, {id: '2', name: '김철수', phone: '5678'}]; saveData(); }
+        // Firebase onSnapshot will handle initial render
         checkUrlForScan();
     };
 </script>
