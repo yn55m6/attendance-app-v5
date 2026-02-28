@@ -1,0 +1,699 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>스마트 출석 체크 (6개월 추이 그래프)</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- QRCode.js -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <!-- Chart.js (그래프용) -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- FontAwesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+
+    <style>
+        body { font-family: 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif; background-color: #f3f4f6; }
+        .app-container { max-width: 480px; margin: 0 auto; background: white; min-height: 100vh; position: relative; padding-bottom: 80px; box-shadow: 0 0 20px rgba(0,0,0,0.1); }
+        
+        /* 네비게이션 바 */
+        .nav-bar { position: fixed; bottom: 0; width: 100%; max-width: 480px; background: white; border-top: 1px solid #e5e7eb; display: flex; justify-content: space-around; padding: 12px 0; z-index: 50; }
+        .nav-item { display: flex; flex-direction: column; align-items: center; color: #9ca3af; font-size: 0.75rem; cursor: pointer; }
+        .nav-item.active { color: #4f46e5; }
+        
+        /* 페이지 전환 애니메이션 */
+        .page { display: none; padding: 20px; animation: fadeIn 0.3s; }
+        .page.active { display: block; }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        
+        /* 카드 스타일 */
+        .card { background: white; border-radius: 12px; padding: 16px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1); margin-bottom: 16px; border: 1px solid #f3f4f6; }
+        .btn-primary { background: linear-gradient(135deg, #6366f1, #4f46e5); color: white; padding: 12px; border-radius: 8px; width: 100%; font-weight: bold; text-align: center; cursor: pointer; transition: 0.2s; }
+        .btn-primary:active { transform: scale(0.98); }
+
+        /* 리포트 테이블 스타일 */
+        .report-table { width: 100%; border-collapse: collapse; font-size: 0.8rem; }
+        .report-table th { background: #f9fafb; padding: 8px; border-bottom: 2px solid #e5e7eb; text-align: left; font-weight: bold; color: #374151; white-space: nowrap; }
+        .report-table td { padding: 8px; border-bottom: 1px solid #f3f4f6; color: #4b5563; }
+        .report-table tr:last-child td { border-bottom: none; }
+
+        /* 인쇄 모드 설정 */
+        @media print {
+            body * { visibility: hidden; }
+            #print-area, #print-area * { visibility: visible; }
+            #print-area { position: absolute; left: 0; top: 0; width: 100%; }
+            .no-print { display: none !important; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="app-container">
+    <!-- Header -->
+    <header class="bg-indigo-600 text-white p-4 sticky top-0 z-40 shadow-md flex justify-between items-center no-print">
+        <h1 class="text-lg font-bold"><i class="fas fa-check-circle mr-2"></i>스마트 출석부</h1>
+        <button onclick="resetData()" class="text-xs bg-indigo-800 px-2 py-1 rounded hover:bg-indigo-700">초기화</button>
+    </header>
+
+    <!-- Page 1: Home (QR & Tools) -->
+    <div id="page-home" class="page active">
+        <div class="card">
+            <h2 class="text-gray-800 font-bold text-lg mb-2">🖨️ QR 코드 관리</h2>
+            <p class="text-sm text-gray-500 mb-4">강의실 부착용 QR 코드를 인쇄하세요.</p>
+            <button onclick="openQRPrintModal()" class="w-full py-3 bg-gray-800 text-white rounded-lg font-bold hover:bg-gray-700">
+                <i class="fas fa-print mr-2"></i>QR 코드 목록 보기
+            </button>
+        </div>
+
+        <div class="card">
+            <h3 class="font-bold text-gray-700 mb-3">🛠 관리자 도구</h3>
+            <button onclick="openPaperInputModal()" class="btn-primary mb-2 bg-gradient-to-r from-green-500 to-emerald-600">
+                <i class="fas fa-edit mr-2"></i>종이 명부 입력 (텍스트)
+            </button>
+            <p class="text-xs text-gray-400 mt-1">
+                * 이름만 입력하면 자동 가입/출석 처리됩니다.<br>
+                * 동명이인은 <strong>이름 번호뒷자리</strong> (예: 김철수 1234)
+            </p>
+        </div>
+        
+        <div class="text-center text-xs text-gray-400 mt-4">
+            현재 접속 주소:<br>
+            <span id="current-url" class="text-indigo-500 break-all"></span>
+        </div>
+    </div>
+
+    <!-- Page 2: Members -->
+    <div id="page-members" class="page">
+        <div class="card">
+            <h2 class="font-bold text-lg mb-4">회원 등록</h2>
+            <div class="flex gap-2 mb-2">
+                <input type="text" id="new-member-name" placeholder="이름 (필수)" class="flex-1 p-2 border rounded bg-gray-50">
+                <input type="tel" id="new-member-phone" placeholder="뒷번호 (생략가능)" class="w-1/3 p-2 border rounded bg-gray-50 text-sm">
+            </div>
+            <button onclick="addMember()" class="btn-primary text-sm">등록하기</button>
+        </div>
+        <div class="card">
+            <h2 class="font-bold text-lg mb-2">회원 목록 <span id="member-count" class="text-sm text-indigo-600 font-normal"></span></h2>
+            <p class="text-xs text-gray-400 mb-2">* 이름을 클릭하면 상세 이력을 볼 수 있습니다.</p>
+            <ul id="member-list" class="divide-y divide-gray-100"></ul>
+        </div>
+    </div>
+
+    <!-- Page 3: Reports (Tables & Chart) -->
+    <div id="page-reports" class="page">
+        <div class="bg-white p-4 sticky top-14 z-30 shadow-sm mb-4 -mx-5 px-5 border-b">
+            <label class="text-xs font-bold text-gray-500 block mb-1">조회 월 선택</label>
+            <input type="month" id="report-month" class="w-full p-2 border rounded bg-gray-50 font-bold text-gray-700" onchange="renderReports()">
+        </div>
+
+        <!-- Report 0: 월간 총 출석 인원 & 그래프 (NEW) -->
+        <div class="card bg-white border border-gray-200">
+            <div class="flex justify-between items-end mb-4">
+                <div>
+                    <h2 class="font-bold text-lg text-gray-800">📊 월간 총 출석</h2>
+                    <p class="text-xs text-gray-400">중복 제외, 실제 출석 회원 수</p>
+                </div>
+                <span id="report-total-unique" class="text-4xl font-bold text-indigo-600">0명</span>
+            </div>
+            
+            <!-- 6개월 추이 그래프 -->
+            <div class="h-48 w-full">
+                <canvas id="trendChart"></canvas>
+            </div>
+            <p class="text-center text-xs text-gray-400 mt-2">최근 6개월 출석 추이</p>
+        </div>
+
+        <!-- Report 1: 월별 회원별 출석횟수 -->
+        <div class="card">
+            <h2 class="font-bold text-lg mb-2 text-indigo-700">🏆 회원별 출석 순위</h2>
+            <div class="overflow-x-auto">
+                <table class="report-table">
+                    <thead><tr><th>순위</th><th>이름</th><th>전화번호</th><th class="text-right">횟수</th></tr></thead>
+                    <tbody id="report-member-body"></tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Report 2: 월별 주차별 차수별 출석횟수 -->
+        <div class="card">
+            <h2 class="font-bold text-lg mb-2 text-green-700">📅 주차/차수별 현황</h2>
+            <div class="overflow-x-auto">
+                <table class="report-table">
+                    <thead><tr><th>주차</th><th>차수(반)</th><th class="text-right">인원</th></tr></thead>
+                    <tbody id="report-session-body"></tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Report 3: 월별 개인별 주차별 횟수 -->
+        <div class="card">
+            <h2 class="font-bold text-lg mb-2 text-blue-700">👤 개인별 주차 상세</h2>
+            <p class="text-xs text-gray-400 mb-2">* 이름을 클릭하면 상세 날짜를 볼 수 있습니다.</p>
+            <div class="overflow-x-auto">
+                <table class="report-table" style="min-width: 320px;">
+                    <thead>
+                        <tr>
+                            <th>이름</th>
+                            <th class="text-center">1주</th>
+                            <th class="text-center">2주</th>
+                            <th class="text-center">3주</th>
+                            <th class="text-center">4주</th>
+                            <th class="text-center">5주</th>
+                            <th class="text-right">계</th>
+                        </tr>
+                    </thead>
+                    <tbody id="report-weekly-body"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Navigation Bar -->
+    <nav class="nav-bar no-print">
+        <div class="nav-item active" onclick="switchPage('home')">
+            <i class="fas fa-home"></i><span>홈</span>
+        </div>
+        <div class="nav-item" onclick="switchPage('members')">
+            <i class="fas fa-users"></i><span>회원관리</span>
+        </div>
+        <div class="nav-item" onclick="switchPage('reports')">
+            <i class="fas fa-chart-bar"></i><span>리포트</span>
+        </div>
+    </nav>
+</div>
+
+<!-- Modal: QR Print View -->
+<div id="qr-print-modal" class="fixed inset-0 bg-white z-50 hidden overflow-y-auto">
+    <div class="p-6 max-w-2xl mx-auto" id="print-area">
+        <div class="flex justify-between items-center mb-6 no-print">
+            <h2 class="text-2xl font-bold">인쇄용 QR 코드</h2>
+            <button onclick="closeQRPrintModal()" class="text-gray-500 text-lg"><i class="fas fa-times"></i></button>
+        </div>
+        <div class="no-print mb-4 text-center">
+            <button onclick="window.print()" class="bg-blue-600 text-white px-6 py-2 rounded-lg font-bold shadow hover:bg-blue-700">
+                <i class="fas fa-print mr-2"></i>인쇄하기
+            </button>
+            <p class="text-xs text-red-500 mt-2">※ 주의: 이 QR 코드는 현재 웹사이트 주소 기반입니다.<br>서버 주소가 바뀌면 다시 출력해야 합니다.</p>
+        </div>
+        <div id="static-qr-list" class="grid grid-cols-1 gap-8 text-center"></div>
+    </div>
+</div>
+
+<!-- Modal: Paper Input (Text Area) -->
+<div id="paper-input-modal" class="fixed inset-0 bg-black bg-opacity-90 z-50 hidden flex flex-col justify-center items-center p-6 no-print">
+    <div class="bg-white w-full max-w-md rounded-xl p-6 relative">
+        <button onclick="closePaperInputModal()" class="absolute top-4 right-4 text-gray-400"><i class="fas fa-times"></i></button>
+        
+        <h3 class="text-xl font-bold mb-2 text-green-700"><i class="fas fa-edit mr-2"></i>종이 명부 입력</h3>
+        
+        <div class="mb-3">
+            <label class="block text-xs font-bold text-gray-500 mb-1">1. 날짜 선택</label>
+            <input type="date" id="paper-date" class="w-full p-2 border rounded bg-gray-50 font-bold text-gray-700" onchange="updateSessionOptions()">
+        </div>
+
+        <div class="mb-3">
+            <label class="block text-xs font-bold text-gray-500 mb-1">2. 시간(차수) 선택</label>
+            <select id="paper-session-select" class="w-full p-2 border rounded bg-gray-50 text-sm font-bold">
+                <!-- JS로 옵션 채움 -->
+            </select>
+        </div>
+
+        <div class="mb-4">
+            <label class="block text-xs font-bold text-gray-500 mb-1">3. 명단 입력 (이름만 입력 가능)</label>
+            <textarea id="paper-text-area" class="w-full h-32 p-3 border rounded bg-gray-50 text-sm font-mono" placeholder="김철수&#13;&#10;이영희&#13;&#10;박민수 5678"></textarea>
+            <p class="text-xs text-indigo-500 mt-1">* 없는 회원은 자동 가입됩니다.</p>
+        </div>
+        
+        <div class="flex gap-2">
+            <button onclick="processPaperInput()" class="flex-1 btn-primary bg-green-600">일괄 출석 처리</button>
+            <button onclick="closePaperInputModal()" class="w-1/3 py-2 bg-gray-200 text-gray-700 rounded-lg font-bold">닫기</button>
+        </div>
+    </div>
+</div>
+
+<!-- Modal: User Attendance Check (QR Scan Result) -->
+<div id="user-check-modal" class="fixed inset-0 bg-black bg-opacity-90 z-50 hidden flex flex-col justify-center items-center p-6 no-print">
+    <div class="bg-white w-full max-w-sm rounded-xl p-6 text-center">
+        <h3 class="text-xl font-bold mb-2 text-indigo-600">출석 체크</h3>
+        <p id="scan-info" class="text-gray-800 font-bold mb-1"></p>
+        <p class="text-gray-500 text-xs mb-4">본인의 이름을 선택해주세요.</p>
+        
+        <select id="check-user-select" class="w-full p-3 border rounded mb-4 bg-gray-50 text-lg">
+            <option value="">회원 선택...</option>
+        </select>
+        
+        <button onclick="confirmAttendance()" class="btn-primary mb-2">출석 확인</button>
+        <button onclick="closeCheckModal()" class="text-gray-500 text-sm mt-4 underline">취소</button>
+    </div>
+</div>
+
+<!-- Modal: Member History -->
+<div id="history-modal" class="fixed inset-0 bg-black bg-opacity-90 z-50 hidden flex flex-col justify-center items-center p-6 no-print">
+    <div class="bg-white w-full max-w-sm rounded-xl p-6 relative max-h-[80vh] flex flex-col">
+        <button onclick="closeHistoryModal()" class="absolute top-4 right-4 text-gray-400"><i class="fas fa-times"></i></button>
+        
+        <h3 class="text-xl font-bold mb-1 text-indigo-700" id="history-member-name">회원 이름</h3>
+        <p class="text-xs text-gray-500 mb-4">상세 출석 이력 (최신순)</p>
+        
+        <div class="overflow-y-auto flex-1 border-t border-gray-100 pt-2">
+            <ul id="history-list" class="text-sm space-y-3">
+                <!-- History items will go here -->
+            </ul>
+        </div>
+        
+        <button onclick="closeHistoryModal()" class="mt-4 w-full py-2 bg-gray-100 text-gray-600 rounded text-sm font-bold">닫기</button>
+    </div>
+</div>
+
+<script>
+    // --- 1. Configuration ---
+    const SESSIONS = [];
+    const DAYS = ["일", "월", "화", "수", "목", "금", "토"];
+    const TIMES = [
+        { id: "AM", name: "오전반", start: 6, end: 12 },
+        { id: "PM", name: "오후반", start: 12, end: 18 },
+        { id: "EVE", name: "저녁반", start: 18, end: 24 }
+    ];
+
+    // 월~금 생성
+    for(let d=1; d<=5; d++) {
+        TIMES.forEach(t => {
+            SESSIONS.push({ code: `D${d}_${t.id}`, name: `${DAYS[d]}요일 ${t.name}`, day: d, start: t.start, end: t.end });
+        });
+    }
+    // 토요일 오후반 추가
+    SESSIONS.push({ code: "D6_PM", name: "토요일 오후반", day: 6, start: 12, end: 18 });
+
+    // --- 2. Data Management ---
+    const DB_KEY_MEMBERS = 'att_members_v17'; // Version updated
+    const DB_KEY_LOGS = 'att_logs_v17';
+    
+    let members = JSON.parse(localStorage.getItem(DB_KEY_MEMBERS)) || [];
+    let logs = JSON.parse(localStorage.getItem(DB_KEY_LOGS)) || [];
+    let currentScanSession = null;
+    let trendChartInstance = null; // Chart instance
+
+    function saveData() {
+        localStorage.setItem(DB_KEY_MEMBERS, JSON.stringify(members));
+        localStorage.setItem(DB_KEY_LOGS, JSON.stringify(logs));
+        renderMembers();
+    }
+
+    // --- 3. Helper Functions ---
+    function getWeekOfMonth(dateStr) {
+        const d = new Date(dateStr);
+        const date = d.getDate();
+        const firstDayOfMonth = new Date(d.getFullYear(), d.getMonth(), 1).getDay();
+        return Math.ceil((date + firstDayOfMonth) / 7);
+    }
+
+    // --- 4. Report Logic ---
+    function renderReports() {
+        const monthInput = document.getElementById('report-month');
+        if (!monthInput.value) {
+            const now = new Date();
+            const yyyy = now.getFullYear();
+            const mm = String(now.getMonth() + 1).padStart(2, '0');
+            monthInput.value = `${yyyy}-${mm}`;
+        }
+        
+        const selectedMonth = monthInput.value; // "YYYY-MM"
+        const monthlyLogs = logs.filter(log => log.date.startsWith(selectedMonth));
+
+        // [Report 0] 월간 총 출석 인원 (Unique Count) & Chart
+        const uniqueMembers = new Set(monthlyLogs.map(log => log.memberId)).size;
+        document.getElementById('report-total-unique').innerText = `${uniqueMembers}명`;
+        
+        // Render Chart
+        renderTrendChart(selectedMonth);
+
+        // [Report 1] 월별 회원별 출석횟수
+        const memberCounts = {};
+        monthlyLogs.forEach(log => {
+            if (!memberCounts[log.memberId]) {
+                const m = members.find(mem => mem.id === log.memberId);
+                memberCounts[log.memberId] = { count: 0, name: log.memberName, phone: m ? m.phone : "" };
+            }
+            memberCounts[log.memberId].count++;
+        });
+        const sortedMembers = Object.values(memberCounts).sort((a, b) => b.count - a.count);
+        
+        const tbody1 = document.getElementById('report-member-body');
+        tbody1.innerHTML = '';
+        if (sortedMembers.length === 0) tbody1.innerHTML = '<tr><td colspan="4" class="text-center py-4 text-gray-400">데이터가 없습니다.</td></tr>';
+        else {
+            sortedMembers.forEach((item, index) => {
+                tbody1.innerHTML += `<tr><td>${index + 1}</td><td class="font-bold">${item.name}</td><td class="text-xs text-gray-400">${item.phone}</td><td class="text-right font-bold text-indigo-600">${item.count}회</td></tr>`;
+            });
+        }
+
+        // [Report 2] 월별 주차별 차수별 출석횟수
+        const weekSessionCounts = {};
+        monthlyLogs.forEach(log => {
+            const week = getWeekOfMonth(log.date);
+            const weekKey = `${week}주차`;
+            if (!weekSessionCounts[weekKey]) weekSessionCounts[weekKey] = {};
+            if (!weekSessionCounts[weekKey][log.sessionName]) weekSessionCounts[weekKey][log.sessionName] = 0;
+            weekSessionCounts[weekKey][log.sessionName]++;
+        });
+        
+        const tbody2 = document.getElementById('report-session-body');
+        tbody2.innerHTML = '';
+        const sortedWeeks = Object.keys(weekSessionCounts).sort();
+        if (sortedWeeks.length === 0) tbody2.innerHTML = '<tr><td colspan="3" class="text-center py-4 text-gray-400">데이터가 없습니다.</td></tr>';
+        else {
+            sortedWeeks.forEach(week => {
+                const sessions = weekSessionCounts[week];
+                Object.keys(sessions).sort().forEach(sessionName => {
+                    tbody2.innerHTML += `<tr><td>${week}</td><td>${sessionName}</td><td class="text-right font-bold">${sessions[sessionName]}명</td></tr>`;
+                });
+            });
+        }
+
+        // [Report 3] 월별 개인별 주차별 횟수
+        const individualWeekly = {};
+        monthlyLogs.forEach(log => {
+            const week = getWeekOfMonth(log.date);
+            if (!individualWeekly[log.memberId]) {
+                individualWeekly[log.memberId] = { 
+                    id: log.memberId, 
+                    name: log.memberName, 
+                    weeks: {1:0, 2:0, 3:0, 4:0, 5:0}, 
+                    total: 0 
+                };
+            }
+            if (individualWeekly[log.memberId].weeks[week] !== undefined) individualWeekly[log.memberId].weeks[week]++;
+            individualWeekly[log.memberId].total++;
+        });
+
+        const tbody3 = document.getElementById('report-weekly-body');
+        tbody3.innerHTML = '';
+        const sortedIndiv = Object.values(individualWeekly).sort((a, b) => a.name.localeCompare(b.name));
+        if (sortedIndiv.length === 0) tbody3.innerHTML = '<tr><td colspan="7" class="text-center py-4 text-gray-400">데이터가 없습니다.</td></tr>';
+        else {
+            sortedIndiv.forEach(item => {
+                tbody3.innerHTML += `<tr>
+                    <td class="font-bold text-indigo-600 cursor-pointer hover:underline" onclick="openHistoryModal('${item.id}')">${item.name}</td>
+                    <td class="text-center text-gray-500">${item.weeks[1] || '-'}</td>
+                    <td class="text-center text-gray-500">${item.weeks[2] || '-'}</td>
+                    <td class="text-center text-gray-500">${item.weeks[3] || '-'}</td>
+                    <td class="text-center text-gray-500">${item.weeks[4] || '-'}</td>
+                    <td class="text-center text-gray-500">${item.weeks[5] || '-'}</td>
+                    <td class="text-right font-bold text-blue-600">${item.total}</td>
+                </tr>`;
+            });
+        }
+    }
+
+    // [New] Render Trend Chart
+    function renderTrendChart(endMonthStr) {
+        const ctx = document.getElementById('trendChart').getContext('2d');
+        
+        // Calculate last 6 months
+        const labels = [];
+        const data = [];
+        
+        // Parse "YYYY-MM"
+        const [year, month] = endMonthStr.split('-').map(Number);
+        let current = new Date(year, month - 1, 1); // Month is 0-indexed in Date
+
+        for(let i=0; i<6; i++) {
+            // Format YYYY-MM
+            const y = current.getFullYear();
+            const m = String(current.getMonth() + 1).padStart(2, '0');
+            const key = `${y}-${m}`;
+            
+            labels.unshift(key); // Add to front
+            
+            // Count unique members for this month
+            const count = new Set(logs.filter(l => l.date.startsWith(key)).map(l => l.memberId)).size;
+            data.unshift(count);
+
+            // Go back 1 month
+            current.setMonth(current.getMonth() - 1);
+        }
+
+        if (trendChartInstance) {
+            trendChartInstance.destroy();
+        }
+
+        trendChartInstance = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: '월간 출석 인원',
+                    data: data,
+                    borderColor: '#4f46e5', // Indigo-600
+                    backgroundColor: 'rgba(79, 70, 229, 0.1)',
+                    borderWidth: 2,
+                    tension: 0.3, // Smooth curve
+                    fill: true,
+                    pointBackgroundColor: '#ffffff',
+                    pointBorderColor: '#4f46e5',
+                    pointRadius: 4
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { display: false },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                return context.parsed.y + '명';
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: { stepSize: 1 },
+                        grid: { borderDash: [2, 4] }
+                    },
+                    x: {
+                        grid: { display: false }
+                    }
+                }
+            }
+        });
+    }
+
+    // --- 5. QR & Paper Input Logic ---
+    function openQRPrintModal() {
+        const container = document.getElementById('static-qr-list');
+        container.innerHTML = '';
+        const baseUrl = window.location.href.split('?')[0];
+        SESSIONS.forEach(s => {
+            const wrapper = document.createElement('div');
+            wrapper.className = "border-2 border-dashed border-gray-300 p-6 rounded-xl flex flex-col items-center page-break-inside-avoid";
+            const title = document.createElement('h3'); title.className = "text-xl font-bold mb-1"; title.innerText = s.name;
+            const sub = document.createElement('p'); sub.className = "text-gray-500 mb-4"; sub.innerText = `${s.start}:00 ~ ${s.end}:00`;
+            const qrDiv = document.createElement('div');
+            const targetUrl = `${baseUrl}?session=${s.code}`;
+            new QRCode(qrDiv, { text: targetUrl, width: 180, height: 180, colorDark : "#000000", colorLight : "#ffffff", correctLevel : QRCode.CorrectLevel.M });
+            wrapper.appendChild(title); wrapper.appendChild(sub); wrapper.appendChild(qrDiv); container.appendChild(wrapper);
+        });
+        document.getElementById('qr-print-modal').classList.remove('hidden');
+    }
+    function closeQRPrintModal() { document.getElementById('qr-print-modal').classList.add('hidden'); }
+
+    function openPaperInputModal() {
+        const modal = document.getElementById('paper-input-modal');
+        document.getElementById('paper-date').value = new Date().toISOString().slice(0,10);
+        updateSessionOptions();
+        document.getElementById('paper-text-area').value = '';
+        modal.classList.remove('hidden');
+    }
+
+    function updateSessionOptions() {
+        const dateStr = document.getElementById('paper-date').value;
+        if(!dateStr) return;
+        const date = new Date(dateStr);
+        const day = date.getDay();
+        const select = document.getElementById('paper-session-select');
+        select.innerHTML = '';
+        const availableSessions = SESSIONS.filter(s => s.day === day);
+        if(availableSessions.length > 0) {
+            availableSessions.forEach(s => {
+                const opt = document.createElement('option'); opt.value = s.code; opt.innerText = s.name; select.appendChild(opt);
+            });
+        } else {
+            const opt = document.createElement('option'); opt.innerText = "해당 요일엔 수업이 없습니다."; select.appendChild(opt);
+        }
+    }
+
+    function closePaperInputModal() { document.getElementById('paper-input-modal').classList.add('hidden'); }
+
+    function processPaperInput() {
+        const dateStr = document.getElementById('paper-date').value;
+        const sessionCode = document.getElementById('paper-session-select').value;
+        const text = document.getElementById('paper-text-area').value;
+        
+        if(!dateStr) return alert('날짜를 선택해주세요.');
+        if(!sessionCode || sessionCode.startsWith("해당")) return alert('유효한 수업(차수)을 선택해주세요.');
+        if(!text.trim()) return alert('이름을 입력해주세요.');
+
+        const session = SESSIONS.find(s => s.code === sessionCode);
+        const lines = text.split(/[\n,]+/).map(n => n.trim()).filter(n => n.length > 0);
+        
+        let successCount = 0; let newMemberCount = 0; let duplicateCount = 0;
+        
+        lines.forEach(line => {
+            let inputName = line; let inputPhone = null;
+            const match = line.match(/^(.*?)[\s]+(\d{4})$/);
+            if (match) { inputName = match[1].trim(); inputPhone = match[2]; }
+            
+            let candidates = members.filter(m => m.name === inputName);
+            let targetMember = null;
+
+            if (candidates.length === 0) {
+                targetMember = { id: Date.now().toString() + Math.random().toString().slice(2,5), name: inputName, phone: inputPhone || "0000" };
+                members.push(targetMember); newMemberCount++;
+            } else if (candidates.length === 1) {
+                if (inputPhone && candidates[0].phone !== "0000" && candidates[0].phone !== inputPhone) {
+                    targetMember = { id: Date.now().toString() + Math.random().toString().slice(2,5), name: inputName, phone: inputPhone };
+                    members.push(targetMember); newMemberCount++;
+                } else {
+                    targetMember = candidates[0];
+                    if(targetMember.phone === "0000" && inputPhone) targetMember.phone = inputPhone;
+                }
+            } else {
+                if (inputPhone) targetMember = candidates.find(m => m.phone === inputPhone);
+                if (!targetMember && inputPhone) {
+                    targetMember = { id: Date.now().toString() + Math.random().toString().slice(2,5), name: inputName, phone: inputPhone };
+                    members.push(targetMember); newMemberCount++;
+                }
+            }
+            
+            if (targetMember) {
+                const exists = logs.some(l => l.memberId === targetMember.id && l.date === dateStr && l.sessionCode === sessionCode);
+                if(exists) {
+                    duplicateCount++;
+                } else {
+                    logs.unshift({ id: Date.now() + Math.random(), memberId: targetMember.id, memberName: targetMember.name, date: dateStr, sessionCode: session.code, sessionName: session.name, timestamp: new Date().toLocaleString() + " (명부입력)" });
+                    successCount++;
+                }
+            }
+        });
+        saveData();
+        alert(`✅ 처리 완료: ${successCount}명\n(중복 제외: ${duplicateCount}명, 신규 가입: ${newMemberCount}명)`);
+        
+        // 입력창 초기화 (화면은 닫지 않음)
+        document.getElementById('paper-text-area').value = '';
+    }
+
+    // --- 6. Attendance Logic (Scan) ---
+    function checkUrlForScan() {
+        const params = new URLSearchParams(window.location.search);
+        const sessionCode = params.get('session');
+        if (sessionCode) {
+            const session = SESSIONS.find(s => s.code === sessionCode);
+            if (session) handleScan(session);
+            else { alert("유효하지 않은 QR 코드입니다."); history.replaceState({}, document.title, window.location.pathname); }
+        }
+    }
+    function handleScan(session) {
+        const now = new Date();
+        if (now.getDay() !== session.day) { alert(`❌ 출석 실패\n오늘은 ${DAYS[now.getDay()]}요일입니다.`); history.replaceState({}, document.title, window.location.pathname); return; }
+        if (now.getHours() < session.start || now.getHours() >= session.end) { alert(`❌ 출석 실패\n지금은 ${session.name} 시간이 아닙니다.`); history.replaceState({}, document.title, window.location.pathname); return; }
+        currentScanSession = session;
+        const modal = document.getElementById('user-check-modal');
+        document.getElementById('scan-info').innerText = `[${session.name}] 출석`;
+        const select = document.getElementById('check-user-select');
+        select.innerHTML = '<option value="">회원 선택...</option>';
+        members.forEach(m => {
+            const opt = document.createElement('option'); opt.value = m.id; opt.innerText = `${m.name} (${m.phone})`; select.appendChild(opt);
+        });
+        modal.classList.remove('hidden');
+    }
+    function confirmAttendance() {
+        const memberId = document.getElementById('check-user-select').value;
+        if(!memberId) return alert('회원을 선택해주세요.');
+        const member = members.find(m => m.id === memberId);
+        const todayStr = new Date().toISOString().slice(0,10);
+        const alreadyChecked = logs.some(log => log.memberId === memberId && log.date === todayStr && log.sessionCode === currentScanSession.code);
+        if(alreadyChecked) alert('⚠️ 이미 출석 처리되었습니다.');
+        else {
+            logs.unshift({ id: Date.now(), memberId: member.id, memberName: member.name, date: todayStr, sessionCode: currentScanSession.code, sessionName: currentScanSession.name, timestamp: new Date().toLocaleString() });
+            saveData();
+            alert(`✅ ${member.name}님 출석 완료!`);
+        }
+        closeCheckModal();
+    }
+    function closeCheckModal() { document.getElementById('user-check-modal').classList.add('hidden'); history.replaceState({}, document.title, window.location.pathname); }
+
+    // --- 7. History Modal Logic ---
+    function openHistoryModal(memberId) {
+        const member = members.find(m => m.id === memberId);
+        if(!member) return;
+        document.getElementById('history-member-name').innerText = `${member.name} 님의 출석 이력`;
+        const list = document.getElementById('history-list');
+        list.innerHTML = '';
+        const history = logs.filter(l => l.memberId === memberId).sort((a, b) => b.id - a.id);
+        if(history.length === 0) {
+            list.innerHTML = '<li class="text-center text-gray-400 py-4">출석 기록이 없습니다.</li>';
+        } else {
+            history.forEach(h => {
+                list.innerHTML += `<li class="bg-gray-50 p-3 rounded border border-gray-100"><div class="flex justify-between items-center mb-1"><span class="font-bold text-gray-700">${h.date}</span><span class="text-xs bg-indigo-100 text-indigo-700 px-2 py-0.5 rounded">${h.sessionName}</span></div><div class="text-xs text-gray-400 text-right">${h.timestamp}</div></li>`;
+            });
+        }
+        document.getElementById('history-modal').classList.remove('hidden');
+    }
+    function closeHistoryModal() { document.getElementById('history-modal').classList.add('hidden'); }
+
+    // --- 8. Common Functions ---
+    function addMember() {
+        const name = document.getElementById('new-member-name').value;
+        let phone = document.getElementById('new-member-phone').value;
+        if (!name) return alert('이름을 입력해주세요.');
+        if (!phone) phone = "0000";
+        members.push({ id: Date.now().toString(), name, phone });
+        saveData();
+        document.getElementById('new-member-name').value = ''; document.getElementById('new-member-phone').value = '';
+        alert('회원이 등록되었습니다.');
+    }
+    function renderMembers() {
+        const list = document.getElementById('member-list');
+        document.getElementById('member-count').innerText = `(${members.length}명)`;
+        list.innerHTML = '';
+        members.forEach(m => {
+            list.innerHTML += `<li class="py-3 flex justify-between items-center"><div onclick="openHistoryModal('${m.id}')" class="cursor-pointer flex-1 hover:bg-gray-50 p-1 rounded transition"><p class="font-bold text-gray-800 flex items-center">${m.name} <i class="fas fa-chevron-right text-gray-300 text-xs ml-2"></i></p><p class="text-xs text-gray-400">${m.phone}</p></div><button onclick="deleteMember('${m.id}')" class="text-red-400 text-xs border border-red-200 px-2 py-1 rounded hover:bg-red-50 ml-2">삭제</button></li>`;
+        });
+    }
+    
+    function deleteMember(id) {
+        const hasHistory = logs.some(log => log.memberId === id);
+        if (hasHistory) {
+            alert("❌ 삭제 실패\n이 회원의 출석 기록이 존재합니다.\n기록을 유지하기 위해 삭제할 수 없습니다.");
+            return;
+        }
+        if(confirm('정말 삭제하시겠습니까?')) {
+            members = members.filter(m => m.id !== id);
+            saveData();
+            alert('삭제되었습니다.');
+        }
+    }
+    
+    function resetData() { if(confirm('초기화 하시겠습니까?')) { localStorage.clear(); location.reload(); } }
+
+    function switchPage(pageId) {
+        document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+        document.getElementById('page-' + pageId).classList.add('active');
+        document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+        event.currentTarget.classList.add('active');
+        if(pageId === 'reports') renderReports();
+    }
+
+    window.onload = function() {
+        document.getElementById('current-url').innerText = window.location.href.split('?')[0];
+        renderMembers();
+        if(members.length === 0) { members = [{id: '1', name: '홍길동', phone: '1234'}, {id: '2', name: '김철수', phone: '5678'}]; saveData(); }
+        checkUrlForScan();
+    };
+</script>
+</body>
+</html>
