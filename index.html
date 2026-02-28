@@ -235,31 +235,36 @@
 <!-- Modal: User Attendance Check (QR Scan Result) -->
 <div id="user-check-modal" class="fixed inset-0 bg-black bg-opacity-90 z-50 hidden flex flex-col justify-center items-center p-6 no-print">
     <div class="bg-white w-full max-w-sm rounded-xl p-6 text-center">
-        <h3 class="text-xl font-bold mb-2 text-indigo-600">출석 체크</h3>
-        <p id="scan-info" class="text-gray-800 font-bold mb-1"></p>
-        <p class="text-gray-500 text-xs mb-4">본인의 이름을 선택하거나 직접 입력하세요.</p>
+        <h3 class="text-2xl font-bold mb-2 text-indigo-600">출석 체크</h3>
+        <p id="scan-info" class="text-xl text-gray-800 font-bold mb-2"></p>
+        <p class="text-gray-500 text-sm mb-6">본인의 이름을 선택하거나 직접 입력하세요.</p>
         
         <!-- Existing Member Select -->
         <div id="check-existing-wrapper">
-            <select id="check-user-select" class="w-full p-3 border rounded mb-2 bg-gray-50 text-lg">
-                <option value="">회원 선택...</option>
+            <select id="check-user-select" class="w-full p-4 border-2 border-indigo-100 rounded-xl mb-4 bg-white text-xl font-bold text-gray-800 shadow-sm focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 outline-none h-16">
+                <option value="">⬇️ 여기를 눌러 이름 선택</option>
             </select>
-            <button onclick="toggleCheckMode('manual')" class="w-full py-4 bg-indigo-50 text-indigo-700 rounded-xl font-bold hover:bg-indigo-100 mb-4 text-lg border border-indigo-100 shadow-sm transition duration-200">
-                📝 명단에 없나요? 직접 입력
-            </button>
+            <div onclick="toggleCheckMode('manual')" class="w-full py-4 bg-indigo-50 text-indigo-700 rounded-xl font-bold cursor-pointer hover:bg-indigo-100 mb-4 text-lg border border-indigo-100 shadow-sm flex items-center justify-center">
+                <span>📝 명단에 없어요 (직접 입력)</span>
+            </div>
         </div>
 
         <!-- Manual Input -->
         <div id="check-manual-wrapper" class="hidden">
-            <input type="text" id="check-manual-name" placeholder="이름 (필수)" class="w-full p-3 border rounded mb-2 bg-gray-50">
-            <input type="tel" id="check-manual-phone" placeholder="전화번호 뒷자리 (선택)" class="w-full p-3 border rounded mb-2 bg-gray-50">
-            <button onclick="toggleCheckMode('existing')" class="w-full py-3 bg-gray-100 text-gray-600 rounded-xl font-bold hover:bg-gray-200 mb-4 text-base border border-gray-200 transition duration-200">
+            <div class="mb-4 text-left bg-yellow-50 p-4 rounded-xl border border-yellow-100">
+                <p class="text-base text-yellow-800 font-bold mb-1">📢 처음 오셨나요?</p>
+                <p class="text-sm text-yellow-700">이름을 크게 입력해주시면 바로 등록됩니다.</p>
+            </div>
+            <input type="text" id="check-manual-name" placeholder="이름 입력" class="w-full p-4 border-2 border-indigo-200 rounded-xl mb-3 bg-white text-2xl font-bold text-center placeholder-gray-300 focus:border-indigo-500 outline-none h-16">
+            <input type="tel" id="check-manual-phone" placeholder="전화번호 뒷자리 (선택)" class="w-full p-4 border rounded-xl mb-4 bg-gray-50 text-xl text-center h-14">
+            
+            <div onclick="toggleCheckMode('existing')" class="w-full py-3 bg-gray-100 text-gray-600 rounded-xl font-bold cursor-pointer hover:bg-gray-200 mb-2 text-base border border-gray-200">
                 ↩️ 명단에서 선택하기
-            </button>
+            </div>
         </div>
 
-        <button onclick="confirmAttendance()" class="btn-primary mb-2">출석 확인</button>
-        <button onclick="closeCheckModal()" class="text-gray-500 text-sm mt-4 underline">취소</button>
+        <button onclick="confirmAttendance()" class="btn-primary mb-2 text-xl py-4 shadow-lg">✅ 출석 확인</button>
+        <button onclick="closeCheckModal()" class="text-gray-500 text-base mt-4 underline p-2">취소</button>
     </div>
 </div>
 
@@ -329,6 +334,7 @@
     onSnapshot(query(collection(db, "members"), orderBy("name")), (snapshot) => {
         window.members = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
         renderMembers();
+        updateCheckUserSelect(); // [FIX] 회원 데이터 변경 시, 출석 모달의 드롭다운도 항상 업데이트
     });
 
     // 2. Logs
@@ -336,6 +342,25 @@
         window.logs = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
         renderReports();
     });
+
+    // [NEW] Helper function to populate the attendance check dropdown
+    function updateCheckUserSelect() {
+        const select = document.getElementById('check-user-select');
+        const currentValue = select.value; // Preserve selection if possible
+
+        select.innerHTML = '<option value="">⬇️ 여기를 눌러 이름 선택</option>'; 
+        
+        window.members.forEach(m => {
+            const opt = document.createElement('option');
+            opt.value = m.id;
+            opt.innerText = `${m.name} (${m.phone})`;
+            select.appendChild(opt);
+        });
+        
+        if (currentValue && window.members.some(m => m.id === currentValue)) {
+            select.value = currentValue;
+        }
+    }
 
     // --- 3. Helper Functions ---
     window.getWeekOfMonth = function(dateStr) {
@@ -672,18 +697,15 @@
         if (now.getHours() < session.start || now.getHours() >= session.end) { alert(`❌ 출석 실패\n지금은 ${session.name} 시간이 아닙니다.`); history.replaceState({}, document.title, window.location.pathname); return; }
         currentScanSession = session;
         const modal = document.getElementById('user-check-modal');
-        document.getElementById('scan-info').innerText = `[${session.name}] 출석`;
+        document.getElementById('scan-info').innerText = `[${session.name}]`;
         
         // Reset UI
         toggleCheckMode('existing');
         document.getElementById('check-manual-name').value = '';
         document.getElementById('check-manual-phone').value = '';
 
-        const select = document.getElementById('check-user-select');
-        select.innerHTML = '<option value="">회원 선택...</option>';
-        members.forEach(m => {
-            const opt = document.createElement('option'); opt.value = m.id; opt.innerText = `${m.name} (${m.phone})`; select.appendChild(opt);
-        });
+        // [FIX] Don't populate list here. Just reset the selection.
+        document.getElementById('check-user-select').value = '';
         modal.classList.remove('hidden');
     }
 
