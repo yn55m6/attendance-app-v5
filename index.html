@@ -140,17 +140,6 @@
                 <p class="text-center text-xs text-gray-400 mt-2">최근 6개월 출석 추이</p>
             </div>
 
-            <!-- Report 1: 월별 회원별 출석횟수 -->
-            <div class="card">
-                <h2 class="font-bold text-lg mb-2 text-indigo-700">🏆 회원별 출석 순위</h2>
-                <div class="overflow-x-auto">
-                    <table class="report-table">
-                        <thead><tr><th>순위</th><th>이름</th><th>전화번호</th><th class="text-right">횟수</th></tr></thead>
-                        <tbody id="report-member-body"></tbody>
-                    </table>
-                </div>
-            </div>
-
             <!-- NEW: 차수별 주간 출석 현황 -->
             <div class="card">
                 <h2 class="font-bold text-lg mb-2 text-green-700">📅 차수별 주간 출석</h2>
@@ -190,6 +179,17 @@
                             </tr>
                         </thead>
                         <tbody id="report-weekly-body"></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Report 1: 월별 회원별 출석횟수 -->
+            <div class="card">
+                <h2 class="font-bold text-lg mb-2 text-indigo-700">🏆 회원별 출석 순위</h2>
+                <div class="overflow-x-auto">
+                    <table class="report-table">
+                        <thead><tr><th>순위</th><th>이름</th><th>전화번호</th><th class="text-right">횟수</th></tr></thead>
+                        <tbody id="report-member-body"></tbody>
                     </table>
                 </div>
             </div>
@@ -320,6 +320,24 @@
         <input type="password" id="confirm-password" placeholder="새 비밀번호 확인" class="w-full p-3 border rounded mb-4 bg-gray-50">
         
         <button onclick="changePassword()" class="btn-primary">변경하기</button>
+    </div>
+</div>
+
+<!-- Modal: Session Attendees -->
+<div id="session-attendees-modal" class="fixed inset-0 bg-black bg-opacity-90 z-50 hidden flex flex-col justify-center items-center p-6 no-print">
+    <div class="bg-white w-full max-w-sm rounded-xl p-6 relative max-h-[80vh] flex flex-col">
+        <button onclick="closeSessionAttendeesModal()" class="absolute top-4 right-4 text-gray-400"><i class="fas fa-times"></i></button>
+        
+        <h3 class="text-xl font-bold mb-1 text-green-700" id="session-attendees-title">세션 참석자 명단</h3>
+        <p class="text-xs text-gray-500 mb-4" id="session-attendees-subtitle">월간 총 참석자 (중복 제외)</p>
+        
+        <div class="overflow-y-auto flex-1 border-t border-gray-100 pt-2">
+            <ul id="session-attendees-list" class="text-sm space-y-2">
+                <!-- Attendee names will go here -->
+            </ul>
+        </div>
+        
+        <button onclick="closeSessionAttendeesModal()" class="mt-4 w-full py-2 bg-gray-100 text-gray-600 rounded text-sm font-bold">닫기</button>
     </div>
 </div>
 
@@ -480,7 +498,7 @@
         else {
             sortedSessionWeekly.forEach(item => {
                 tbody2.innerHTML += `<tr>
-                    <td class="font-bold text-green-700">${item.name}</td>
+                    <td class="font-bold text-green-700 cursor-pointer hover:underline" onclick="openSessionAttendeesModal('${item.name}')">${item.name}</td>
                     <td class="text-center text-gray-500">${item.weeks[1] || '-'}</td>
                     <td class="text-center text-gray-500">${item.weeks[2] || '-'}</td>
                     <td class="text-center text-gray-500">${item.weeks[3] || '-'}</td>
@@ -866,6 +884,31 @@
         document.getElementById('history-modal').classList.remove('hidden');
     }
     window.closeHistoryModal = function() { document.getElementById('history-modal').classList.add('hidden'); }
+
+    // --- [NEW] Session Attendees Modal Logic ---
+    window.openSessionAttendeesModal = function(sessionName) {
+        const selectedMonth = document.getElementById('report-month').value;
+        
+        const sessionLogs = logs.filter(log => 
+            log.date.startsWith(selectedMonth) && log.sessionName === sessionName
+        );
+
+        const attendees = [...new Set(sessionLogs.map(log => log.memberName))].sort((a, b) => a.localeCompare(b));
+
+        document.getElementById('session-attendees-title').innerText = `[${sessionName}] 참석자`;
+        document.getElementById('session-attendees-subtitle').innerText = `${selectedMonth}월 / 총 ${attendees.length}명 (중복제외)`;
+        
+        const list = document.getElementById('session-attendees-list');
+        list.innerHTML = '';
+
+        if (attendees.length === 0) {
+            list.innerHTML = '<li class="text-center text-gray-400 py-4">참석 기록이 없습니다.</li>';
+        } else {
+            attendees.forEach(name => list.innerHTML += `<li class="bg-gray-50 p-2 rounded">${name}</li>`);
+        }
+        document.getElementById('session-attendees-modal').classList.remove('hidden');
+    }
+    window.closeSessionAttendeesModal = function() { document.getElementById('session-attendees-modal').classList.add('hidden'); }
 
     // --- 8. Common Functions ---
     window.addMember = async function() {
