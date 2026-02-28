@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>스마트 출석 체크 (6개월 추이 그래프)</title>
+    <title>몸펴기생활운동 연신내 출석부 (6개월 추이 그래프)</title>
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- QRCode.js -->
@@ -50,135 +50,201 @@
 <body>
 
 <div class="app-container">
-    <!-- Header -->
-    <header class="bg-indigo-600 text-white p-4 sticky top-0 z-40 shadow-md flex justify-between items-center no-print">
-        <h1 class="text-lg font-bold"><i class="fas fa-check-circle mr-2"></i>스마트 출석부</h1>
-        <button onclick="resetData()" class="text-xs bg-indigo-800 px-2 py-1 rounded hover:bg-indigo-700">초기화</button>
-    </header>
-
-    <!-- Page 1: Home (QR & Tools) -->
-    <div id="page-home" class="page active">
-        <div class="card">
-            <h2 class="text-gray-800 font-bold text-lg mb-2">🖨️ QR 코드 관리</h2>
-            <p class="text-sm text-gray-500 mb-4">강의실 부착용 QR 코드를 인쇄하세요.</p>
-            <button onclick="openQRPrintModal()" class="w-full py-3 bg-gray-800 text-white rounded-lg font-bold hover:bg-gray-700">
-                <i class="fas fa-print mr-2"></i>QR 코드 목록 보기
-            </button>
-        </div>
-
-        <div class="card">
-            <h3 class="font-bold text-gray-700 mb-3">🛠 관리자 도구</h3>
-            <button onclick="openPaperInputModal()" class="btn-primary mb-2 bg-gradient-to-r from-green-500 to-emerald-600">
-                <i class="fas fa-edit mr-2"></i>종이 명부 입력 (텍스트)
-            </button>
-            <p class="text-xs text-gray-400 mt-1">
-                * 이름만 입력하면 자동 가입/출석 처리됩니다.<br>
-                * 동명이인은 <strong>이름 번호뒷자리</strong> (예: 김철수 1234)
-            </p>
-        </div>
-        
-        <div class="text-center text-xs text-gray-400 mt-4">
-            현재 접속 주소:<br>
-            <span id="current-url" class="text-indigo-500 break-all"></span>
+    <!-- NEW: Login Modal -->
+    <div id="login-modal" class="absolute inset-0 bg-gray-100 z-50 flex flex-col justify-center items-center p-6">
+        <div class="w-full max-w-xs text-center">
+            <i class="fas fa-lock text-4xl text-gray-400 mb-4"></i>
+            <h2 class="text-2xl font-bold text-gray-800 mb-2">관리자 로그인</h2>
+            <p class="text-sm text-gray-500 mb-6">계속하려면 비밀번호를 입력하세요.</p>
+            <input type="password" id="admin-password" class="w-full p-3 text-center text-lg border-2 rounded-lg mb-4" placeholder="••••••••" onkeyup="if(event.key==='Enter') handleLogin()">
+            <button onclick="handleLogin()" class="btn-primary">로그인</button>
         </div>
     </div>
 
-    <!-- Page 2: Members -->
-    <div id="page-members" class="page">
-        <div class="card">
-            <h2 class="font-bold text-lg mb-4">회원 등록</h2>
-            <div class="flex gap-2 mb-2">
-                <input type="text" id="new-member-name" placeholder="이름 (필수)" class="flex-1 p-2 border rounded bg-gray-50">
-                <input type="tel" id="new-member-phone" placeholder="뒷번호 (생략가능)" class="w-1/3 p-2 border rounded bg-gray-50 text-sm">
+    <!-- Main App Wrapper -->
+    <div id="app-main-content" class="hidden">
+        <!-- Header -->
+        <header class="bg-indigo-600 text-white p-4 sticky top-0 z-40 shadow-md flex justify-between items-center no-print">
+            <h1 class="text-lg font-bold"><i class="fas fa-check-circle mr-2"></i>몸펴기생활운동 연신내 출석부</h1>
+            <button onclick="resetData()" class="text-xs bg-indigo-800 px-2 py-1 rounded hover:bg-indigo-700">초기화</button>
+        </header>
+
+        <!-- Page 1: Home (QR & Tools) -->
+        <div id="page-home" class="page active">
+            <div class="card">
+                <h2 class="text-gray-800 font-bold text-lg mb-2">🖨️ QR 코드 관리</h2>
+                <p class="text-sm text-gray-500 mb-4">강의실 부착용 QR 코드를 인쇄하세요.</p>
+                <button onclick="openQRPrintModal()" class="w-full py-3 bg-gray-800 text-white rounded-lg font-bold hover:bg-gray-700">
+                    <i class="fas fa-print mr-2"></i>QR 코드 목록 보기
+                </button>
             </div>
-            <button onclick="addMember()" class="btn-primary text-sm">등록하기</button>
-        </div>
-        <div class="card">
-            <h2 class="font-bold text-lg mb-2">회원 목록 <span id="member-count" class="text-sm text-indigo-600 font-normal"></span></h2>
-            <p class="text-xs text-gray-400 mb-2">* 이름을 클릭하면 상세 이력을 볼 수 있습니다.</p>
-            <ul id="member-list" class="divide-y divide-gray-100"></ul>
-        </div>
-    </div>
 
-    <!-- Page 3: Reports (Tables & Chart) -->
-    <div id="page-reports" class="page">
-        <div class="bg-white p-4 sticky top-14 z-30 shadow-sm mb-4 -mx-5 px-5 border-b">
-            <label class="text-xs font-bold text-gray-500 block mb-1">조회 월 선택</label>
-            <input type="month" id="report-month" class="w-full p-2 border rounded bg-gray-50 font-bold text-gray-700" onchange="renderReports()">
-        </div>
-
-        <!-- Report 0: 월간 총 출석 인원 & 그래프 (NEW) -->
-        <div class="card bg-white border border-gray-200">
-            <div class="flex justify-between items-end mb-4">
-                <div>
-                    <h2 class="font-bold text-lg text-gray-800">📊 월간 총 출석</h2>
-                    <p class="text-xs text-gray-400">중복 제외, 실제 출석 회원 수</p>
-                </div>
-                <span id="report-total-unique" class="text-4xl font-bold text-indigo-600">0명</span>
+            <div class="card">
+                <h3 class="font-bold text-gray-700 mb-3">🛠 관리자 도구</h3>
+                <button onclick="openPaperInputModal()" class="btn-primary mb-2 bg-gradient-to-r from-green-500 to-emerald-600">
+                    <i class="fas fa-edit mr-2"></i>종이 명부 입력 (텍스트)
+                </button>
+                <p class="text-xs text-gray-400 mt-1">
+                    * 이름만 입력하면 자동 가입/출석 처리됩니다.<br>
+                    * 동명이인은 <strong>이름 번호뒷자리</strong> (예: 김철수 1234)
+                </p>
+                <button onclick="openPasswordChangeModal()" class="w-full mt-3 py-2 bg-gray-100 text-gray-600 rounded-lg text-sm font-bold hover:bg-gray-200 border border-gray-200">
+                    <i class="fas fa-key mr-2"></i>관리자 비밀번호 변경
+                </button>
             </div>
             
-            <!-- 6개월 추이 그래프 -->
-            <div class="h-48 w-full">
-                <canvas id="trendChart"></canvas>
-            </div>
-            <p class="text-center text-xs text-gray-400 mt-2">최근 6개월 출석 추이</p>
-        </div>
-
-        <!-- Report 1: 월별 회원별 출석횟수 -->
-        <div class="card">
-            <h2 class="font-bold text-lg mb-2 text-indigo-700">🏆 회원별 출석 순위</h2>
-            <div class="overflow-x-auto">
-                <table class="report-table">
-                    <thead><tr><th>순위</th><th>이름</th><th>전화번호</th><th class="text-right">횟수</th></tr></thead>
-                    <tbody id="report-member-body"></tbody>
-                </table>
+            <div class="text-center text-xs text-gray-400 mt-4">
+                현재 접속 주소:<br>
+                <span id="current-url" class="text-indigo-500 break-all"></span>
             </div>
         </div>
 
-        <!-- Report 2: 월별 주차별 차수별 출석횟수 -->
-        <div class="card">
-            <h2 class="font-bold text-lg mb-2 text-green-700">📅 주차/차수별 현황</h2>
-            <div class="overflow-x-auto">
-                <table class="report-table">
-                    <thead><tr><th>주차</th><th>차수(반)</th><th class="text-right">인원</th></tr></thead>
-                    <tbody id="report-session-body"></tbody>
-                </table>
+        <!-- Page 2: Members -->
+        <div id="page-members" class="page">
+            <div class="card">
+                <h2 class="font-bold text-lg mb-4">회원 등록</h2>
+                <div class="flex gap-2 mb-2">
+                    <input type="text" id="new-member-name" placeholder="이름 (필수)" class="flex-1 p-2 border rounded bg-gray-50">
+                    <input type="tel" id="new-member-phone" placeholder="뒷번호 (생략가능)" class="w-1/3 p-2 border rounded bg-gray-50 text-sm">
+                </div>
+                <button onclick="addMember()" class="btn-primary text-sm">등록하기</button>
+            </div>
+            <div class="card">
+                <h2 class="font-bold text-lg mb-2">회원 목록 <span id="member-count" class="text-sm text-indigo-600 font-normal"></span></h2>
+                <p class="text-xs text-gray-400 mb-2">* 이름을 클릭하면 상세 이력을 볼 수 있습니다.</p>
+                <ul id="member-list" class="divide-y divide-gray-100"></ul>
             </div>
         </div>
 
-        <!-- Report 3: 월별 개인별 주차별 횟수 -->
-        <div class="card">
-            <h2 class="font-bold text-lg mb-2 text-blue-700">👤 개인별 주차 상세</h2>
-            <p class="text-xs text-gray-400 mb-2">* 이름을 클릭하면 상세 날짜를 볼 수 있습니다.</p>
-            <div class="overflow-x-auto">
-                <table class="report-table" style="min-width: 320px;">
-                    <thead>
-                        <tr>
-                            <th>이름</th>
-                            <th class="text-center">1주</th>
-                            <th class="text-center">2주</th>
-                            <th class="text-center">3주</th>
-                            <th class="text-center">4주</th>
-                            <th class="text-center">5주</th>
-                            <th class="text-right">계</th>
-                        </tr>
-                    </thead>
-                    <tbody id="report-weekly-body"></tbody>
-                </table>
+        <!-- Page 3: Reports (Tables & Chart) -->
+        <div id="page-reports" class="page">
+            <div class="bg-white p-4 sticky top-14 z-30 shadow-sm mb-4 -mx-5 px-5 border-b">
+                <label class="text-xs font-bold text-gray-500 block mb-1">조회 월 선택</label>
+                <input type="month" id="report-month" class="w-full p-2 border rounded bg-gray-50 font-bold text-gray-700" onchange="renderReports()">
+            </div>
+
+            <!-- Report 0: 월간 총 출석 인원 & 그래프 (NEW) -->
+            <div class="card bg-white border border-gray-200">
+                <div class="flex justify-between items-end mb-4">
+                    <div>
+                        <h2 class="font-bold text-lg text-gray-800">📊 월간 총 출석</h2>
+                        <p class="text-xs text-gray-400">중복 제외, 실제 출석 회원 수</p>
+                    </div>
+                    <span id="report-total-unique" class="text-4xl font-bold text-indigo-600">0명</span>
+                </div>
+                
+                <!-- 6개월 추이 그래프 -->
+                <div class="h-48 w-full">
+                    <canvas id="trendChart"></canvas>
+                </div>
+                <p class="text-center text-xs text-gray-400 mt-2">최근 6개월 출석 추이</p>
+            </div>
+
+            <!-- Report 1: 월별 회원별 출석횟수 -->
+            <div class="card">
+                <h2 class="font-bold text-lg mb-2 text-indigo-700">🏆 회원별 출석 순위</h2>
+                <div class="overflow-x-auto">
+                    <table class="report-table">
+                        <thead><tr><th>순위</th><th>이름</th><th>전화번호</th><th class="text-right">횟수</th></tr></thead>
+                        <tbody id="report-member-body"></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Report 2: 월별 주차별 차수별 출석횟수 -->
+            <div class="card">
+                <h2 class="font-bold text-lg mb-2 text-green-700">📅 주차/차수별 현황</h2>
+                <div class="overflow-x-auto">
+                    <table class="report-table">
+                        <thead><tr><th>주차</th><th>차수(반)</th><th class="text-right">인원</th></tr></thead>
+                        <tbody id="report-session-body"></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Report 3: 월별 개인별 주차별 횟수 -->
+            <div class="card">
+                <h2 class="font-bold text-lg mb-2 text-blue-700">👤 개인별 주차 상세</h2>
+                <p class="text-xs text-gray-400 mb-2">* 이름을 클릭하면 상세 날짜를 볼 수 있습니다.</p>
+                <div class="overflow-x-auto">
+                    <table class="report-table" style="min-width: 320px;">
+                        <thead>
+                            <tr>
+                                <th>이름</th>
+                                <th class="text-center">1주</th>
+                                <th class="text-center">2주</th>
+                                <th class="text-center">3주</th>
+                                <th class="text-center">4주</th>
+                                <th class="text-center">5주</th>
+                                <th class="text-right">계</th>
+                            </tr>
+                        </thead>
+                        <tbody id="report-weekly-body"></tbody>
+                    </table>
+                </div>
             </div>
         </div>
+
+        <!-- Navigation Bar -->
+        <nav class="nav-bar no-print">
+            <div class="nav-item active" onclick="switchPage(this, 'home')">
+                <i class="fas fa-home"></i><span>홈</span>
+            </div>
+            <div class="nav-item" onclick="switchPage(this, 'members')">
+                <i class="fas fa-users"></i><span>회원관리</span>
+            </div>
+            <div class="nav-item" onclick="switchPage(this, 'reports')">
+                <i class="fas fa-chart-bar"></i><span>리포트</span>
+            </div>
+        </nav>
     </div>
+</div>
 
-    <!-- Navigation Bar -->
-    <nav class="nav-bar no-print">
-        <div class="nav-item active" onclick="switchPage('home')">
-            <i class="fas fa-home"></i><span>홈</span>
+<!-- Modal: QR Print View -->
+<div id="qr-print-modal" class="fixed inset-0 bg-white z-50 hidden overflow-y-auto">
+    <div class="p-6 max-w-2xl mx-auto" id="print-area">
+        <div class="flex justify-between items-center mb-6 no-print">
+            <h2 class="text-2xl font-bold">인쇄용 QR 코드</h2>
+            <button onclick="closeQRPrintModal()" class="text-gray-500 text-lg"><i class="fas fa-times"></i></button>
         </div>
-        <div class="nav-item" onclick="switchPage('members')">
-            <i class="fas fa-users"></i><span>회원관리</span>
+        <div class="no-print mb-4 text-center">
+            <button onclick="window.print()" class="bg-blue-600 text-white px-6 py-2 rounded-lg font-bold shadow hover:bg-blue-700">
+                <i class="fas fa-print mr-2"></i>인쇄하기
+            </button>
+            <p class="text-xs text-red-500 mt-2">※ 주의: 이 QR 코드는 현재 웹사이트 주소 기반입니다.<br>서버 주소가 바뀌면 다시 출력해야 합니다.</p>
         </div>
-        <div class="nav-item" onclick="switchPage('reports')">
-            <i class="fas fa-chart-bar"></i><span>리포트</span>
+        <div id="static-qr-list" class="grid grid-cols-1 gap-8 text-center"></div>
+    </div>
+</div>
+
+<!-- Modal: Paper Input (Text Area) -->
+<div id="paper-input-modal" class="fixed inset-0 bg-black bg-opacity-90 z-50 hidden flex flex-col justify-center items-center p-6 no-print">
+    <div class="bg-white w-full max-w-md rounded-xl p-6 relative">
+        <button onclick="closePaperInputModal()" class="absolute top-4 right-4 text-gray-400"><i class="fas fa-times"></i></button>
+        
+        <h3 class="text-xl font-bold mb-2 text-green-700"><i class="fas fa-edit mr-2"></i>종이 명부 입력</h3>
+        
+        <div class="mb-3">
+            <label class="block text-xs font-bold text-gray-500 mb-1">1. 날짜 선택</label>
+            <input type="date" id="paper-date" class="w-full p-2 border rounded bg-gray-50 font-bold text-gray-700" onchange="updateSessionOptions()">
+        </div>
+
+        <div class="mb-3">
+            <label class="block text-xs font-bold text-gray-500 mb-1">2. 시간(차수) 선택</label>
+            <select id="paper-session-select" class="w-full p-2 border rounded bg-gray-50 text-sm font-bold">
+                <!-- JS로 옵션 채움 -->
+            </select>
+        </div>
+
+        <div class="mb-4">
+            <label class="block text-xs font-bold text-gray-500 mb-1">3. 명단 입력 (이름만 입력 가능)</label>
+            <textarea id="paper-text-area" class="w-full h-32 p-3 border rounded bg-gray-50 text-sm font-mono" placeholder="김철수&#13;&#10;이영희&#13;&#10;박민수 5678"></textarea>
+            <p class="text-xs text-indigo-500 mt-1">* 없는 회원은 자동 가입됩니다.</p>
+        </div>
+        
+        <div class="flex gap-2">
+            <button onclick="processPaperInput()" class="flex-1 btn-primary bg-green-600">일괄 출석 처리</button>
+            <button onclick="closePaperInputModal()" class="w-1/3 py-2 bg-gray-200 text-gray-700 rounded-lg font-bold">닫기</button>
         </div>
     </nav>
 </div>
@@ -237,29 +303,25 @@
     <div class="bg-white w-full max-w-sm rounded-xl p-6 text-center">
         <h3 class="text-2xl font-bold mb-2 text-indigo-600">출석 체크</h3>
         <p id="scan-info" class="text-xl text-gray-800 font-bold mb-2"></p>
-        <p class="text-gray-500 text-sm mb-6">본인의 이름을 선택하거나 직접 입력하세요.</p>
+        <p class="text-gray-500 text-sm mb-6">이름을 입력하여 출석하세요.</p>
         
-        <!-- Existing Member Select -->
-        <div id="check-existing-wrapper">
+        <!-- Manual Input (Default View) -->
+        <div id="check-manual-wrapper">
+            <input type="text" id="check-manual-name" placeholder="이름 입력" class="w-full p-4 border-2 border-indigo-200 rounded-xl mb-3 bg-white text-2xl font-bold text-center placeholder-gray-300 focus:border-indigo-500 outline-none h-16">
+            <input type="tel" id="check-manual-phone" placeholder="전화번호 뒷자리 (선택)" class="w-full p-4 border rounded-xl mb-4 bg-gray-50 text-xl text-center h-14">
+            
+            <div onclick="toggleCheckMode('existing')" class="w-full py-3 bg-gray-100 text-gray-600 rounded-xl font-bold cursor-pointer hover:bg-gray-200 mb-4 text-base border border-gray-200">
+                🔍 전체 명단에서 선택하기
+            </div>
+        </div>
+
+        <!-- Existing Member Select (Hidden by default) -->
+        <div id="check-existing-wrapper" class="hidden">
             <select id="check-user-select" class="w-full p-4 border-2 border-indigo-100 rounded-xl mb-4 bg-white text-xl font-bold text-gray-800 shadow-sm focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 outline-none h-16">
                 <option value="">⬇️ 여기를 눌러 이름 선택</option>
             </select>
             <div onclick="toggleCheckMode('manual')" class="w-full py-4 bg-indigo-50 text-indigo-700 rounded-xl font-bold cursor-pointer hover:bg-indigo-100 mb-4 text-lg border border-indigo-100 shadow-sm flex items-center justify-center">
-                <span>📝 명단에 없어요 (직접 입력)</span>
-            </div>
-        </div>
-
-        <!-- Manual Input -->
-        <div id="check-manual-wrapper" class="hidden">
-            <div class="mb-4 text-left bg-yellow-50 p-4 rounded-xl border border-yellow-100">
-                <p class="text-base text-yellow-800 font-bold mb-1">📢 처음 오셨나요?</p>
-                <p class="text-sm text-yellow-700">이름을 크게 입력해주시면 바로 등록됩니다.</p>
-            </div>
-            <input type="text" id="check-manual-name" placeholder="이름 입력" class="w-full p-4 border-2 border-indigo-200 rounded-xl mb-3 bg-white text-2xl font-bold text-center placeholder-gray-300 focus:border-indigo-500 outline-none h-16">
-            <input type="tel" id="check-manual-phone" placeholder="전화번호 뒷자리 (선택)" class="w-full p-4 border rounded-xl mb-4 bg-gray-50 text-xl text-center h-14">
-            
-            <div onclick="toggleCheckMode('existing')" class="w-full py-3 bg-gray-100 text-gray-600 rounded-xl font-bold cursor-pointer hover:bg-gray-200 mb-2 text-base border border-gray-200">
-                ↩️ 명단에서 선택하기
+                <span>⌨️ 직접 입력으로 돌아가기</span>
             </div>
         </div>
 
@@ -286,6 +348,20 @@
     </div>
 </div>
 
+<!-- Modal: Change Password -->
+<div id="password-change-modal" class="fixed inset-0 bg-black bg-opacity-90 z-50 hidden flex flex-col justify-center items-center p-6 no-print">
+    <div class="bg-white w-full max-w-xs rounded-xl p-6 relative">
+        <button onclick="closePasswordChangeModal()" class="absolute top-4 right-4 text-gray-400"><i class="fas fa-times"></i></button>
+        <h3 class="text-xl font-bold mb-4 text-gray-800">비밀번호 변경</h3>
+        
+        <input type="password" id="current-password" placeholder="현재 비밀번호" class="w-full p-3 border rounded mb-2 bg-gray-50">
+        <input type="password" id="new-password" placeholder="새 비밀번호" class="w-full p-3 border rounded mb-2 bg-gray-50">
+        <input type="password" id="confirm-password" placeholder="새 비밀번호 확인" class="w-full p-3 border rounded mb-4 bg-gray-50">
+        
+        <button onclick="changePassword()" class="btn-primary">변경하기</button>
+    </div>
+</div>
+
 <script type="module">
     // --- 0. Firebase Setup ---
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
@@ -305,6 +381,10 @@
     const db = getFirestore(app);
 
     // --- 1. Configuration ---
+    // [CHANGED] Use localStorage for password persistence. Default is '1234'.
+    if (!localStorage.getItem('adminPassword')) {
+        localStorage.setItem('adminPassword', '1234');
+    }
     window.SESSIONS = [];
     window.DAYS = ["일", "월", "화", "수", "목", "금", "토"];
     window.TIMES = [
@@ -675,6 +755,7 @@
         });
         
         await batch.commit();
+        if (successCount > 0) playSound();
         alert(`✅ 처리 완료: ${successCount}명\n(중복 제외: ${duplicateCount}명, 신규 가입: ${newMemberCount}명)`);
         
         // 입력창 초기화 (화면은 닫지 않음)
@@ -700,7 +781,7 @@
         document.getElementById('scan-info').innerText = `[${session.name}]`;
         
         // Reset UI
-        toggleCheckMode('existing');
+        toggleCheckMode('manual'); // Set manual input as default
         document.getElementById('check-manual-name').value = '';
         document.getElementById('check-manual-phone').value = '';
 
@@ -775,6 +856,7 @@
                 sessionName: currentScanSession.name, 
                 timestamp: new Date().toLocaleString()
             });
+            playSound();
             let message = `✅ ${member.name}님 출석 완료!`;
             if (isNewMember) {
                 message += ' (신규 회원으로 등록되었습니다)';
@@ -851,19 +933,101 @@
         }
     }
 
-    window.switchPage = function(pageId) {
+    // --- 9. Sound Effects ---
+    let audioCtx;
+    function playSound() {
+        if (!audioCtx) {
+            try {
+                // Safari requires webkit prefix
+                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            } catch (e) {
+                console.error("Web Audio API is not supported in this browser.");
+                return;
+            }
+        }
+        
+        const oscillator = audioCtx.createOscillator();
+        const gainNode = audioCtx.createGain();
+
+        oscillator.connect(gainNode);
+        gainNode.connect(audioCtx.destination);
+
+        oscillator.type = 'sine'; // A clean, pleasant tone
+        oscillator.frequency.setValueAtTime(1046.50, audioCtx.currentTime); // C6 Note for a "ding"
+
+        gainNode.gain.setValueAtTime(0, audioCtx.currentTime);
+        gainNode.gain.linearRampToValueAtTime(0.5, audioCtx.currentTime + 0.05); // Quick fade-in to prevent click
+        gainNode.gain.exponentialRampToValueAtTime(0.00001, audioCtx.currentTime + 0.3); // Fade-out
+
+        oscillator.start(audioCtx.currentTime);
+        oscillator.stop(audioCtx.currentTime + 0.3);
+    }
+
+    window.switchPage = function(element, pageId) {
         document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
         document.getElementById('page-' + pageId).classList.add('active');
         document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
-        event.currentTarget.classList.add('active');
+        element.classList.add('active');
         if(pageId === 'reports') renderReports();
     }
 
-    window.onload = function() {
+    // --- 11. Password Management ---
+    window.openPasswordChangeModal = function() {
+        document.getElementById('current-password').value = '';
+        document.getElementById('new-password').value = '';
+        document.getElementById('confirm-password').value = '';
+        document.getElementById('password-change-modal').classList.remove('hidden');
+    }
+    
+    window.closePasswordChangeModal = function() {
+        document.getElementById('password-change-modal').classList.add('hidden');
+    }
+
+    window.changePassword = function() {
+        const currentPw = document.getElementById('current-password').value;
+        const newPw = document.getElementById('new-password').value;
+        const confirmPw = document.getElementById('confirm-password').value;
+        const storedPw = localStorage.getItem('adminPassword');
+
+        if (currentPw !== storedPw) return alert('현재 비밀번호가 일치하지 않습니다.');
+        if (newPw.length < 4) return alert('새 비밀번호는 4자 이상이어야 합니다.');
+        if (newPw !== confirmPw) return alert('새 비밀번호가 일치하지 않습니다.');
+
+        localStorage.setItem('adminPassword', newPw);
+        alert('비밀번호가 변경되었습니다.');
+        closePasswordChangeModal();
+    }
+
+    // --- 10. App Initialization & Login ---
+    function showLoginScreen() {
+        document.getElementById('login-modal').classList.remove('hidden');
+        document.getElementById('app-main-content').classList.add('hidden');
+    }
+
+    function showApp() {
+        document.getElementById('login-modal').classList.add('hidden');
+        document.getElementById('app-main-content').classList.remove('hidden');
+        // Run initial setup that requires the DOM to be visible
         document.getElementById('current-url').innerText = window.location.href.split('?')[0];
-        // Firebase onSnapshot will handle initial render
         checkUrlForScan();
-    };
+    }
+
+    window.handleLogin = function() {
+        const password = document.getElementById('admin-password').value;
+        const storedPw = localStorage.getItem('adminPassword');
+        if (password === storedPw) {
+            sessionStorage.setItem('isAdminLoggedIn', 'true');
+            showApp();
+        } else {
+            alert('비밀번호가 틀렸습니다.');
+            document.getElementById('admin-password').value = '';
+        }
+    }
+
+    // [FIX] 초기화 로직 즉시 실행 (모듈 스크립트는 지연 실행되므로 DOM 접근 안전함)
+    // window.onload는 타이밍 문제로 실행되지 않을 수 있어 제거했습니다.
+    if (sessionStorage.getItem('isAdminLoggedIn') === 'true') showApp();
+    else showLoginScreen();
 </script>
 </body>
 </html>
