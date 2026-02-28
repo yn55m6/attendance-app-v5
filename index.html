@@ -244,14 +244,18 @@
             <select id="check-user-select" class="w-full p-3 border rounded mb-2 bg-gray-50 text-lg">
                 <option value="">회원 선택...</option>
             </select>
-            <p class="text-right text-xs text-indigo-600 cursor-pointer mb-4 hover:underline" onclick="toggleCheckMode('manual')">명단에 없나요? 직접 입력 &gt;</p>
+            <button onclick="toggleCheckMode('manual')" class="w-full py-4 bg-indigo-50 text-indigo-700 rounded-xl font-bold hover:bg-indigo-100 mb-4 text-lg border border-indigo-100 shadow-sm transition duration-200">
+                📝 명단에 없나요? 직접 입력
+            </button>
         </div>
 
         <!-- Manual Input -->
         <div id="check-manual-wrapper" class="hidden">
             <input type="text" id="check-manual-name" placeholder="이름 (필수)" class="w-full p-3 border rounded mb-2 bg-gray-50">
             <input type="tel" id="check-manual-phone" placeholder="전화번호 뒷자리 (선택)" class="w-full p-3 border rounded mb-2 bg-gray-50">
-            <p class="text-right text-xs text-gray-500 cursor-pointer mb-4 hover:underline" onclick="toggleCheckMode('existing')">&lt; 명단에서 선택하기</p>
+            <button onclick="toggleCheckMode('existing')" class="w-full py-3 bg-gray-100 text-gray-600 rounded-xl font-bold hover:bg-gray-200 mb-4 text-base border border-gray-200 transition duration-200">
+                ↩️ 명단에서 선택하기
+            </button>
         </div>
 
         <button onclick="confirmAttendance()" class="btn-primary mb-2">출석 확인</button>
