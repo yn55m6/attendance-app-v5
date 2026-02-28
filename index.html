@@ -722,19 +722,37 @@
     window.confirmAttendance = async function() {
         const isManual = !document.getElementById('check-manual-wrapper').classList.contains('hidden');
         let member = null;
+        let isNewMember = false;
 
         if (isManual) {
             const name = document.getElementById('check-manual-name').value.trim();
             const phone = document.getElementById('check-manual-phone').value.trim() || "0000";
             if (!name) return alert('이름을 입력해주세요.');
             
-            // Create new member
-            try {
-                const docRef = await addDoc(collection(db, "members"), { name, phone });
-                member = { id: docRef.id, name, phone };
-            } catch (e) {
-                console.error(e);
-                return alert("회원 등록 중 오류가 발생했습니다.");
+            // [NEW] Find or Create Logic
+            // 1. Try to find the member from the local list
+            let candidates = window.members.filter(m => m.name === name);
+            
+            if (phone !== "0000") {
+                // If phone is provided, find an exact match
+                member = candidates.find(m => m.phone === phone);
+            } else if (candidates.length === 1) {
+                // If no phone is provided and there's only one person with that name
+                member = candidates[0];
+            } else if (candidates.length > 1) {
+                return alert(`동명이인(${name})이 있습니다. 전화번호 뒷자리를 입력하여 구분해주세요.`);
+            }
+
+            // 2. If not found, create a new one
+            if (!member) {
+                try {
+                    const docRef = await addDoc(collection(db, "members"), { name, phone });
+                    member = { id: docRef.id, name, phone };
+                    isNewMember = true;
+                } catch (e) {
+                    console.error(e);
+                    return alert("회원 등록 중 오류가 발생했습니다.");
+                }
             }
         } else {
             const memberId = document.getElementById('check-user-select').value;
@@ -757,7 +775,11 @@
                 sessionName: currentScanSession.name, 
                 timestamp: new Date().toLocaleString()
             });
-            alert(`✅ ${member.name}님 출석 완료!`);
+            let message = `✅ ${member.name}님 출석 완료!`;
+            if (isNewMember) {
+                message += ' (신규 회원으로 등록되었습니다)';
+            }
+            alert(message);
         }
         closeCheckModal();
     }
