@@ -105,6 +105,18 @@
             <div class="card text-center py-8">
                 <h2 class="text-2xl font-bold text-gray-800 mb-2">반갑습니다! 👋</h2>
                 <p id="current-session-info" class="text-indigo-600 font-bold text-lg mb-4">현재 진행 중인 수업을 찾는 중...</p>
+
+                <!-- [NEW] Date & Session Selection for Member Mode -->
+                <div class="grid grid-cols-2 gap-2 mb-6 max-w-md mx-auto px-2">
+                    <div class="text-left">
+                        <label class="block text-[10px] font-bold text-gray-400 mb-1 uppercase">출석 날짜</label>
+                        <input type="date" id="member-mode-date" class="w-full p-3 border-2 border-gray-100 rounded-xl bg-gray-50 text-sm font-bold text-gray-700 focus:border-indigo-300 outline-none" onchange="updateMemberModeSessionOptions()">
+                    </div>
+                    <div class="text-left">
+                        <label class="block text-[10px] font-bold text-gray-400 mb-1 uppercase">수업(차수) 선택</label>
+                        <select id="member-mode-session" class="w-full p-3 border-2 border-gray-100 rounded-xl bg-gray-50 text-sm font-bold text-gray-700 focus:border-indigo-300 outline-none"></select>
+                    </div>
+                </div>
                 
                 <div class="relative mb-6">
                     <input type="text" id="member-search-input" oninput="renderMemberGrid(this.value)" 
@@ -534,12 +546,18 @@
     }
 
     window.handleMemberGridClick = function(memberId) {
-        openCheckModal();
-        // Wait for modal to setup then select the member
-        setTimeout(() => {
-            toggleCheckMode('existing');
-            document.getElementById('check-user-select').value = memberId;
-        }, 50);
+        const dateStr = document.getElementById('member-mode-date').value;
+        const sessionCode = document.getElementById('member-mode-session').value;
+        const member = members.find(m => m.id === memberId);
+        const session = SESSIONS.find(s => s.code === sessionCode);
+
+        if (!session || sessionCode === "수업 없음") {
+            return alert("선택된 날짜에 진행되는 수업이 없습니다. 날짜를 확인해주세요.");
+        }
+
+        if (confirm(`[${session.name}]\n${member.name}님, 출석하시겠습니까?`)) {
+            confirmAttendanceWithId(memberId, false, dateStr, sessionCode);
+        }
     }
 
     // --- 3. Helper Functions ---
@@ -555,6 +573,21 @@
         const day = now.getDay();
         const hour = now.getHours();
         return SESSIONS.find(s => s.day === day && hour >= s.start && hour < s.end);
+    }
+
+    window.updateMemberModeSessionOptions = function() {
+        const dateStr = document.getElementById('member-mode-date').value;
+        const date = new Date(dateStr);
+        const day = date.getDay();
+        const select = document.getElementById('member-mode-session');
+        select.innerHTML = '';
+        const availableSessions = SESSIONS.filter(s => s.day === day);
+        availableSessions.forEach(s => {
+            const opt = document.createElement('option'); opt.value = s.code; opt.innerText = s.name; select.appendChild(opt);
+        });
+        if(availableSessions.length === 0) {
+            const opt = document.createElement('option'); opt.innerText = "수업 없음"; select.appendChild(opt);
+        }
     }
 
     // --- 4. Report Logic ---
@@ -1028,12 +1061,12 @@
         await confirmAttendanceWithId(member?.id, isNewMember);
     }
 
-    window.confirmAttendanceWithId = async function(memberId, isNewMember = false) {
+    window.confirmAttendanceWithId = async function(memberId, isNewMember = false, manualDate = null, manualSessionCode = null) {
         const member = members.find(m => m.id === memberId);
         if (!member) return alert('회원 정보를 찾을 수 없습니다.');
 
-        const dateStr = document.getElementById('check-date').value;
-        const sessionCode = document.getElementById('check-session-select').value;
+        const dateStr = manualDate || document.getElementById('check-date').value;
+        const sessionCode = manualSessionCode || document.getElementById('check-session-select').value;
         const session = SESSIONS.find(s => s.code === sessionCode);
         
         if(!session) return alert('유효한 수업(차수)을 선택해주세요.');
@@ -1334,8 +1367,16 @@
             document.querySelectorAll('.admin-only').forEach(el => el.classList.add('hidden'));
             document.getElementById('btn-exit-member-mode').classList.remove('hidden');
             switchPage(null, 'member-attendance');
+            
+            // Initialize Member Mode Inputs
+            const todayStr = new Date().toISOString().slice(0,10);
+            document.getElementById('member-mode-date').value = todayStr;
+            updateMemberModeSessionOptions();
+            
             const session = getCurrentSession();
             document.getElementById('current-session-info').innerText = session ? `현재 수업: ${session.name}` : "현재 진행 중인 수업이 없습니다.";
+            if (session) document.getElementById('member-mode-session').value = session.code;
+
             renderMemberGrid(); // 명단 그리드 강제 렌더링
         } else {
             document.querySelectorAll('.admin-only').forEach(el => el.classList.remove('hidden'));
