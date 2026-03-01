@@ -105,6 +105,7 @@
             <h1 class="text-lg font-bold"><i class="fas fa-check-circle mr-2"></i>몸펴기생활운동 연신내 출석부</h1>
             <div class="flex gap-2">
                 <button id="btn-exit-member-mode" onclick="exitMemberMode()" class="hidden text-xs bg-red-500 px-2 py-1 rounded hover:bg-red-600">모드 종료</button>
+                <button id="btn-exit-admin-mode" onclick="exitMemberMode()" class="admin-only text-xs bg-gray-500 px-2 py-1 rounded hover:bg-gray-600">뒤로가기</button>
                 <button onclick="resetData()" class="admin-only text-xs bg-indigo-800 px-2 py-1 rounded hover:bg-indigo-700">초기화</button>
             </div>
         </header>
@@ -1326,6 +1327,12 @@
         document.getElementById('current-password').value = '';
         document.getElementById('new-password').value = '';
         document.getElementById('confirm-password').value = '';
+
+        // [FIX] 마스터 복구 코드 표시 로직 추가
+        const masterKey = localStorage.getItem('adminMasterKey');
+        const display = document.getElementById('master-key-display');
+        if (display) display.innerText = masterKey || '발급 오류 (새로고침 필요)';
+
         document.getElementById('password-change-modal').classList.remove('hidden');
     }
     
