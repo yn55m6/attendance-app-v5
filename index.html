@@ -1519,28 +1519,17 @@
             document.getElementById('btn-exit-member-mode').classList.remove('hidden');
             switchPage(null, 'member-attendance');
             
-            // Initialize Member Mode Inputs
-            const now = new Date();
-            const yyyy = now.getFullYear();
-            const mm = String(now.getMonth() + 1).padStart(2, '0');
-            const dd = String(now.getDate()).padStart(2, '0');
-            const todayStr = `${yyyy}-${mm}-${dd}`;
-
-            // 1. 날짜 설정
-            document.getElementById('member-mode-date').value = todayStr;
-            // 2. 옵션 생성
-            updateMemberModeSessionOptions();
-            
-            // 3. 현재 수업 정보 표시 및 자동 선택
-            const session = getCurrentSession();
-            if (session && session.day === now.getDay()) {
-                document.getElementById('current-session-info').innerText = `현재 수업: ${session.name}`;
-                document.getElementById('member-mode-session').value = session.code;
-            } else {
-                document.getElementById('current-session-info').innerText = "현재 진행 중인 수업이 없습니다.";
-            }
-
-            renderMemberGrid(); // 명단 그리드 강제 렌더링
+            // [FINAL FIX] DOM이 준비될 때까지 재시도하여 초기화 함수를 확실히 실행
+            const forceInit = (retryCount = 0) => {
+                const dateInput = document.getElementById('member-mode-date');
+                if (dateInput) {
+                    window.syncMemberModeToNow(true); // true: 자동 실행 모드
+                    renderMemberGrid();
+                } else if (retryCount < 10) { // 최대 1초간 재시도
+                    setTimeout(() => forceInit(retryCount + 1), 100);
+                }
+            };
+            forceInit();
         } else {
             document.querySelectorAll('.admin-only').forEach(el => el.classList.remove('hidden'));
             document.getElementById('btn-exit-member-mode').classList.add('hidden');
@@ -1555,6 +1544,43 @@
         }
         checkUrlForScan();
     }
+
+    // --- 회원 모드 날짜/수업 동기화 함수 (완전 해결 버전) ---
+    window.syncMemberModeToNow = function(isAuto = false) {
+        const dateInput = document.getElementById('member-mode-date');
+        const sessionSelect = document.getElementById('member-mode-session');
+        const infoText = document.getElementById('current-session-info');
+        const syncIcon = document.getElementById('icon-sync-member');
+
+        if (!dateInput || !sessionSelect || !infoText) return;
+
+        // 시각적 피드백: 아이콘 회전 (자동 실행 시에는 제외)
+        if (!isAuto && syncIcon) syncIcon.classList.add('fa-spin');
+
+        // 1단계: 날짜 설정 및 수업 목록 생성 명령
+        const todayStr = window.getTodayStr();
+        dateInput.value = todayStr;
+        window.updateMemberModeSessionOptions();
+
+        // 2단계: 브라우저가 목록을 그린 후, 값을 선택하도록 순서 보장
+        setTimeout(() => {
+            const now = new Date();
+            const session = window.getCurrentSession();
+
+            if (session && session.day === now.getDay()) {
+                sessionSelect.value = session.code;
+                infoText.innerText = `현재 수업: ${session.name}`;
+                if (!isAuto) alert(`✅ 현재 시간(${session.name})으로 동기화되었습니다.`);
+            } else {
+                const dayName = window.DAYS ? window.DAYS[now.getDay()] : "";
+                infoText.innerText = `현재 진행 중인 수업이 없습니다. (${dayName}요일 ${now.getHours()}시)`;
+                if (!isAuto) alert("ℹ️ 현재 진행 중인 수업이 없어 날짜만 오늘로 설정되었습니다.");
+            }
+
+            // 아이콘 회전 중지
+            if (!isAuto && syncIcon) setTimeout(() => syncIcon.classList.remove('fa-spin'), 500);
+        }, 50); // DOM 업데이트를 위한 최소한의 지연
+    };
 
     window.handleLogin = function() {
         const passwordField = document.getElementById('admin-password');
