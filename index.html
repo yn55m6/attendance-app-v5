@@ -1043,12 +1043,12 @@
         document.getElementById('app-main-content').classList.add('hidden');
     }
 
-    function showApp() {
+    function showApp(silent = false) {
         document.getElementById('login-modal').classList.add('hidden');
         document.getElementById('app-main-content').classList.remove('hidden');
         // Run initial setup that requires the DOM to be visible
         document.getElementById('current-url').innerText = window.location.href.split('?')[0];
-        checkUrlForScan();
+        checkUrlForScan(silent);
     }
 
     window.handleLogin = function() {
@@ -1056,7 +1056,7 @@
         const storedPw = localStorage.getItem('adminPassword');
         if (password === storedPw) {
             sessionStorage.setItem('isAdminLoggedIn', 'true');
-            showApp();
+            showApp(true); // 로그인 시에는 유효성 검사 실패 알림을 띄우지 않음
         } else {
             alert('비밀번호가 틀렸습니다.');
             document.getElementById('admin-password').value = '';
@@ -1065,7 +1065,7 @@
 
     // [FIX] 초기화 로직 즉시 실행 (모듈 스크립트는 지연 실행되므로 DOM 접근 안전함)
     // window.onload는 타이밍 문제로 실행되지 않을 수 있어 제거했습니다.
-    if (sessionStorage.getItem('isAdminLoggedIn') === 'true') showApp();
+    if (sessionStorage.getItem('isAdminLoggedIn') === 'true') showApp(true); // 초기 로드 시에도 알림 억제
     else showLoginScreen();
 </script>
 </body>
