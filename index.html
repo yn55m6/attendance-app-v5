@@ -63,7 +63,7 @@
                 <button onclick="showAdminLogin()" class="p-8 bg-gray-800 text-white rounded-2xl shadow-lg hover:bg-gray-700 transition">
                     <i class="fas fa-user-shield text-4xl mb-3"></i>
                     <p class="text-2xl font-bold">관리자 모드</p>
-                    <p class="text-sm text-gray-400 mt-1">즉시 접속 가능</p>
+                    <p class="text-sm text-gray-400 mt-1">비밀번호 입력 필요</p>
                 </button>
             </div>
         </div>
@@ -413,11 +413,11 @@
 
     // --- 1. Configuration ---
     // [CHANGED] Use localStorage for password persistence. Default is '1234'.
-    let currentStoredPw = localStorage.getItem('adminPassword');
-    if (!currentStoredPw || currentStoredPw.trim() === "" || currentStoredPw === 'undefined' || currentStoredPw === 'null' || currentStoredPw === '1234') {
+    const rawStoredPw = localStorage.getItem('adminPassword');
+    if (!rawStoredPw || rawStoredPw.trim() === "" || rawStoredPw === 'undefined' || rawStoredPw === 'null' || rawStoredPw === '1234') {
         localStorage.setItem('adminPassword', '0000');
-        currentStoredPw = '0000';
     }
+    
     window.SESSIONS = [];
     window.DAYS = ["일", "월", "화", "수", "목", "금", "토"];
     window.TIMES = [
@@ -889,13 +889,14 @@
         const isWrongDay = now.getDay() !== session.day;
         const isWrongTime = now.getHours() < session.start || now.getHours() >= session.end;
 
+        // Clear session from URL immediately to prevent loops
+        history.replaceState({}, document.title, window.location.pathname);
+
         if (isWrongDay || isWrongTime) {
-            history.replaceState({}, document.title, window.location.pathname);
             if (!silent) {
                 const msg = isWrongDay ? `오늘은 ${DAYS[now.getDay()]}요일입니다.` : `현재 진행 중인 수업이 없습니다.`;
                 alert(`❌ 출석 실패\n${msg}`);
             }
-            if (sessionStorage.getItem('isAdminLoggedIn') !== 'true') showLoginScreen();
             return;
         }
         currentScanSession = session;
@@ -1285,7 +1286,7 @@
         
         if (!password) return; 
 
-        const storedPw = (localStorage.getItem('adminPassword') || '0000').trim();
+        const storedPw = (localStorage.getItem('adminPassword') || '0000').toString().trim();
 
         if (password === storedPw) {
             sessionStorage.setItem('isAdminLoggedIn', 'true');
