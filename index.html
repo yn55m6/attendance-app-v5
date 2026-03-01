@@ -1116,7 +1116,11 @@
     window.closeCheckModal = function() {
         document.getElementById('user-check-modal').classList.add('hidden');
         history.replaceState({}, document.title, window.location.pathname);
-        if (sessionStorage.getItem('isAdminLoggedIn') !== 'true') showLoginScreen();
+        
+        const isAdmin = sessionStorage.getItem('isAdminLoggedIn') === 'true';
+        const isMemberMode = sessionStorage.getItem('appMode') === 'member';
+        
+        if (!isAdmin && !isMemberMode) showLoginScreen();
     }
 
     // --- 7. History Modal Logic ---
