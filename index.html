@@ -80,12 +80,21 @@
             <i class="fas fa-lock text-4xl text-gray-400 mb-4"></i>
             <h2 class="text-2xl font-bold text-gray-800 mb-2">관리자 로그인</h2>
             <p class="text-sm text-gray-500 mb-6">계속하려면 비밀번호를 입력하세요.</p>
-            <input type="password" id="admin-password" class="w-full p-3 text-center text-lg border-2 rounded-lg mb-4" placeholder="••••••••" onkeyup="if(event.key==='Enter') handleLogin()" autocomplete="current-password">
+            <div id="login-input-wrapper">
+                <input type="password" id="admin-password" class="w-full p-3 text-center text-lg border-2 rounded-lg mb-4" placeholder="••••••••" onkeyup="if(event.key==='Enter') handleLogin()" autocomplete="current-password">
+            </div>
+            <div id="recovery-input-wrapper" class="hidden">
+                <input type="text" id="recovery-master-key" class="w-full p-3 text-center text-lg border-2 border-orange-300 rounded-lg mb-4" placeholder="복구 코드 입력">
+                <p class="text-xs text-orange-600 mb-4">마스터 복구 코드를 입력하면 비밀번호가 '1234'로 초기화됩니다.</p>
+            </div>
+
             <label class="flex items-center justify-center text-xs text-gray-500 mb-6 cursor-pointer">
                 <input type="checkbox" onchange="window.togglePasswordVisibility(this)" class="mr-2">
                 비밀번호 표시
             </label>
-            <button onclick="handleLogin()" class="btn-primary">로그인</button>
+            <button id="btn-admin-login" onclick="handleLogin()" class="btn-primary">로그인</button>
+            <button id="btn-admin-recovery" onclick="handleMasterKeyReset()" class="btn-primary bg-orange-500 hidden">비밀번호 초기화</button>
+            <button onclick="toggleRecoveryMode()" id="link-forgot-pw" class="block mt-4 text-xs text-indigo-500 underline">비밀번호를 잊으셨나요?</button>
         </div>
     </div>
 
@@ -1424,6 +1433,35 @@
     window.togglePasswordVisibility = function(checkbox) {
         const passwordField = document.getElementById('admin-password');
         passwordField.type = checkbox.checked ? 'text' : 'password';
+    }
+
+    window.toggleRecoveryMode = function() {
+        const isRecovery = document.getElementById('login-input-wrapper').classList.toggle('hidden');
+        document.getElementById('recovery-input-wrapper').classList.toggle('hidden');
+        document.getElementById('btn-admin-login').classList.toggle('hidden');
+        document.getElementById('btn-admin-recovery').classList.toggle('hidden');
+        
+        const link = document.getElementById('link-forgot-pw');
+        link.innerText = isRecovery ? "로그인으로 돌아가기" : "비밀번호를 잊으셨나요?";
+    }
+
+    window.handleMasterKeyReset = function() {
+        const inputKey = document.getElementById('recovery-master-key').value.trim();
+        const storedKey = localStorage.getItem('adminMasterKey');
+
+        if (inputKey === storedKey) {
+            localStorage.setItem('adminPassword', '1234');
+            alert('✅ 비밀번호가 "1234"로 초기화되었습니다.\n새로운 비밀번호로 즉시 변경해 주세요.');
+            location.reload();
+        } else {
+            alert('❌ 복구 코드가 일치하지 않습니다.');
+        }
+    }
+
+    // [FIX] Ensure Master Key exists on init
+    if (!localStorage.getItem('adminMasterKey')) {
+        const randomKey = Math.random().toString(36).substring(2, 10).toUpperCase();
+        localStorage.setItem('adminMasterKey', `RECOVERY-${randomKey}`);
     }
 
     // 앱 초기화 실행
