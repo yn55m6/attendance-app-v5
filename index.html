@@ -529,7 +529,9 @@
     // Register ChartDataLabels plugin globally
     Chart.register(ChartDataLabels);
 
-    const DAYS = ["일", "월", "화", "수", "목", "금", "토"];
+    window.DAYS = ["일", "월", "화", "수", "목", "금", "토"];
+    const DAYS = window.DAYS;
+
     const TIMES = [
         { id: "AM", name: "오전반", start: 6, end: 12 },
         { id: "PM", name: "오후반", start: 12, end: 18 },
@@ -547,14 +549,15 @@
     // 토요일 오후반 추가
     SESSIONS.push({ code: "D6_PM", name: "토요일 오후반", day: 6, start: 12, end: 18 });
 
-    // --- Helper: Get Today String (YYYY-MM-DD) - 절대 공백 불가 버전 ---
-    const getTodayStr = () => {
+    // --- Helper: Get Today String (YYYY-MM-DD) ---
+    window.getTodayStr = () => {
         const now = new Date();
         const yyyy = now.getFullYear();
         const m = now.getMonth() + 1;
         const d = now.getDate();
         return yyyy + '-' + (m < 10 ? '0' + m : m) + '-' + (d < 10 ? '0' + d : d);
     };
+    const getTodayStr = window.getTodayStr;
 
     // --- 2. Data Management ---
     // Local state for rendering (synced with Firebase)
