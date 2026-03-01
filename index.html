@@ -400,7 +400,8 @@
 
     // --- 1. Configuration ---
     // [CHANGED] Use localStorage for password persistence. Default is '1234'.
-    if (!localStorage.getItem('adminPassword')) {
+    const currentStoredPw = localStorage.getItem('adminPassword');
+    if (!currentStoredPw || currentStoredPw === 'undefined' || currentStoredPw === 'null') {
         localStorage.setItem('adminPassword', '1234');
     }
     window.SESSIONS = [];
@@ -877,7 +878,7 @@
         if (isWrongDay || isWrongTime) {
             history.replaceState({}, document.title, window.location.pathname);
             if (!silent) {
-                const msg = isWrongDay ? `오늘은 ${DAYS[now.getDay()]}요일입니다.` : `지금은 ${session.name} 시간이 아닙니다.`;
+                const msg = isWrongDay ? `오늘은 ${DAYS[now.getDay()]}요일입니다.` : `현재 진행 중인 수업이 없습니다.`;
                 alert(`❌ 출석 실패\n${msg}`);
             }
             if (sessionStorage.getItem('isAdminLoggedIn') !== 'true') showLoginScreen();
@@ -1191,8 +1192,9 @@
         } else {
             document.querySelectorAll('.admin-only').forEach(el => el.classList.remove('hidden'));
             document.getElementById('btn-exit-member-mode').classList.add('hidden');
-            // 관리자 모드일 때는 홈 페이지로 이동
-            switchPage(document.querySelector('.nav-item'), 'home');
+            // 관리자 모드일 때는 홈 페이지로 이동 (안전하게 첫 번째 메뉴 선택)
+            const firstNavItem = document.querySelector('.nav-item');
+            if (firstNavItem) switchPage(firstNavItem, 'home');
         }
 
         // Run initial setup that requires the DOM to be visible
@@ -1203,10 +1205,10 @@
     }
 
     window.handleLogin = function() {
-        const passwordField = document.getElementById('admin-password');
-        const password = passwordField.value.trim();
+        const passwordInput = document.getElementById('admin-password');
+        const password = passwordInput.value.trim();
         
-        if (!password) return; 
+        if (password === "") return; // 빈 값일 때는 팝업을 띄우지 않음
 
         const storedPw = localStorage.getItem('adminPassword') || '1234';
 
@@ -1216,8 +1218,8 @@
             showApp();
         } else {
             alert('비밀번호가 틀렸습니다.');
-            passwordField.value = '';
-            passwordField.focus();
+            passwordInput.value = '';
+            passwordInput.focus();
         }
     }
 
