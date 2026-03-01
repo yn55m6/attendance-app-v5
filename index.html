@@ -529,13 +529,14 @@
     // Register ChartDataLabels plugin globally
     Chart.register(ChartDataLabels);
 
-    window.SESSIONS = [];
-    window.DAYS = ["일", "월", "화", "수", "목", "금", "토"];
-    window.TIMES = [
+    const DAYS = ["일", "월", "화", "수", "목", "금", "토"];
+    const TIMES = [
         { id: "AM", name: "오전반", start: 6, end: 12 },
         { id: "PM", name: "오후반", start: 12, end: 18 },
         { id: "EVE", name: "저녁반", start: 18, end: 24 }
     ];
+    const SESSIONS = [];
+    window.SESSIONS = SESSIONS;
 
     // 월~금 생성
     for(let d=1; d<=5; d++) {
@@ -897,7 +898,6 @@
 
     window.openPaperInputModal = function() {
         const modal = document.getElementById('paper-input-modal');
-        // 안전한 현지 날짜 생성 (YYYY-MM-DD)
         const now = new Date();
         const yyyy = now.getFullYear();
         const mm = String(now.getMonth() + 1).padStart(2, '0');
@@ -910,7 +910,7 @@
         updateSessionOptions();
         // 3. 현재 시간에 맞는 수업(차수) 자동 선택
         const current = getCurrentSession();
-        if (current) {
+        if (current && current.day === now.getDay()) {
             document.getElementById('paper-session-select').value = current.code;
         }
 
@@ -923,10 +923,15 @@
         const yyyy = now.getFullYear();
         const mm = String(now.getMonth() + 1).padStart(2, '0');
         const dd = String(now.getDate()).padStart(2, '0');
-        document.getElementById('paper-date').value = `${yyyy}-${mm}-${dd}`;
+        const todayStr = `${yyyy}-${mm}-${dd}`;
+        
+        document.getElementById('paper-date').value = todayStr;
         updateSessionOptions();
+        
         const current = getCurrentSession();
-        if (current) document.getElementById('paper-session-select').value = current.code;
+        if (current && current.day === now.getDay()) {
+            document.getElementById('paper-session-select').value = current.code;
+        }
         alert("현재 시간의 수업으로 설정되었습니다.");
     }
 
@@ -1512,7 +1517,7 @@
             
             // 3. 현재 수업 정보 표시 및 자동 선택
             const session = getCurrentSession();
-            if (session) {
+            if (session && session.day === now.getDay()) {
                 document.getElementById('current-session-info').innerText = `현재 수업: ${session.name}`;
                 document.getElementById('member-mode-session').value = session.code;
             } else {
