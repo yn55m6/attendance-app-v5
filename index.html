@@ -401,9 +401,9 @@
     // --- 1. Configuration ---
     // [CHANGED] Use localStorage for password persistence. Default is '1234'.
     let currentStoredPw = localStorage.getItem('adminPassword');
-    if (!currentStoredPw || currentStoredPw.trim() === "" || currentStoredPw === 'undefined' || currentStoredPw === 'null') {
-        localStorage.setItem('adminPassword', '1234');
-        currentStoredPw = '1234';
+    if (!currentStoredPw || currentStoredPw.trim() === "" || currentStoredPw === 'undefined' || currentStoredPw === 'null' || currentStoredPw === '1234') {
+        localStorage.setItem('adminPassword', '0000');
+        currentStoredPw = '0000';
     }
     window.SESSIONS = [];
     window.DAYS = ["일", "월", "화", "수", "목", "금", "토"];
@@ -1212,7 +1212,7 @@
         
         if (!password) return; 
 
-        const storedPw = (localStorage.getItem('adminPassword') || '1234').trim();
+        const storedPw = (localStorage.getItem('adminPassword') || '0000').trim();
 
         if (password === storedPw) {
             sessionStorage.setItem('isAdminLoggedIn', 'true');
