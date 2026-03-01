@@ -392,6 +392,12 @@
         <input type="password" id="confirm-password" placeholder="새 비밀번호 확인" class="w-full p-3 border rounded mb-4 bg-gray-50">
         
         <button onclick="changePassword()" class="btn-primary">변경하기</button>
+
+        <div class="mt-6 p-3 bg-orange-50 border border-orange-100 rounded-lg text-left">
+            <p class="text-[10px] font-bold text-orange-400 uppercase mb-1">마스터 복구 코드 (분실 대비)</p>
+            <p id="master-key-display" class="text-sm font-mono font-bold text-orange-700 break-all select-all"></p>
+            <p class="text-[9px] text-orange-400 mt-1">* 비밀번호 분실 시 이 코드로 초기화가 가능합니다. 따로 기록해 두세요.</p>
+        </div>
     </div>
 </div>
 
@@ -446,10 +452,13 @@
 
     // --- 1. Configuration ---
     // [CHANGED] Use localStorage for password persistence. Default is '1234'.
-    const rawStoredPw = localStorage.getItem('adminPassword');
-    if (!rawStoredPw || rawStoredPw.trim() === "" || rawStoredPw === 'undefined' || rawStoredPw === 'null' || rawStoredPw === '0000') {
-        localStorage.setItem('adminPassword', '1234');
-    }
+    const initAdminPw = () => {
+        const pw = localStorage.getItem('adminPassword');
+        if (!pw || pw.trim() === "" || pw === 'undefined' || pw === 'null') {
+            localStorage.setItem('adminPassword', '1234');
+        }
+    };
+    initAdminPw();
     
     // Register ChartDataLabels plugin globally
     Chart.register(ChartDataLabels);
@@ -1236,7 +1245,7 @@
     window.handlePasswordConfirm = function() {
         const input = document.getElementById('confirm-pw-input');
         const pw = input.value.trim();
-        const storedPw = (localStorage.getItem('adminPassword') || '0000').trim();
+        const storedPw = (localStorage.getItem('adminPassword') || '1234').trim();
         let lockout = JSON.parse(localStorage.getItem('adminLockout') || '{"attempts":0, "until":0}');
 
         if (pw === storedPw) {
@@ -1316,14 +1325,14 @@
     }
 
     window.changePassword = function() {
-        const currentPw = document.getElementById('current-password').value;
-        const newPw = document.getElementById('new-password').value;
-        const confirmPw = document.getElementById('confirm-password').value;
-        const storedPw = localStorage.getItem('adminPassword');
+        const currentPw = document.getElementById('current-password').value.trim();
+        const newPw = document.getElementById('new-password').value.trim();
+        const confirmPw = document.getElementById('confirm-password').value.trim();
+        const storedPw = (localStorage.getItem('adminPassword') || '1234').trim();
 
         if (currentPw !== storedPw) return alert('현재 비밀번호가 일치하지 않습니다.');
         if (newPw.length < 4) return alert('새 비밀번호는 4자 이상이어야 합니다.');
-        if (newPw !== confirmPw) return alert('새 비밀번호가 일치하지 않습니다.');
+        if (newPw !== confirmPw) return alert('새 비밀번호 확인이 일치하지 않습니다.');
 
         localStorage.setItem('adminPassword', newPw);
         alert('비밀번호가 변경되었습니다.');
@@ -1399,7 +1408,7 @@
         
         if (!password) return; 
 
-        const storedPw = (localStorage.getItem('adminPassword') || '0000').toString().trim();
+        const storedPw = (localStorage.getItem('adminPassword') || '1234').trim();
 
         if (password === storedPw) {
             sessionStorage.setItem('isAdminLoggedIn', 'true');
