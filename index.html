@@ -10,6 +10,8 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
     <!-- Chart.js (그래프용) -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Chart.js DataLabels Plugin -->
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.0.0"></script>
     <!-- FontAwesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
 
@@ -305,10 +307,20 @@
 <!-- Modal: User Attendance Check (QR Scan Result) -->
 <div id="user-check-modal" class="fixed inset-0 bg-black bg-opacity-90 z-50 hidden flex flex-col justify-center items-center p-6 no-print">
     <div class="bg-white w-full max-w-sm rounded-xl p-6 text-center">
-        <h3 class="text-2xl font-bold mb-2 text-indigo-600">출석 체크</h3>
-        <p id="scan-info" class="text-xl text-gray-800 font-bold mb-2"></p>
-        <p class="text-gray-500 text-sm mb-6">이름을 입력하여 출석하세요.</p>
+        <h3 class="text-2xl font-bold mb-4 text-indigo-600">출석 체크</h3>
         
+        <!-- Date & Session Adjustment -->
+        <div class="grid grid-cols-2 gap-2 mb-4">
+            <div class="text-left">
+                <label class="block text-[10px] font-bold text-gray-400 mb-1">출석 날짜</label>
+                <input type="date" id="check-date" class="w-full p-2 border rounded bg-gray-50 text-sm font-bold text-gray-700" onchange="updateCheckSessionOptions()">
+            </div>
+            <div class="text-left">
+                <label class="block text-[10px] font-bold text-gray-400 mb-1">수업(차수) 선택</label>
+                <select id="check-session-select" class="w-full p-2 border rounded bg-gray-50 text-sm font-bold text-gray-700"></select>
+            </div>
+        </div>
+
         <!-- Manual Input (Default View) -->
         <div id="check-manual-wrapper">
             <input type="text" id="check-manual-name" placeholder="이름 입력" class="w-full p-4 border-2 border-indigo-200 rounded-xl mb-3 bg-white text-2xl font-bold text-center placeholder-gray-300 focus:border-indigo-500 outline-none h-16">
@@ -418,10 +430,13 @@
     // --- 1. Configuration ---
     // [CHANGED] Use localStorage for password persistence. Default is '1234'.
     const rawStoredPw = localStorage.getItem('adminPassword');
-    if (!rawStoredPw || rawStoredPw.trim() === "" || rawStoredPw === 'undefined' || rawStoredPw === 'null' || rawStoredPw === '1234') {
-        localStorage.setItem('adminPassword', '0000');
+    if (!rawStoredPw || rawStoredPw.trim() === "" || rawStoredPw === 'undefined' || rawStoredPw === 'null' || rawStoredPw === '0000') {
+        localStorage.setItem('adminPassword', '1234');
     }
     
+    // Register ChartDataLabels plugin globally
+    Chart.register(ChartDataLabels);
+
     window.SESSIONS = [];
     window.DAYS = ["일", "월", "화", "수", "목", "금", "토"];
     window.TIMES = [
@@ -514,10 +529,12 @@
     }
 
     window.handleMemberGridClick = function(memberId) {
-        const session = getCurrentSession();
-        if (!session) return alert("❌ 현재 진행 중인 수업이 없습니다.");
-        currentScanSession = session;
-        confirmAttendanceWithId(memberId);
+        openCheckModal();
+        // Wait for modal to setup then select the member
+        setTimeout(() => {
+            toggleCheckMode('existing');
+            document.getElementById('check-user-select').value = memberId;
+        }, 50);
     }
 
     // --- 3. Helper Functions ---
@@ -691,6 +708,7 @@
 
         trendChartInstance = new Chart(ctx, {
             type: 'line',
+            plugins: [ChartDataLabels],
             data: {
                 labels: labels,
                 datasets: [{
@@ -711,6 +729,14 @@
                 maintainAspectRatio: false,
                 plugins: {
                     legend: { display: false },
+                    datalabels: {
+                        display: true,
+                        align: 'top',
+                        anchor: 'end',
+                        offset: 4,
+                        font: { weight: 'bold', size: 11 },
+                        formatter: (value) => value > 0 ? value + '명' : ''
+                    },
                     tooltip: {
                         callbacks: {
                             label: function(context) {
@@ -792,6 +818,7 @@
         const lines = text.split(/[\n,]+/).map(n => n.trim()).filter(n => n.length > 0);
         
         let successCount = 0; let newMemberCount = 0; let duplicateCount = 0;
+        let successNames = [];
         
         const batch = writeBatch(db);
         let tempMembers = [...members]; // Local cache for this batch operation
@@ -861,14 +888,20 @@
                         timestamp: new Date().toLocaleString() + " (명부입력)"
                     });
                     processedInBatch.add(targetMember.id);
+                    successNames.push(targetMember.name);
                     successCount++;
                 }
             }
         });
         
         await batch.commit();
-        if (successCount > 0) playSound();
-        alert(`✅ 처리 완료: ${successCount}명\n(중복 제외: ${duplicateCount}명, 신규 가입: ${newMemberCount}명)`);
+        if (successCount > 0) {
+            playSound();
+            const namesStr = successNames.join(', ');
+            alert(`✅ 등록 완료\n일자: ${dateStr}\n차수: ${session.name}\n성함: ${namesStr}\n\n(총 ${successCount}명 처리 / 중복 제외: ${duplicateCount}명 / 신규 가입: ${newMemberCount}명)`);
+        } else {
+            alert(`처리할 새로운 명단이 없습니다.\n(중복 제외: ${duplicateCount}명)`);
+        }
         
         // 입력창 초기화 (화면은 닫지 않음)
         document.getElementById('paper-text-area').value = '';
@@ -878,12 +911,29 @@
     window.checkUrlForScan = function(silent = false) {
         const params = new URLSearchParams(window.location.search);
         const sessionCode = params.get('session');
+        
+        // Clear session from URL immediately to prevent loops
+        if (sessionCode) {
+            history.replaceState({}, document.title, window.location.pathname);
+        }
+
         if (sessionCode) {
             const session = SESSIONS.find(s => s.code === sessionCode);
-            if (session) handleScan(session, silent);
-            else {
+            if (session) {
+                const now = new Date();
+                const isWrongDay = now.getDay() !== session.day;
+                const isWrongTime = now.getHours() < session.start || now.getHours() >= session.end;
+                
+                if (!silent && (isWrongDay || isWrongTime)) {
+                    const msg = isWrongDay ? `오늘은 ${DAYS[now.getDay()]}요일입니다.` : `현재 진행 중인 수업 시간이 아닙니다.`;
+                    if(!confirm(`⚠️ QR 정보와 현재 시간이 다릅니다.\n(${session.name})\n\n그래도 출석을 진행하시겠습니까?`)) {
+                        if (sessionStorage.getItem('isAdminLoggedIn') !== 'true') showLoginScreen();
+                        return;
+                    }
+                }
+                handleScan(session);
+            } else {
                 if (!silent) alert("유효하지 않은 QR 코드입니다.");
-                history.replaceState({}, document.title, window.location.pathname);
                 if (sessionStorage.getItem('isAdminLoggedIn') !== 'true') showLoginScreen();
             }
         }
@@ -975,17 +1025,22 @@
         const member = members.find(m => m.id === memberId);
         if (!member) return alert('회원 정보를 찾을 수 없습니다.');
 
-        const todayStr = new Date().toISOString().slice(0,10);
-        const alreadyChecked = logs.some(log => log.memberId === member.id && log.date === todayStr && log.sessionCode === currentScanSession.code);
+        const dateStr = document.getElementById('check-date').value;
+        const sessionCode = document.getElementById('check-session-select').value;
+        const session = SESSIONS.find(s => s.code === sessionCode);
+        
+        if(!session) return alert('유효한 수업(차수)을 선택해주세요.');
+
+        const alreadyChecked = logs.some(log => log.memberId === member.id && log.date === dateStr && log.sessionCode === session.code);
         
         if(alreadyChecked) alert('⚠️ 이미 출석 처리되었습니다.');
         else {
             await addDoc(collection(db, "logs"), {
                 memberId: member.id, 
                 memberName: member.name, 
-                date: todayStr, 
-                sessionCode: currentScanSession.code, 
-                sessionName: currentScanSession.name, 
+                date: dateStr, 
+                sessionCode: session.code, 
+                sessionName: session.name, 
                 timestamp: new Date().toLocaleString()
             });
             playSound();
@@ -1063,6 +1118,12 @@
         let phone = document.getElementById('new-member-phone').value;
         if (!name) return alert('이름을 입력해주세요.');
         if (!phone) phone = "0000";
+
+        // [NEW] Duplicate Check
+        const isDuplicate = members.some(m => m.name === name && m.phone === phone);
+        if (isDuplicate) {
+            return alert(`⚠️ 이미 등록된 회원입니다.\n(이름: ${name}, 번호: ${phone})`);
+        }
         
         await addDoc(collection(db, "members"), { name, phone });
         document.getElementById('new-member-name').value = ''; document.getElementById('new-member-phone').value = '';
