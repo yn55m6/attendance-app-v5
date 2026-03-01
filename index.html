@@ -1153,8 +1153,11 @@
     }
 
     // --- 10. App Initialization & Login ---
-    function showLoginScreen() {
-        document.getElementById('login-modal').classList.remove('hidden');
+    window.showLoginScreen = function() {
+        document.getElementById('start-screen').classList.remove('hidden');
+        document.getElementById('app-main-content').classList.add('hidden');
+    }
+
     window.showAdminLogin = function() {
         document.getElementById('mode-selection').classList.add('hidden');
         document.getElementById('login-form').classList.remove('hidden');
@@ -1176,13 +1179,6 @@
         location.reload();
     }
 
-    window.showLoginScreen = function() {
-        document.getElementById('start-screen').classList.remove('hidden');
-        document.getElementById('app-main-content').classList.add('hidden');
-    }
-
-    function showApp() {
-        document.getElementById('login-modal').classList.add('hidden');
     window.showApp = function() {
         const mode = sessionStorage.getItem('appMode') || (sessionStorage.getItem('isAdminLoggedIn') === 'true' ? 'admin' : null);
         document.getElementById('start-screen').classList.add('hidden');
@@ -1194,10 +1190,17 @@
             switchPage(null, 'member-attendance');
             const session = getCurrentSession();
             document.getElementById('current-session-info').innerText = session ? `현재 수업: ${session.name}` : "현재 진행 중인 수업이 없습니다.";
+        } else {
+            document.querySelectorAll('.admin-only').forEach(el => el.classList.remove('hidden'));
+            document.getElementById('btn-exit-member-mode').classList.add('hidden');
+            // 관리자 모드일 때는 홈 페이지로 이동
+            switchPage(document.querySelector('.nav-item'), 'home');
         }
 
         // Run initial setup that requires the DOM to be visible
-        document.getElementById('current-url').innerText = window.location.href.split('?')[0];
+        if (document.getElementById('current-url')) {
+            document.getElementById('current-url').innerText = window.location.href.split('?')[0];
+        }
         checkUrlForScan();
     }
 
@@ -1214,14 +1217,18 @@
         }
     }
 
-    const urlParams = new URLSearchParams(window.location.search);
-    const isScanning = urlParams.has('session');
-    if (sessionStorage.getItem('appMode')) showApp();
-    else if (isScanning) {
-        sessionStorage.setItem('appMode', 'member');
-        showApp();
-    }
-    else showLoginScreen();
+    // 앱 초기화 실행
+    (function init() {
+        const urlParams = new URLSearchParams(window.location.search);
+        const isScanning = urlParams.has('session');
+        
+        if (sessionStorage.getItem('appMode')) showApp();
+        else if (isScanning) {
+            sessionStorage.setItem('appMode', 'member');
+            showApp();
+        }
+        else showLoginScreen();
+    })();
 </script>
 </body>
 </html>
