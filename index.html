@@ -106,9 +106,6 @@
                     <!-- Member buttons will be rendered here -->
                 </div>
             </div>
-            <button onclick="openQRPrintModal()" class="w-full py-4 bg-gray-100 text-gray-600 rounded-xl font-bold border-2 border-dashed border-gray-300">
-                <i class="fas fa-qrcode mr-2"></i>내 폰으로 스캔하여 출석하기 (QR 보기)
-            </button>
         </div>
 
         <!-- Page 1: Home (QR & Tools) -->
@@ -1190,6 +1187,7 @@
             switchPage(null, 'member-attendance');
             const session = getCurrentSession();
             document.getElementById('current-session-info').innerText = session ? `현재 수업: ${session.name}` : "현재 진행 중인 수업이 없습니다.";
+            renderMemberGrid(); // 명단 그리드 강제 렌더링
         } else {
             document.querySelectorAll('.admin-only').forEach(el => el.classList.remove('hidden'));
             document.getElementById('btn-exit-member-mode').classList.add('hidden');
@@ -1205,8 +1203,11 @@
     }
 
     window.handleLogin = function() {
-        const password = document.getElementById('admin-password').value;
-        const storedPw = localStorage.getItem('adminPassword');
+        const password = document.getElementById('admin-password').value.trim();
+        const storedPw = localStorage.getItem('adminPassword') || '1234';
+        
+        if (!password) return; // 입력값이 없으면 실행하지 않음 (자동 팝업 방지)
+
         if (password === storedPw) {
             sessionStorage.setItem('isAdminLoggedIn', 'true');
             sessionStorage.setItem('appMode', 'admin');
