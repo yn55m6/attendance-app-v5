@@ -547,6 +547,15 @@
     // 토요일 오후반 추가
     SESSIONS.push({ code: "D6_PM", name: "토요일 오후반", day: 6, start: 12, end: 18 });
 
+    // --- Helper: Get Today String (YYYY-MM-DD) ---
+    const getTodayStr = () => {
+        const now = new Date();
+        const yyyy = now.getFullYear();
+        const mm = String(now.getMonth() + 1).padStart(2, '0');
+        const dd = String(now.getDate()).padStart(2, '0');
+        return `${yyyy}-${mm}-${dd}`;
+    };
+
     // --- 2. Data Management ---
     // Local state for rendering (synced with Firebase)
     window.members = [];
@@ -898,11 +907,7 @@
 
     window.openPaperInputModal = function() {
         const modal = document.getElementById('paper-input-modal');
-        const now = new Date();
-        const yyyy = now.getFullYear();
-        const mm = String(now.getMonth() + 1).padStart(2, '0');
-        const dd = String(now.getDate()).padStart(2, '0');
-        const todayStr = `${yyyy}-${mm}-${dd}`;
+        const todayStr = getTodayStr();
         
         // 1. 날짜 먼저 설정
         document.getElementById('paper-date').value = todayStr;
@@ -910,7 +915,7 @@
         updateSessionOptions();
         // 3. 현재 시간에 맞는 수업(차수) 자동 선택
         const current = getCurrentSession();
-        if (current && current.day === now.getDay()) {
+        if (current && current.day === new Date().getDay()) {
             document.getElementById('paper-session-select').value = current.code;
         }
 
@@ -919,17 +924,12 @@
     }
 
     window.syncPaperInputToNow = function() {
-        const now = new Date();
-        const yyyy = now.getFullYear();
-        const mm = String(now.getMonth() + 1).padStart(2, '0');
-        const dd = String(now.getDate()).padStart(2, '0');
-        const todayStr = `${yyyy}-${mm}-${dd}`;
-        
+        const todayStr = getTodayStr();
         document.getElementById('paper-date').value = todayStr;
         updateSessionOptions();
         
         const current = getCurrentSession();
-        if (current && current.day === now.getDay()) {
+        if (current && current.day === new Date().getDay()) {
             document.getElementById('paper-session-select').value = current.code;
         }
         alert("현재 시간의 수업으로 설정되었습니다.");
