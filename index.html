@@ -1109,6 +1109,14 @@
     // --- [NEW] Password Confirmation Modal Logic ---
     let passwordResolve = null;
     window.requestPassword = function() {
+        const lockout = JSON.parse(localStorage.getItem('adminLockout') || '{"attempts":0, "until":0}');
+        const now = Date.now();
+        if (now < lockout.until) {
+            const remaining = Math.ceil((lockout.until - now) / 1000);
+            alert(`🔐 보안 제한: 비밀번호를 여러 번 틀려 시도가 제한되었습니다.\n${remaining}초 후 다시 시도해주세요.`);
+            return Promise.resolve(false);
+        }
+
         return new Promise((resolve) => {
             passwordResolve = resolve;
             const modal = document.getElementById('password-confirm-modal');
@@ -1123,13 +1131,26 @@
         const input = document.getElementById('confirm-pw-input');
         const pw = input.value.trim();
         const storedPw = (localStorage.getItem('adminPassword') || '0000').trim();
+        let lockout = JSON.parse(localStorage.getItem('adminLockout') || '{"attempts":0, "until":0}');
+
         if (pw === storedPw) {
+            localStorage.setItem('adminLockout', JSON.stringify({attempts: 0, until: 0}));
             document.getElementById('password-confirm-modal').classList.add('hidden');
             if (passwordResolve) passwordResolve(true);
         } else {
-            alert('❌ 비밀번호가 틀렸습니다.');
-            input.value = '';
-            input.focus();
+            lockout.attempts++;
+            if (lockout.attempts >= 5) {
+                lockout.until = Date.now() + 60000; // 1분 차단
+                lockout.attempts = 0;
+                localStorage.setItem('adminLockout', JSON.stringify(lockout));
+                alert('❌ 비밀번호를 5회 연속 틀렸습니다.\n보안을 위해 1분간 재시도가 제한됩니다.');
+                closePasswordConfirmModal();
+            } else {
+                localStorage.setItem('adminLockout', JSON.stringify(lockout));
+                alert(`❌ 비밀번호가 틀렸습니다. (틀린 횟수: ${lockout.attempts}/5)`);
+                input.value = '';
+                input.focus();
+            }
         }
     };
 
@@ -1210,9 +1231,9 @@
     }
 
     window.showAdminLogin = function() {
-        sessionStorage.setItem('isAdminLoggedIn', 'true');
-        sessionStorage.setItem('appMode', 'admin');
-        showApp();
+        document.getElementById('mode-selection').classList.add('hidden');
+        document.getElementById('login-form').classList.remove('hidden');
+        document.getElementById('admin-password').focus();
     }
 
     window.backToModeSelection = function() {
