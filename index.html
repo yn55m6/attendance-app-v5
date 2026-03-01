@@ -400,9 +400,10 @@
 
     // --- 1. Configuration ---
     // [CHANGED] Use localStorage for password persistence. Default is '1234'.
-    const currentStoredPw = localStorage.getItem('adminPassword');
-    if (!currentStoredPw || currentStoredPw === 'undefined' || currentStoredPw === 'null') {
+    let currentStoredPw = localStorage.getItem('adminPassword');
+    if (!currentStoredPw || currentStoredPw.trim() === "" || currentStoredPw === 'undefined' || currentStoredPw === 'null') {
         localStorage.setItem('adminPassword', '1234');
+        currentStoredPw = '1234';
     }
     window.SESSIONS = [];
     window.DAYS = ["일", "월", "화", "수", "목", "금", "토"];
@@ -1205,12 +1206,12 @@
     }
 
     window.handleLogin = function() {
-        const passwordInput = document.getElementById('admin-password');
-        const password = passwordInput.value.trim();
+        const passwordField = document.getElementById('admin-password');
+        const password = passwordField.value.trim();
         
-        if (password === "") return; // 빈 값일 때는 팝업을 띄우지 않음
+        if (!password) return; 
 
-        const storedPw = localStorage.getItem('adminPassword') || '1234';
+        const storedPw = (localStorage.getItem('adminPassword') || '1234').trim();
 
         if (password === storedPw) {
             sessionStorage.setItem('isAdminLoggedIn', 'true');
@@ -1218,8 +1219,8 @@
             showApp();
         } else {
             alert('비밀번호가 틀렸습니다.');
-            passwordInput.value = '';
-            passwordInput.focus();
+            passwordField.value = '';
+            passwordField.focus();
         }
     }
 
@@ -1228,8 +1229,14 @@
         const urlParams = new URLSearchParams(window.location.search);
         const isScanning = urlParams.has('session');
         
-        if (sessionStorage.getItem('appMode')) showApp();
-        else if (isScanning) {
+        const savedMode = sessionStorage.getItem('appMode');
+        const isAdminLoggedIn = sessionStorage.getItem('isAdminLoggedIn') === 'true';
+
+        if (savedMode === 'member') {
+            showApp();
+        } else if (savedMode === 'admin' && isAdminLoggedIn) {
+            showApp();
+        } else if (isScanning) {
             sessionStorage.setItem('appMode', 'member');
             showApp();
         }
