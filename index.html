@@ -73,7 +73,7 @@
             <i class="fas fa-lock text-4xl text-gray-400 mb-4"></i>
             <h2 class="text-2xl font-bold text-gray-800 mb-2">관리자 로그인</h2>
             <p class="text-sm text-gray-500 mb-6">계속하려면 비밀번호를 입력하세요.</p>
-            <input type="password" id="admin-password" class="w-full p-3 text-center text-lg border-2 rounded-lg mb-4" placeholder="••••••••" onkeyup="if(event.key==='Enter') handleLogin()">
+            <input type="password" id="admin-password" class="w-full p-3 text-center text-lg border-2 rounded-lg mb-4" placeholder="••••••••" onkeyup="if(event.key==='Enter') handleLogin()" autocomplete="current-password">
             <button onclick="handleLogin()" class="btn-primary">로그인</button>
         </div>
     </div>
@@ -496,7 +496,7 @@
 
     window.handleMemberGridClick = function(memberId) {
         const session = getCurrentSession();
-        if (!session) return alert("❌ 현재는 진행 중인 수업 시간이 아닙니다.");
+        if (!session) return alert("❌ 현재 진행 중인 수업이 없습니다.");
         currentScanSession = session;
         confirmAttendanceWithId(memberId);
     }
@@ -1203,10 +1203,12 @@
     }
 
     window.handleLogin = function() {
-        const password = document.getElementById('admin-password').value.trim();
-        const storedPw = localStorage.getItem('adminPassword') || '1234';
+        const passwordField = document.getElementById('admin-password');
+        const password = passwordField.value.trim();
         
-        if (!password) return; // 입력값이 없으면 실행하지 않음 (자동 팝업 방지)
+        if (!password) return; 
+
+        const storedPw = localStorage.getItem('adminPassword') || '1234';
 
         if (password === storedPw) {
             sessionStorage.setItem('isAdminLoggedIn', 'true');
@@ -1214,7 +1216,8 @@
             showApp();
         } else {
             alert('비밀번호가 틀렸습니다.');
-            document.getElementById('admin-password').value = '';
+            passwordField.value = '';
+            passwordField.focus();
         }
     }
 
