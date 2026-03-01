@@ -1424,10 +1424,13 @@
     }
 
     window.switchPage = function(element, pageId) {
-        document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
-        document.getElementById('page-' + pageId).classList.add('active');
+        const pages = document.querySelectorAll('.page');
+        pages.forEach(p => p.classList.remove('active'));
+        const targetPage = document.getElementById('page-' + pageId);
+        if (targetPage) targetPage.classList.add('active');
+
         document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
-        element.classList.add('active');
+        if (element) element.classList.add('active'); // element가 null일 경우 방어
         if(pageId === 'reports') renderReports();
     }
 
