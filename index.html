@@ -123,7 +123,7 @@
             <div class="flex gap-2">
                 <button id="btn-exit-member-mode" onclick="exitMemberMode()" class="hidden text-xs bg-red-500 px-2 py-1 rounded hover:bg-red-600 font-bold">출석 종료</button>
                 <button onclick="resetData()" class="admin-only text-xs bg-red-600 px-2 py-1 rounded hover:bg-red-700">초기화</button>
-                <button id="btn-exit-admin-mode" onclick="exitMemberMode()" class="admin-only text-sm bg-gray-500 px-4 py-2 rounded hover:bg-gray-600 font-bold">뒤로가기</button>
+                <button id="btn-exit-admin-mode" onclick="exitMemberMode()" class="admin-only text-base bg-gray-500 px-6 py-2.5 rounded-xl hover:bg-gray-600 font-bold shadow-md">뒤로가기</button>
             </div>
         </header>
 
@@ -141,7 +141,12 @@
                     </div>
                     <div class="text-left">
                         <label for="member-mode-session" class="block text-[10px] font-bold text-gray-400 mb-1 uppercase">수업(차수) 선택</label>
-                        <select id="member-mode-session" class="w-full p-3 border-2 border-gray-100 rounded-xl bg-gray-50 text-sm font-bold text-gray-700 focus:border-indigo-300 outline-none"></select>
+                        <div class="flex gap-1">
+                            <select id="member-mode-session" class="flex-1 p-3 border-2 border-gray-100 rounded-xl bg-gray-50 text-sm font-bold text-gray-700 focus:border-indigo-300 outline-none"></select>
+                            <button onclick="syncMemberModeToNow()" class="px-3 bg-white border-2 border-gray-100 rounded-xl text-indigo-500 hover:bg-indigo-50 transition shadow-sm" title="현재 시간으로 맞춤">
+                                <i class="fas fa-clock"></i>
+                            </button>
+                        </div>
                     </div>
                 </div>
                 
@@ -331,9 +336,14 @@
 
         <div class="mb-3">
             <label class="block text-xs font-bold text-gray-500 mb-1">2. 수업(차수) 선택</label>
-            <select id="paper-session-select" class="w-full p-2 border rounded bg-gray-50 text-sm font-bold">
-                <!-- JS로 옵션 채움 -->
-            </select>
+            <div class="flex gap-2">
+                <select id="paper-session-select" class="flex-1 p-2 border rounded bg-gray-50 text-sm font-bold">
+                    <!-- JS로 옵션 채움 -->
+                </select>
+                <button onclick="syncPaperInputToNow()" class="px-3 bg-gray-100 text-indigo-600 rounded-lg hover:bg-gray-200 transition" title="현재 시간으로 맞춤">
+                    <i class="fas fa-sync-alt"></i>
+                </button>
+            </div>
         </div>
 
         <div class="mb-4">
@@ -886,7 +896,7 @@
     window.openPaperInputModal = function() {
         const modal = document.getElementById('paper-input-modal');
         const now = new Date();
-        const todayStr = now.toISOString().slice(0,10);
+        const todayStr = now.toLocaleDateString('sv-SE'); // YYYY-MM-DD 형식 (현지 시간)
         
         // 1. 날짜 먼저 설정
         document.getElementById('paper-date').value = todayStr;
@@ -894,10 +904,19 @@
         updateSessionOptions();
         // 3. 현재 시간에 맞는 수업(차수) 자동 선택
         const current = getCurrentSession();
-        if (current && current.day === now.getDay()) document.getElementById('paper-session-select').value = current.code;
+        if (current && current.day === now.getDay()) {
+            document.getElementById('paper-session-select').value = current.code;
+        }
 
         document.getElementById('paper-text-area').value = '';
         modal.classList.remove('hidden');
+    }
+
+    window.syncPaperInputToNow = function() {
+        const now = new Date();
+        const current = getCurrentSession();
+        if (current && current.day === now.getDay()) document.getElementById('paper-session-select').value = current.code;
+        alert("현재 시간의 수업으로 설정되었습니다.");
     }
 
     window.updateSessionOptions = function() {
@@ -1468,7 +1487,7 @@
             
             // Initialize Member Mode Inputs
             const now = new Date();
-            const todayStr = now.toISOString().slice(0,10);
+            const todayStr = now.toLocaleDateString('sv-SE');
             // 1. 날짜 설정
             document.getElementById('member-mode-date').value = todayStr;
             // 2. 옵션 생성
@@ -1476,8 +1495,12 @@
             
             // 3. 현재 수업 정보 표시 및 자동 선택
             const session = getCurrentSession();
-            document.getElementById('current-session-info').innerText = session ? `현재 수업: ${session.name}` : "현재 진행 중인 수업이 없습니다.";
-            if (session && session.day === now.getDay()) document.getElementById('member-mode-session').value = session.code;
+            if (session && session.day === now.getDay()) {
+                document.getElementById('current-session-info').innerText = `현재 수업: ${session.name}`;
+                document.getElementById('member-mode-session').value = session.code;
+            } else {
+                document.getElementById('current-session-info').innerText = "현재 진행 중인 수업이 없습니다.";
+            }
 
             renderMemberGrid(); // 명단 그리드 강제 렌더링
         } else {
