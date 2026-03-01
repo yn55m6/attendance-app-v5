@@ -547,13 +547,13 @@
     // 토요일 오후반 추가
     SESSIONS.push({ code: "D6_PM", name: "토요일 오후반", day: 6, start: 12, end: 18 });
 
-    // --- Helper: Get Today String (YYYY-MM-DD) ---
+    // --- Helper: Get Today String (YYYY-MM-DD) - 절대 공백 불가 버전 ---
     const getTodayStr = () => {
         const now = new Date();
         const yyyy = now.getFullYear();
-        const mm = String(now.getMonth() + 1).padStart(2, '0');
-        const dd = String(now.getDate()).padStart(2, '0');
-        return `${yyyy}-${mm}-${dd}`;
+        const m = now.getMonth() + 1;
+        const d = now.getDate();
+        return yyyy + '-' + (m < 10 ? '0' + m : m) + '-' + (d < 10 ? '0' + d : d);
     };
 
     // --- 2. Data Management ---
@@ -915,8 +915,9 @@
         updateSessionOptions();
         // 3. 현재 시간에 맞는 수업(차수) 자동 선택
         const current = getCurrentSession();
-        if (current && current.day === new Date().getDay()) {
-            document.getElementById('paper-session-select').value = current.code;
+        const select = document.getElementById('paper-session-select');
+        if (current && select) {
+            select.value = current.code;
         }
 
         document.getElementById('paper-text-area').value = '';
@@ -929,8 +930,9 @@
         updateSessionOptions();
         
         const current = getCurrentSession();
-        if (current && current.day === new Date().getDay()) {
-            document.getElementById('paper-session-select').value = current.code;
+        const select = document.getElementById('paper-session-select');
+        if (current && select) {
+            select.value = current.code;
         }
         alert("현재 시간의 수업으로 설정되었습니다.");
     }
