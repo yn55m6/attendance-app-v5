@@ -652,8 +652,10 @@
 
     window.updateMemberModeSessionOptions = function() {
         const dateStr = document.getElementById('member-mode-date').value;
-        const date = new Date(dateStr);
-        const day = date.getDay();
+        if(!dateStr) return;
+        const [y, m, d] = dateStr.split('-').map(Number);
+        const day = new Date(y, m - 1, d).getDay();
+
         const select = document.getElementById('member-mode-session');
         select.innerHTML = '';
         const availableSessions = SESSIONS.filter(s => s.day === day);
@@ -895,8 +897,12 @@
 
     window.openPaperInputModal = function() {
         const modal = document.getElementById('paper-input-modal');
+        // 안전한 현지 날짜 생성 (YYYY-MM-DD)
         const now = new Date();
-        const todayStr = now.toLocaleDateString('sv-SE'); // YYYY-MM-DD 형식 (현지 시간)
+        const yyyy = now.getFullYear();
+        const mm = String(now.getMonth() + 1).padStart(2, '0');
+        const dd = String(now.getDate()).padStart(2, '0');
+        const todayStr = `${yyyy}-${mm}-${dd}`;
         
         // 1. 날짜 먼저 설정
         document.getElementById('paper-date').value = todayStr;
@@ -904,7 +910,7 @@
         updateSessionOptions();
         // 3. 현재 시간에 맞는 수업(차수) 자동 선택
         const current = getCurrentSession();
-        if (current && current.day === now.getDay()) {
+        if (current) {
             document.getElementById('paper-session-select').value = current.code;
         }
 
@@ -914,16 +920,23 @@
 
     window.syncPaperInputToNow = function() {
         const now = new Date();
+        const yyyy = now.getFullYear();
+        const mm = String(now.getMonth() + 1).padStart(2, '0');
+        const dd = String(now.getDate()).padStart(2, '0');
+        document.getElementById('paper-date').value = `${yyyy}-${mm}-${dd}`;
+        updateSessionOptions();
         const current = getCurrentSession();
-        if (current && current.day === now.getDay()) document.getElementById('paper-session-select').value = current.code;
+        if (current) document.getElementById('paper-session-select').value = current.code;
         alert("현재 시간의 수업으로 설정되었습니다.");
     }
 
     window.updateSessionOptions = function() {
         const dateStr = document.getElementById('paper-date').value;
         if(!dateStr) return;
-        const date = new Date(dateStr);
-        const day = date.getDay();
+        // 로컬 시간 기준 요일 계산
+        const [y, m, d] = dateStr.split('-').map(Number);
+        const day = new Date(y, m - 1, d).getDay();
+
         const select = document.getElementById('paper-session-select');
         select.innerHTML = '';
         const availableSessions = SESSIONS.filter(s => s.day === day);
@@ -1487,7 +1500,11 @@
             
             // Initialize Member Mode Inputs
             const now = new Date();
-            const todayStr = now.toLocaleDateString('sv-SE');
+            const yyyy = now.getFullYear();
+            const mm = String(now.getMonth() + 1).padStart(2, '0');
+            const dd = String(now.getDate()).padStart(2, '0');
+            const todayStr = `${yyyy}-${mm}-${dd}`;
+
             // 1. 날짜 설정
             document.getElementById('member-mode-date').value = todayStr;
             // 2. 옵션 생성
@@ -1495,7 +1512,7 @@
             
             // 3. 현재 수업 정보 표시 및 자동 선택
             const session = getCurrentSession();
-            if (session && session.day === now.getDay()) {
+            if (session) {
                 document.getElementById('current-session-info').innerText = `현재 수업: ${session.name}`;
                 document.getElementById('member-mode-session').value = session.code;
             } else {
