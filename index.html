@@ -769,19 +769,33 @@
     }
 
     // --- 6. Attendance Logic (Scan) ---
-    window.checkUrlForScan = function() {
+    window.checkUrlForScan = function(silent = false) {
         const params = new URLSearchParams(window.location.search);
         const sessionCode = params.get('session');
         if (sessionCode) {
             const session = SESSIONS.find(s => s.code === sessionCode);
-            if (session) handleScan(session);
-            else { alert("유효하지 않은 QR 코드입니다."); history.replaceState({}, document.title, window.location.pathname); }
+            if (session) handleScan(session, silent);
+            else {
+                if (!silent) alert("유효하지 않은 QR 코드입니다.");
+                history.replaceState({}, document.title, window.location.pathname);
+                if (sessionStorage.getItem('isAdminLoggedIn') !== 'true') showLoginScreen();
+            }
         }
     }
-    window.handleScan = function(session) {
+    window.handleScan = function(session, silent = false) {
         const now = new Date();
-        if (now.getDay() !== session.day) { alert(`❌ 출석 실패\n오늘은 ${DAYS[now.getDay()]}요일입니다.`); history.replaceState({}, document.title, window.location.pathname); return; }
-        if (now.getHours() < session.start || now.getHours() >= session.end) { alert(`❌ 출석 실패\n지금은 ${session.name} 시간이 아닙니다.`); history.replaceState({}, document.title, window.location.pathname); return; }
+        const isWrongDay = now.getDay() !== session.day;
+        const isWrongTime = now.getHours() < session.start || now.getHours() >= session.end;
+
+        if (isWrongDay || isWrongTime) {
+            history.replaceState({}, document.title, window.location.pathname);
+            if (!silent) {
+                const msg = isWrongDay ? `오늘은 ${DAYS[now.getDay()]}요일입니다.` : `지금은 ${session.name} 시간이 아닙니다.`;
+                alert(`❌ 출석 실패\n${msg}`);
+            }
+            if (sessionStorage.getItem('isAdminLoggedIn') !== 'true') showLoginScreen();
+            return;
+        }
         currentScanSession = session;
         const modal = document.getElementById('user-check-modal');
         document.getElementById('scan-info').innerText = `[${session.name}]`;
@@ -871,7 +885,11 @@
         }
         closeCheckModal();
     }
-    window.closeCheckModal = function() { document.getElementById('user-check-modal').classList.add('hidden'); history.replaceState({}, document.title, window.location.pathname); }
+    window.closeCheckModal = function() {
+        document.getElementById('user-check-modal').classList.add('hidden');
+        history.replaceState({}, document.title, window.location.pathname);
+        if (sessionStorage.getItem('isAdminLoggedIn') !== 'true') showLoginScreen();
+    }
 
     // --- 7. History Modal Logic ---
     window.openHistoryModal = function(memberId) {
@@ -1043,12 +1061,12 @@
         document.getElementById('app-main-content').classList.add('hidden');
     }
 
-    function showApp(silent = false) {
+    function showApp() {
         document.getElementById('login-modal').classList.add('hidden');
         document.getElementById('app-main-content').classList.remove('hidden');
         // Run initial setup that requires the DOM to be visible
         document.getElementById('current-url').innerText = window.location.href.split('?')[0];
-        checkUrlForScan(silent);
+        checkUrlForScan();
     }
 
     window.handleLogin = function() {
@@ -1056,7 +1074,7 @@
         const storedPw = localStorage.getItem('adminPassword');
         if (password === storedPw) {
             sessionStorage.setItem('isAdminLoggedIn', 'true');
-            showApp(true); // 로그인 시에는 유효성 검사 실패 알림을 띄우지 않음
+            showApp();
         } else {
             alert('비밀번호가 틀렸습니다.');
             document.getElementById('admin-password').value = '';
@@ -1065,7 +1083,10 @@
 
     // [FIX] 초기화 로직 즉시 실행 (모듈 스크립트는 지연 실행되므로 DOM 접근 안전함)
     // window.onload는 타이밍 문제로 실행되지 않을 수 있어 제거했습니다.
-    if (sessionStorage.getItem('isAdminLoggedIn') === 'true') showApp(true); // 초기 로드 시에도 알림 억제
+    const urlParams = new URLSearchParams(window.location.search);
+    const isScanning = urlParams.has('session');
+    if (sessionStorage.getItem('isAdminLoggedIn') === 'true') showApp(true);
+    else if (isScanning) showApp(false); 
     else showLoginScreen();
 </script>
 </body>
