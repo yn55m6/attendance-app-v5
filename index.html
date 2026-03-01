@@ -63,7 +63,7 @@
                 <button onclick="showAdminLogin()" class="p-8 bg-gray-800 text-white rounded-2xl shadow-lg hover:bg-gray-700 transition">
                     <i class="fas fa-user-shield text-4xl mb-3"></i>
                     <p class="text-2xl font-bold">관리자 모드</p>
-                    <p class="text-sm text-gray-400 mt-1">비밀번호 입력 필요</p>
+                    <p class="text-sm text-gray-400 mt-1">즉시 접속 가능</p>
                 </button>
             </div>
         </div>
@@ -1158,9 +1158,9 @@
     }
 
     window.showAdminLogin = function() {
-        document.getElementById('mode-selection').classList.add('hidden');
-        document.getElementById('login-form').classList.remove('hidden');
-        document.getElementById('admin-password').focus();
+        sessionStorage.setItem('isAdminLoggedIn', 'true');
+        sessionStorage.setItem('appMode', 'admin');
+        showApp();
     }
 
     window.backToModeSelection = function() {
