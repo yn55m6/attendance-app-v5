@@ -1352,6 +1352,9 @@
     window.showLoginScreen = function() {
         document.getElementById('start-screen').classList.remove('hidden');
         document.getElementById('app-main-content').classList.add('hidden');
+        // [FIX] 항상 모드 선택 버튼이 보이도록 초기화
+        document.getElementById('mode-selection').classList.remove('hidden');
+        document.getElementById('login-form').classList.add('hidden');
     }
 
     window.showAdminLogin = function() {
@@ -1469,18 +1472,12 @@
         const urlParams = new URLSearchParams(window.location.search);
         const isScanning = urlParams.has('session');
         
-        const savedMode = sessionStorage.getItem('appMode');
-        const isAdminLoggedIn = sessionStorage.getItem('isAdminLoggedIn') === 'true';
-
-        if (savedMode === 'member') {
-            showApp();
-        } else if (savedMode === 'admin' && isAdminLoggedIn) {
-            showApp();
-        } else if (isScanning) {
+        // QR 스캔을 통해 들어온 경우에만 즉시 회원 모드로 진입
+        if (isScanning) {
             sessionStorage.setItem('appMode', 'member');
             showApp();
         }
-        else showLoginScreen();
+        else showLoginScreen(); // 그 외에는 항상 모드 선택 화면 표시
     })();
 </script>
 </body>
