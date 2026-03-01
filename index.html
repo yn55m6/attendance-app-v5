@@ -4,6 +4,11 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>몸펴기생활운동 연신내 출석부 (6개월 추이 그래프)</title>
+    
+    <!-- [ICON SETTING] 아래 href 속성의 URL을 원하는 이미지 주소나 Base64 데이터로 변경하세요 -->
+    <link rel="icon" id="app-favicon" href="https://cdn-icons-png.flaticon.com/512/3472/3472130.png">
+    <link rel="apple-touch-icon" id="app-apple-icon" href="https://cdn-icons-png.flaticon.com/512/3472/3472130.png">
+
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- QRCode.js -->
@@ -708,7 +713,6 @@
 
         trendChartInstance = new Chart(ctx, {
             type: 'line',
-            plugins: [ChartDataLabels],
             data: {
                 labels: labels,
                 datasets: [{
@@ -727,6 +731,7 @@
             options: {
                 responsive: true,
                 maintainAspectRatio: false,
+                layout: { padding: { top: 25 } },
                 plugins: {
                     legend: { display: false },
                     datalabels: {
@@ -734,7 +739,8 @@
                         align: 'top',
                         anchor: 'end',
                         offset: 4,
-                        font: { weight: 'bold', size: 11 },
+                        color: '#4f46e5',
+                        font: { weight: 'bold', size: 12 },
                         formatter: (value) => value > 0 ? value + '명' : ''
                     },
                     tooltip: {
@@ -748,6 +754,7 @@
                 scales: {
                     y: {
                         beginAtZero: true,
+                        grace: '15%',
                         ticks: { stepSize: 1 },
                         grid: { borderDash: [2, 4] }
                     },
