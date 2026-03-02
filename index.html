@@ -2708,11 +2708,8 @@
                 sessionStorage.setItem('appMode', 'member');
                 showApp();
             } else {
-                if (sessionStorage.getItem('isAdminLoggedIn') === 'true' || sessionStorage.getItem('appMode') === 'member') {
-                    showApp();
-                } else {
-                    showLoginScreen();
-                }
+                // QR 스캔이 아닌 모든 경우에는 초기 모드 선택 화면을 보여줍니다.
+                showLoginScreen();
             }
             // DOM이 준비된 후 UI 렌더링
             renderMembers();
