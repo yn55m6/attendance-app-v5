@@ -585,23 +585,64 @@
     <button id="undo-toast-button" class="font-bold text-yellow-400 hover:text-yellow-300 underline text-base mt-1">출석 취소</button>
 </div>
 
-<script type="module">
-    // --- 0. Firebase Setup ---
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-    import { getFirestore, collection, addDoc, deleteDoc, doc, onSnapshot, query, orderBy, writeBatch, getDocs, setDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+<script>
+    // =================================================================================
+    // IndexedDB Helper (데이터베이스 관리 로직)
+    // =================================================================================
+    const dbHelper = (() => {
+        const DB_NAME = 'attendanceAppDB';
+        const DB_VERSION = 1;
+        let db;
 
-    // TODO: Firebase Console에서 발급받은 설정값을 아래에 입력해주세요.
-    const firebaseConfig = {
-        apiKey: "AIzaSyBeO3VsRM8x7pY9A5tktrUDIZPfCMKGZfQ",
-        authDomain: "smart-attendance-964dc.firebaseapp.com",
-        projectId: "smart-attendance-964dc",
-        storageBucket: "smart-attendance-964dc.firebasestorage.app",
-        messagingSenderId: "409196393524",
-        appId: "1:409196393524:web:f705254e8e62c415488661"
-    };
+        function initDB() {
+            return new Promise((resolve, reject) => {
+                const request = indexedDB.open(DB_NAME, DB_VERSION);
 
-    const app = initializeApp(firebaseConfig);
-    const db = getFirestore(app);
+                request.onerror = (event) => {
+                    console.error('IndexedDB error:', event.target.error);
+                    reject('Database error: ' + event.target.error);
+                };
+
+                request.onsuccess = (event) => {
+                    db = event.target.result;
+                    console.log('Database opened successfully.');
+                    resolve(db);
+                };
+
+                request.onupgradeneeded = (event) => {
+                    const tempDb = event.target.result;
+                    if (!tempDb.objectStoreNames.contains('members')) {
+                        tempDb.createObjectStore('members', { keyPath: 'id', autoIncrement: true });
+                    }
+                    if (!tempDb.objectStoreNames.contains('logs')) {
+                        tempDb.createObjectStore('logs', { keyPath: 'id', autoIncrement: true });
+                    }
+                    if (!tempDb.objectStoreNames.contains('instructors')) {
+                        tempDb.createObjectStore('instructors', { keyPath: 'sessionCode' });
+                    }
+                };
+            });
+        }
+
+        const promisifyRequest = (request) => new Promise((resolve, reject) => {
+            request.onsuccess = () => resolve(request.result);
+            request.onerror = () => reject(request.error);
+        });
+
+        const getStore = (storeName, mode) => db.transaction(storeName, mode).objectStore(storeName);
+
+        return {
+            initDB,
+            getAll: (storeName) => promisifyRequest(getStore(storeName, 'readonly').getAll()),
+            add: (storeName, item) => promisifyRequest(getStore(storeName, 'readwrite').add(item)),
+            put: (storeName, item) => promisifyRequest(getStore(storeName, 'readwrite').put(item)),
+            deleteItem: (storeName, key) => promisifyRequest(getStore(storeName, 'readwrite').delete(key)),
+            clear: (storeName) => promisifyRequest(getStore(storeName, 'readwrite').clear())
+        };
+    })();
+</script>
+<script>
+    // --- 0. Firebase Setup (REMOVED) ---
 
     // --- 1. Configuration ---
     // [CHANGED] Use localStorage for password persistence. Default is '1234'.
@@ -689,37 +730,6 @@
             toast.classList.add('hidden');
         }, 5000); // 5 seconds
     }
-
-    // Real-time Listeners
-    // 1. Members
-    onSnapshot(query(collection(db, "members"), orderBy("name")), (snapshot) => {
-        window.members = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-        renderMembers();
-        updateCheckUserSelect(); // [FIX] 회원 데이터 변경 시, 출석 모달의 드롭다운도 항상 업데이트
-        renderMemberGrid(); // 회원 출석 모드 그리드 업데이트
-    });
-
-    // 2. Logs
-    onSnapshot(query(collection(db, "logs"), orderBy("timestamp", "desc")), (snapshot) => {
-        window.logs = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-        // 리포트 페이지가 활성화 상태일 때만 데이터 자동 갱신
-        if (currentMode === 'reports') {
-            showReports();
-        }
-    });
-
-    // 3. Instructors
-    onSnapshot(collection(db, "instructors"), (snapshot) => {
-        const instructorData = {};
-        snapshot.forEach(doc => {
-            instructorData[doc.id] = doc.data().name;
-        });
-        window.instructors = instructorData;
-        
-        // Update relevant UIs
-        if (currentMode === 'home') { renderInstructorManagement(); }
-        if (sessionStorage.getItem('appMode') === 'member') { syncMemberModeToNow(true); }
-    });
 
     // [NEW] Helper function to populate the attendance check dropdown
     function updateCheckUserSelect() {
@@ -823,10 +833,14 @@
                 }
 
                 // Create new member
-                const docRef = await addDoc(collection(db, "members"), { name, phone: "0000", registeredAt: new Date() });
+                const newMemberData = { name, phone: "0000", registeredAt: new Date().toISOString() };
+                const newId = await dbHelper.add('members', newMemberData);
+                newMemberData.id = newId;
+                window.members.push(newMemberData);
+                window.members.sort((a, b) => a.name.localeCompare(b.name));
                 
                 // Immediately check in
-                await confirmAttendanceWithId(docRef.id, true, dateStr, sessionCode);
+                await confirmAttendanceWithId(newId, true, dateStr, sessionCode);
 
             } catch (e) {
                 console.error("신규 회원 등록 및 출석 처리 실패:", e);
@@ -1179,8 +1193,8 @@
             labels.push(`${month + 1}월`);
             monthData.push({ year, month });
             const count = members.filter(member => {
-                if (!member.registeredAt || !member.registeredAt.toDate) return false;
-                const regDate = member.registeredAt.toDate();
+                if (!member.registeredAt) return false;
+                const regDate = new Date(member.registeredAt);
                 return regDate.getFullYear() === year && regDate.getMonth() === month;
             }).length;
             data.push(count);
@@ -1228,7 +1242,7 @@
         const tbody = document.createElement('tbody');
 
         inactiveMembers.sort((a, b) => a.name.localeCompare(b.name)).forEach((member, index) => {
-            const registeredDate = member.registeredAt && member.registeredAt.toDate ? member.registeredAt.toDate().toLocaleDateString() : '알 수 없음';
+            const registeredDate = member.registeredAt ? new Date(member.registeredAt).toLocaleDateString() : '알 수 없음';
             const tr = document.createElement('tr');
             tr.className = 'bg-white border-b hover:bg-gray-50 animate-fadeInUp';
             tr.style.animationDelay = `${index * 50}ms`;
@@ -1329,7 +1343,10 @@
             return;
         }
         try {
-            await setDoc(doc(db, "instructors", sessionCode), { name: newName.trim() });
+            const instructorData = { sessionCode, name: newName.trim() };
+            await dbHelper.put('instructors', instructorData);
+            window.instructors[sessionCode] = newName.trim();
+            renderInstructorManagement();
             alert('담당 사범 정보가 업데이트되었습니다.');
         } catch (error) { console.error("Error updating instructor: ", error); alert('업데이트 중 오류가 발생했습니다.'); }
     }
@@ -1337,7 +1354,9 @@
     window.deleteInstructor = async function(sessionCode) {
         if (confirm('해당 수업의 담당 사범 지정을 삭제하시겠습니까?')) {
             try {
-                await deleteDoc(doc(db, "instructors", sessionCode));
+                await dbHelper.deleteItem('instructors', sessionCode);
+                delete window.instructors[sessionCode];
+                renderInstructorManagement();
                 alert('담당 사범 정보가 삭제되었습니다.');
             } catch (error) { console.error("Error deleting instructor: ", error); alert('삭제 중 오류가 발생했습니다.'); }
         }
@@ -1445,81 +1464,73 @@
         let successCount = 0; let newMemberCount = 0; let duplicateCount = 0;
         let successNames = [];
         
-        const batch = writeBatch(db);
-        let tempMembers = [...members]; // Local cache for this batch operation
         const processedInBatch = new Set(); // To prevent duplicates within the same bulk input
         
-        lines.forEach(line => {
+        for (const line of lines) {
             let inputName = line; let inputPhone = null;
             const match = line.match(/^(.*?)[\s]+(\d{4})$/);
             if (match) { inputName = match[1].trim(); inputPhone = match[2]; }
             
-            let candidates = tempMembers.filter(m => m.name === inputName);
+            let candidates = window.members.filter(m => m.name === inputName);
             let targetMember = null;
 
             if (candidates.length === 0) {
-                // Create new member ref
-                const newMemberRef = doc(collection(db, "members"));
-                const newMemberData = { name: inputName, phone: inputPhone || "0000", registeredAt: new Date() };
-                batch.set(newMemberRef, newMemberData);
-                
-                targetMember = { id: newMemberRef.id, ...newMemberData };
-                tempMembers.push(targetMember);
+                const newMemberData = { name: inputName, phone: inputPhone || "0000", registeredAt: new Date().toISOString() };
+                const newId = await dbHelper.add('members', newMemberData);
+                targetMember = { id: newId, ...newMemberData };
+                window.members.push(targetMember);
                 newMemberCount++;
             } else if (candidates.length === 1) {
                 if (inputPhone && candidates[0].phone !== "0000" && candidates[0].phone !== inputPhone) {
                     // Different person (same name, diff phone)
-                    const newMemberRef = doc(collection(db, "members"));
-                    const newMemberData = { name: inputName, phone: inputPhone, registeredAt: new Date() };
-                    batch.set(newMemberRef, newMemberData);
-                    
-                    targetMember = { id: newMemberRef.id, ...newMemberData };
-                    tempMembers.push(targetMember);
+                    const newMemberData = { name: inputName, phone: inputPhone, registeredAt: new Date().toISOString() };
+                    const newId = await dbHelper.add('members', newMemberData);
+                    targetMember = { id: newId, ...newMemberData };
+                    window.members.push(targetMember);
                     newMemberCount++;
                 } else {
                     targetMember = candidates[0];
                     if(targetMember.phone === "0000" && inputPhone) {
-                        // Update phone number
-                        batch.update(doc(db, "members", targetMember.id), { phone: inputPhone });
                         targetMember.phone = inputPhone;
+                        await dbHelper.put('members', targetMember);
                     }
                 }
             } else {
                 if (inputPhone) targetMember = candidates.find(m => m.phone === inputPhone);
                 if (!targetMember && inputPhone) {
-                    const newMemberRef = doc(collection(db, "members"));
-                    const newMemberData = { name: inputName, phone: inputPhone, registeredAt: new Date() };
-                    batch.set(newMemberRef, newMemberData);
-                    targetMember = { id: newMemberRef.id, ...newMemberData };
-                    tempMembers.push(targetMember);
+                    const newMemberData = { name: inputName, phone: inputPhone, registeredAt: new Date().toISOString() };
+                    const newId = await dbHelper.add('members', newMemberData);
+                    targetMember = { id: newId, ...newMemberData };
+                    window.members.push(targetMember);
                     newMemberCount++;
                 }
             }
             
             if (targetMember) {
-                // Check logs in memory (since we have real-time sync)
+                // Check logs in memory
                 const alreadyExists = logs.some(l => l.memberId === targetMember.id && l.date === dateStr && l.sessionCode === sessionCode);
                 const alreadyInBatch = processedInBatch.has(targetMember.id);
                 if(alreadyExists || alreadyInBatch) {
                     duplicateCount++;
                 } else {
-                    const newLogRef = doc(collection(db, "logs"));
-                    batch.set(newLogRef, {
+                    const newLogData = {
                         memberId: targetMember.id, 
                         memberName: targetMember.name, 
                         date: dateStr, 
                         sessionCode: session.code, 
                         sessionName: session.name, 
                         timestamp: new Date().toLocaleString() + " (명부입력)"
-                    });
+                    };
+                    const newLogId = await dbHelper.add('logs', newLogData);
+                    newLogData.id = newLogId;
+                    window.logs.unshift(newLogData);
                     processedInBatch.add(targetMember.id);
                     successNames.push(targetMember.name);
                     successCount++;
                 }
             }
-        });
+        }
         
-        await batch.commit();
         if (successCount > 0) {
             playSound();
             const namesStr = successNames.join(', ');
@@ -1530,6 +1541,9 @@
         
         // 입력창 초기화 (화면은 닫지 않음)
         document.getElementById('paper-text-area').value = '';
+        renderMembers();
+        updateCheckUserSelect();
+        renderMemberGrid();
     }
 
     // --- 6. Attendance Logic (Scan) ---
@@ -1629,9 +1643,12 @@
             // 2. If not found, create a new one
             if (!member) {
                 try {
-                    const docRef = await addDoc(collection(db, "members"), { name, phone, registeredAt: new Date() });
-                    member = { id: docRef.id, name, phone, registeredAt: new Date() };
+                    const newMemberData = { name, phone, registeredAt: new Date().toISOString() };
+                    const newId = await dbHelper.add('members', newMemberData);
+                    member = { id: newId, ...newMemberData };
                     isNewMember = true;
+                    window.members.push(member);
+                    window.members.sort((a, b) => a.name.localeCompare(b.name));
                 } catch (e) {
                     console.error(e);
                     return alert("회원 등록 중 오류가 발생했습니다.");
@@ -1669,7 +1686,9 @@
                 sessionName: session.name, 
                 timestamp: new Date().toLocaleString()
             };
-            const docRef = await addDoc(collection(db, "logs"), newLogData);
+            const newId = await dbHelper.add('logs', newLogData);
+            newLogData.id = newId;
+            window.logs.unshift(newLogData);
             
             playSound();
             let message = `✅ ${member.name}님 출석 완료!`;
@@ -1678,7 +1697,8 @@
             }
             
             showUndoToast(message, async () => { // Undo callback
-                await deleteDoc(doc(db, "logs", docRef.id));
+                await dbHelper.deleteItem('logs', newId);
+                window.logs = window.logs.filter(l => l.id !== newId);
                 showUndoToast(`🚫 ${member.name}님의 출석이 취소되었습니다.`);
             });
         }
@@ -1702,7 +1722,7 @@
         if(!member) return;
         document.getElementById('history-member-name').innerText = `${member.name} 님의 출석 이력`;
         const list = document.getElementById('history-list');
-        list.innerHTML = '';
+        list.innerHTML = ''; // Clear previous content
         const history = logs.filter(l => l.memberId === memberId).sort((a, b) => b.id - a.id);
         if(history.length === 0) {
             list.innerHTML = '<li class="text-center text-gray-400 py-4">출석 기록이 없습니다.</li>';
@@ -1755,8 +1775,8 @@
         const list = document.getElementById('new-members-list');
 
         const newMembersInMonth = window.members.filter(member => {
-            if (!member.registeredAt || !member.registeredAt.toDate) return false;
-            const regDate = member.registeredAt.toDate();
+            if (!member.registeredAt) return false;
+            const regDate = new Date(member.registeredAt);
             return regDate.getFullYear() === year && regDate.getMonth() === month;
         });
 
@@ -1769,7 +1789,7 @@
             newMembersInMonth
                 .sort((a, b) => a.name.localeCompare(b.name))
                 .forEach((member, index) => {
-                    const regDateStr = member.registeredAt.toDate().toLocaleDateString();
+                    const regDateStr = new Date(member.registeredAt).toLocaleDateString();
                     const li = document.createElement('li');
                     li.className = 'bg-gray-50 p-3 rounded flex justify-between items-center animate-fadeInUp';
                     li.style.animationDelay = `${index * 50}ms`;
@@ -1796,9 +1816,17 @@
             return alert(`⚠️ 이미 등록된 회원입니다.\n(이름: ${name}, 번호: ${phone})`);
         }
         
-        await addDoc(collection(db, "members"), { name, phone, registeredAt: new Date() });
+        const newMember = { name, phone, registeredAt: new Date().toISOString() };
+        const newId = await dbHelper.add('members', newMember);
+        newMember.id = newId;
+        window.members.push(newMember);
+        window.members.sort((a, b) => a.name.localeCompare(b.name));
+
         document.getElementById('new-member-name').value = ''; document.getElementById('new-member-phone').value = '';
         alert('회원이 등록되었습니다.');
+        renderMembers();
+        updateCheckUserSelect();
+        renderMemberGrid();
     }
     window.renderMembers = function() {
         const list = document.getElementById('member-list');
@@ -1820,8 +1848,12 @@
         if (!isAuthorized) return;
 
         if(confirm('정말 삭제하시겠습니까?')) {
-            await deleteDoc(doc(db, "members", id));
+            await dbHelper.deleteItem('members', id);
+            window.members = window.members.filter(m => m.id !== id);
             alert('삭제되었습니다.');
+            renderMembers();
+            updateCheckUserSelect();
+            renderMemberGrid();
         }
     }
     
@@ -1839,10 +1871,11 @@
     window.handleResetFinalConfirm = async function() { 
         const input = document.getElementById('reset-confirm-input').value.trim();
         if (input === "초기화") {
-            const batch = writeBatch(db);
-            members.forEach(m => batch.delete(doc(db, "members", m.id)));
-            logs.forEach(l => batch.delete(doc(db, "logs", l.id)));
-            await batch.commit();
+            await Promise.all([
+                dbHelper.clear('members'),
+                dbHelper.clear('logs'),
+                dbHelper.clear('instructors')
+            ]);
             alert("모든 데이터가 초기화되었습니다.");
             location.reload(); 
         } else {
@@ -2152,16 +2185,11 @@
 
         alert('데이터 생성을 시작합니다. 완료 시 알림이 표시됩니다. (약 10-20초 소요)');
 
-        const sampleNames = [
-            "김민준", "이서연", "박도윤", "최지우", "정하준", "조서아", "윤은우", "장시아", "임이준", "오하윤",
-            "한선우", "신지아", "서유준", "권아윤", "강지호", "황서윤", "송시우", "안아인", "유지안", "홍채원",
-            "전로하", "고수호", "문이안", "양지유", "손로운", "배아라", "백이현", "허서준", "남소율", "심다은"
-        ];
+        const sampleNames = ["김민준", "이서연", "박도윤", "최지우", "정하준", "조서아", "윤은우", "장시아", "임이준", "오하윤", "한선우", "신지아", "서유준", "권아윤", "강지호", "황서윤", "송시우", "안아인", "유지안", "홍채원", "전로하", "고수호", "문이안", "양지유", "손로운", "배아라", "백이현", "허서준", "남소율", "심다은"];
 
+        let tempMembers = [...window.members];
         const [year, month] = selectedMonth.split('-').map(Number);
         const daysInMonth = new Date(year, month, 0).getDate();
-        const batch = writeBatch(db);
-        let tempMembers = [...window.members]; // Use a local copy to manage new members within this run
         const generatedLogs = new Set(); // To prevent duplicate logs in this run: 'memberId-date-sessionCode'
 
         try {
@@ -2183,12 +2211,11 @@
                         let targetMember = tempMembers.find(m => m.name === memberName);
 
                         if (!targetMember) {
-                            const newMemberRef = doc(collection(db, "members"));
                             const randomRegDay = Math.floor(Math.random() * day) + 1;
                             const regDate = new Date(year, month - 1, randomRegDay);
-                            const newMemberData = { name: memberName, phone: String(Math.floor(1000 + Math.random() * 9000)), registeredAt: regDate };
-                            batch.set(newMemberRef, newMemberData);
-                            targetMember = { id: newMemberRef.id, ...newMemberData };
+                            const newMemberData = { name: memberName, phone: String(Math.floor(1000 + Math.random() * 9000)), registeredAt: regDate.toISOString() };
+                            const newId = await dbHelper.add('members', newMemberData);
+                            targetMember = { id: newId, ...newMemberData };
                             tempMembers.push(targetMember);
                         }
 
@@ -2196,15 +2223,15 @@
                         const alreadyExistsInDB = window.logs.some(l => l.memberId === targetMember.id && l.date === dateStr && l.sessionCode === session.code);
                         
                         if (!alreadyExistsInDB && !generatedLogs.has(logKey)) {
-                            const newLogRef = doc(collection(db, "logs"));
-                            batch.set(newLogRef, { memberId: targetMember.id, memberName: targetMember.name, date: dateStr, sessionCode: session.code, sessionName: session.name, timestamp: new Date(year, month - 1, day, session.start).toLocaleString() + " (테스트)" });
+                            const newLogData = { memberId: targetMember.id, memberName: targetMember.name, date: dateStr, sessionCode: session.code, sessionName: session.name, timestamp: new Date(year, month - 1, day, session.start).toLocaleString() + " (테스트)" };
+                            await dbHelper.add('logs', newLogData);
                             generatedLogs.add(logKey);
                         }
                     }
                 }
             }
-            await batch.commit();
             alert(`✅ 테스트 데이터 생성이 완료되었습니다.\n총 ${generatedLogs.size}개의 출석 기록이 추가되었습니다.`);
+            location.reload();
         } catch (error) {
             console.error("Test data generation failed:", error);
             alert("❌ 데이터 생성 중 오류가 발생했습니다. 콘솔을 확인해주세요.");
@@ -2218,17 +2245,44 @@
     }
 
     // 앱 초기화 실행
-    (function init() {
-        const urlParams = new URLSearchParams(window.location.search);
-        const isScanning = urlParams.has('session');
-        
-        if (isScanning) {
-            sessionStorage.setItem('appMode', 'member');
-            showApp();
-        } else {
-            showLoginScreen(); // Otherwise, always show the mode selection screen
+    window.onload = async () => {
+        try {
+            await dbHelper.initDB();
+            const [membersData, logsData, instructorsData] = await Promise.all([
+                dbHelper.getAll('members'),
+                dbHelper.getAll('logs'),
+                dbHelper.getAll('instructors')
+            ]);
+
+            window.members = membersData.sort((a, b) => a.name.localeCompare(b.name));
+            window.logs = logsData.sort((a, b) => b.id - a.id);
+            window.instructors = instructorsData.reduce((acc, curr) => {
+                acc[curr.sessionCode] = curr.name;
+                return acc;
+            }, {});
+
+            // 데이터 로드 후 앱의 나머지 부분 초기화
+            const urlParams = new URLSearchParams(window.location.search);
+            const isScanning = urlParams.has('session');
+            
+            if (isScanning) {
+                sessionStorage.setItem('appMode', 'member');
+                showApp();
+            } else {
+                if (sessionStorage.getItem('isAdminLoggedIn') === 'true' || sessionStorage.getItem('appMode') === 'member') {
+                    showApp();
+                } else {
+                    showLoginScreen();
+                }
+            }
+            // DOM이 준비된 후 UI 렌더링
+            renderMembers();
+            updateCheckUserSelect();
+        } catch (error) {
+            console.error("Application initialization failed:", error);
+            alert("앱을 초기화하는 데 실패했습니다. 페이지를 새로고침 해주세요.");
         }
-    })();
+    };
 
     // [NEW] Add resize listener for report tabs
     window.addEventListener('resize', () => {
