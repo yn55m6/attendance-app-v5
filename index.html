@@ -164,7 +164,7 @@
                 <!-- [NEW] Date & Session Selection for Member Mode -->
                 <div class="grid grid-cols-2 gap-2 sm:gap-4 mb-8 max-w-md mx-auto px-2">
                     <div class="text-left">
-                        <label for="member-mode-date" class="block text-xs sm:text-sm font-bold text-gray-500 mb-2">출석 날짜</label>
+                        <label for="member-mode-date" class="block text-xs sm:text-sm font-bold text-gray-500 mb-2">출석 날짜 <span id="member-mode-day" class="text-indigo-500 font-semibold"></span></label>
                         <input type="date" id="member-mode-date" class="w-full p-3 sm:p-4 border-2 border-gray-200 rounded-xl bg-gray-50 text-sm sm:text-base font-bold text-gray-700 focus:border-indigo-300 outline-none" onchange="updateMemberModeSessionOptions()">
                     </div>
                     <div class="text-left">
@@ -852,15 +852,24 @@
 
     window.updateMemberModeSessionOptions = function() {
         const dateStr = document.getElementById('member-mode-date').value;
-        if(!dateStr) return;
+        const dayDisplay = document.getElementById('member-mode-day');
+        if(!dateStr) {
+            if (dayDisplay) dayDisplay.innerText = '';
+            return;
+        }
         const [y, m, d] = dateStr.split('-').map(Number);
-        const day = new Date(y, m - 1, d).getDay();
+        const dayIndex = new Date(y, m - 1, d).getDay();
+        if (dayDisplay) dayDisplay.innerText = `(${DAYS[dayIndex]})`;
 
         const select = document.getElementById('member-mode-session');
         select.innerHTML = '';
-        const availableSessions = SESSIONS.filter(s => s.day === day);
+        const availableSessions = SESSIONS.filter(s => s.day === dayIndex);
         availableSessions.forEach(s => {
-            const opt = document.createElement('option'); opt.value = s.code; opt.innerText = s.name; select.appendChild(opt);
+            const opt = document.createElement('option');
+            opt.value = s.code;
+            const nameParts = s.name.split(' ');
+            opt.innerText = nameParts.length > 1 ? nameParts[1] : s.name; // "월요일 저녁반" -> "저녁반"
+            select.appendChild(opt);
         });
         if(availableSessions.length === 0) {
             const opt = document.createElement('option'); opt.innerText = "수업 없음"; select.appendChild(opt);
