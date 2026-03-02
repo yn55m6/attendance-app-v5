@@ -1,0 +1,21 @@
+{
+  "name": "몸펴기생활운동 연신내 출석부",
+  "short_name": "연신내 출석부",
+  "description": "QR 코드와 명단 선택을 통한 간편한 출석 체크",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#f3f4f6",
+  "theme_color": "#4f46e5",
+  "icons": [
+    {
+      "src": "app-icon.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "app-icon.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}

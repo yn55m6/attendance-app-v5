@@ -11,6 +11,9 @@
     <meta property="og:description" content="QR 코드와 명단 선택을 통한 간편한 출석 체크">
     <meta property="og:type" content="website">
     <meta property="og:image" content="app-icon.png">
+    <!-- [NEW] PWA Manifest -->
+    <link rel="manifest" href="./manifest.json">
+    <meta name="theme-color" content="#4f46e5">
     <link rel="icon" href="app-icon.png">
 
     <!-- Tailwind CSS -->
@@ -1913,42 +1916,114 @@
         document.getElementById('reset-confirm-modal').classList.add('hidden');
     }
 
+    // --- Crypto Helpers for Encrypted Backup ---
+    const cryptoHelper = (() => {
+        const iterations = 100000; // PBKDF2 iterations
+        const keyLength = 256; // AES key length in bits
+
+        function arrayBufferToBase64(buffer) {
+            let binary = '';
+            const bytes = new Uint8Array(buffer);
+            for (let i = 0; i < bytes.byteLength; i++) {
+                binary += String.fromCharCode(bytes[i]);
+            }
+            return window.btoa(binary);
+        }
+
+        function base64ToArrayBuffer(base64) {
+            const binary_string = window.atob(base64);
+            const len = binary_string.length;
+            const bytes = new Uint8Array(len);
+            for (let i = 0; i < len; i++) {
+                bytes[i] = binary_string.charCodeAt(i);
+            }
+            return bytes.buffer;
+        }
+
+        async function deriveKey(password, salt) {
+            const enc = new TextEncoder();
+            const keyMaterial = await window.crypto.subtle.importKey('raw', enc.encode(password), { name: 'PBKDF2' }, false, ['deriveKey']);
+            return window.crypto.subtle.deriveKey(
+                { name: 'PBKDF2', salt, iterations, hash: 'SHA-256' },
+                keyMaterial,
+                { name: 'AES-GCM', length: keyLength },
+                true,
+                ['encrypt', 'decrypt']
+            );
+        }
+
+        async function encrypt(password, dataString) {
+            const salt = window.crypto.getRandomValues(new Uint8Array(16));
+            const iv = window.crypto.getRandomValues(new Uint8Array(12));
+            const key = await deriveKey(password, salt);
+            const encodedData = new TextEncoder().encode(dataString);
+            const ciphertext = await window.crypto.subtle.encrypt({ name: 'AES-GCM', iv }, key, encodedData);
+            return {
+                salt: arrayBufferToBase64(salt),
+                iv: arrayBufferToBase64(iv),
+                ciphertext: arrayBufferToBase64(ciphertext)
+            };
+        }
+
+        async function decrypt(password, encryptedPayload) {
+            const salt = base64ToArrayBuffer(encryptedPayload.salt);
+            const iv = base64ToArrayBuffer(encryptedPayload.iv);
+            const ciphertext = base64ToArrayBuffer(encryptedPayload.ciphertext);
+            const key = await deriveKey(password, salt);
+            const decrypted = await window.crypto.subtle.decrypt({ name: 'AES-GCM', iv }, key, ciphertext);
+            return new TextDecoder().decode(decrypted);
+        }
+
+        return { encrypt, decrypt };
+    })();
+
     // --- 8. Data Backup & Restore ---
     window.exportData = async function() {
-        if (!confirm('현재 데이터베이스의 모든 내용을 JSON 파일로 백업하시겠습니까?')) return;
+        const password = prompt("백업 파일을 암호화할 비밀번호를 입력하세요.\n이 비밀번호를 잊으면 복구할 수 없습니다.", "");
+        if (!password) {
+            alert("비밀번호가 입력되지 않아 백업이 취소되었습니다.");
+            return;
+        }
+        const confirmPassword = prompt("비밀번호를 다시 한번 입력해주세요.", "");
+        if (password !== confirmPassword) {
+            alert("비밀번호가 일치하지 않아 백업이 취소되었습니다.");
+            return;
+        }
 
         try {
             const members = await dbHelper.getAll('members');
             const logs = await dbHelper.getAll('logs');
             const instructors = await dbHelper.getAll('instructors');
 
+            const rawDataString = JSON.stringify({ members, logs, instructors });
+            const encryptedData = await cryptoHelper.encrypt(password, rawDataString);
+
             const backupData = {
                 meta: {
                     appName: "몸펴기생활운동 연신내 출석부",
-                    version: "1.5",
+                    version: "1.6-encrypted",
                     exportedAt: new Date().toISOString(),
                 },
-                data: { members, logs, instructors }
+                encryptedData: encryptedData
             };
 
             const jsonString = JSON.stringify(backupData, null, 2);
             const blob = new Blob([jsonString], { type: 'application/json' });
             const url = URL.createObjectURL(blob);
-
             const a = document.createElement('a');
             const today = new Date().toISOString().slice(0, 10);
             a.href = url;
-            a.download = `attendance-backup-${today}.json`;
+            a.download = `attendance-backup-encrypted-${today}.json`;
             document.body.appendChild(a);
             a.click();
             document.body.removeChild(a);
             URL.revokeObjectURL(url);
 
-            alert('✅ 데이터 백업 파일이 다운로드되었습니다.');
+            alert('✅ 암호화된 데이터 백업 파일이 다운로드되었습니다.');
 
         } catch (error) {
             console.error('Data export failed:', error);
-            alert('❌ 데이터 백업에 실패했습니다. 콘솔을 확인해주세요.');
+            alert(`❌ 데이터 백업에 실패했습니다: ${error.message}`);
         }
     }
 
@@ -1956,30 +2031,39 @@
         const file = event.target.files[0];
         if (!file) return;
 
-        if (!confirm('⚠️ 경고: 선택한 파일로 데이터를 복구합니다.\n현재 저장된 모든 데이터는 삭제됩니다. 계속하시겠습니까?')) {
-            event.target.value = ''; // Reset file input
-            return;
-        }
-        
-        const isAuthorized = await requestPassword();
-        if (!isAuthorized) {
-            event.target.value = ''; // Reset file input
-            return;
-        }
-
         const reader = new FileReader();
         reader.onload = async (e) => {
             try {
                 const backupData = JSON.parse(e.target.result);
-                if (!backupData.data || !backupData.data.members || !backupData.data.logs || !backupData.data.instructors) throw new Error('유효하지 않은 백업 파일 형식입니다.');
-                const { members, logs, instructors } = backupData.data;
+                if (!backupData.meta) throw new Error('유효하지 않은 백업 파일 형식입니다.');
+
+                let members, logs, instructors;
+
+                if (backupData.encryptedData) {
+                    const password = prompt("암호화된 백업 파일입니다. 복호화할 비밀번호를 입력하세요.", "");
+                    if (!password) throw new Error("비밀번호가 입력되지 않아 복구가 취소되었습니다.");
+                    const decryptedString = await cryptoHelper.decrypt(password, backupData.encryptedData);
+                    const restoredData = JSON.parse(decryptedString);
+                    ({ members, logs, instructors } = restoredData);
+                    if (!confirm('⚠️ 경고: 데이터가 성공적으로 복호화되었습니다.\n현재 저장된 모든 데이터를 삭제하고 이 데이터로 복원하시겠습니까?')) throw new Error("사용자가 복원을 취소했습니다.");
+                } else if (backupData.data) {
+                    if (!confirm('⚠️ 경고: 암호화되지 않은 백업 파일입니다.\n현재 저장된 모든 데이터를 삭제하고 이 데이터로 복원하시겠습니까?')) throw new Error("사용자가 복원을 취소했습니다.");
+                    const isAuthorized = await requestPassword();
+                    if (!isAuthorized) throw new Error("관리자 인증에 실패하여 복원이 취소되었습니다.");
+                    ({ members, logs, instructors } = backupData.data);
+                } else {
+                    throw new Error('백업 파일에서 데이터를 찾을 수 없습니다.');
+                }
+
+                if (!members || !logs || !instructors) throw new Error('백업 데이터가 불완전합니다.');
+
                 await Promise.all([dbHelper.clear('members'), dbHelper.clear('logs'), dbHelper.clear('instructors')]);
                 await Promise.all([dbHelper.bulkPut('members', members), dbHelper.bulkPut('logs', logs), dbHelper.bulkPut('instructors', instructors)]);
                 alert('✅ 데이터 복구가 완료되었습니다. 앱을 새로고침합니다.');
                 location.reload();
             } catch (error) {
                 console.error('Data import failed:', error);
-                alert(`❌ 데이터 복구에 실패했습니다.\n오류: ${error.message}`);
+                alert(`❌ 데이터 복구에 실패했습니다.\n오류: ${error.message}. 비밀번호가 틀렸거나 파일이 손상되었을 수 있습니다.`);
             } finally {
                 event.target.value = ''; // Reset file input
             }
@@ -2390,6 +2474,17 @@
             checkTabOverflow();
         }
     });
+
+    // --- PWA Service Worker Registration ---
+    if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+            navigator.serviceWorker.register('./sw.js').then(registration => {
+                console.log('ServiceWorker registration successful with scope: ', registration.scope);
+            }, err => {
+                console.log('ServiceWorker registration failed: ', err);
+            });
+        });
+    }
 </script>
 </body>
 </html>
