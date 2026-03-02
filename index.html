@@ -486,6 +486,24 @@
     </div>
 </div>
 
+<!-- Modal: New Members List -->
+<div id="new-members-modal" class="fixed inset-0 bg-black bg-opacity-90 z-50 hidden flex flex-col justify-center items-center p-6 no-print">
+    <div class="bg-white w-full max-w-sm rounded-xl p-6 relative max-h-[80vh] flex flex-col">
+        <button onclick="closeNewMembersModal()" class="absolute top-4 right-4 text-gray-400"><i class="fas fa-times"></i></button>
+        
+        <h3 class="text-xl font-bold mb-1 text-green-700" id="new-members-title">신규 회원 명단</h3>
+        <p class="text-xs text-gray-500 mb-4" id="new-members-subtitle">해당 월에 가입한 회원</p>
+        
+        <div class="overflow-y-auto flex-1 border-t border-gray-100 pt-2">
+            <ul id="new-members-list" class="text-sm space-y-2">
+                <!-- New member names will go here -->
+            </ul>
+        </div>
+        
+        <button onclick="closeNewMembersModal()" class="mt-4 w-full py-2 bg-gray-100 text-gray-600 rounded text-sm font-bold">닫기</button>
+    </div>
+</div>
+
 <!-- Modal: Password Confirmation for Sensitive Actions -->
 <div id="password-confirm-modal" class="fixed inset-0 bg-black bg-opacity-90 z-[60] hidden flex flex-col justify-center items-center p-6 no-print">
     <div class="bg-white w-full max-w-xs rounded-xl p-6 text-center">
@@ -1066,11 +1084,12 @@
 
     const renderReport_NewMemberTrend = (members) => {
         const ctx = document.getElementById('new-members-chart').getContext('2d');
-        const labels = []; const data = [];
+        const labels = []; const data = []; const monthData = [];
         for (let i = 5; i >= 0; i--) {
             const d = new Date(); d.setDate(1); d.setMonth(d.getMonth() - i);
             const year = d.getFullYear(); const month = d.getMonth();
             labels.push(`${month + 1}월`);
+            monthData.push({ year, month });
             const count = members.filter(member => {
                 if (!member.registeredAt || !member.registeredAt.toDate) return false;
                 const regDate = member.registeredAt.toDate();
@@ -1082,7 +1101,21 @@
         newMembersChartInstance = new Chart(ctx, {
             type: 'bar',
             data: { labels, datasets: [{ label: '신규 회원 수', data, backgroundColor: 'rgba(34, 197, 94, 0.6)', borderColor: 'rgba(34, 197, 94, 1)', borderWidth: 1, borderRadius: 4 }] },
-            options: { scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } }, responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
+            options: { 
+                scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } }, 
+                responsive: true, 
+                maintainAspectRatio: false, 
+                plugins: { legend: { display: false } },
+                onHover: (event, chartElement) => {
+                    event.native.target.style.cursor = chartElement[0] ? 'pointer' : 'default';
+                },
+                onClick: (event, elements) => {
+                    if (elements.length > 0) {
+                        const { year, month } = monthData[elements[0].index];
+                        showNewMembersModal(year, month);
+                    }
+                }
+            }
         });
     };
 
@@ -1572,6 +1605,38 @@
         document.getElementById('session-attendees-modal').classList.remove('hidden');
     }
     window.closeSessionAttendeesModal = function() { document.getElementById('session-attendees-modal').classList.add('hidden'); }
+
+    // --- [NEW] New Members Modal Logic ---
+    window.showNewMembersModal = function(year, month) {
+        const modal = document.getElementById('new-members-modal');
+        const subtitle = document.getElementById('new-members-subtitle');
+        const list = document.getElementById('new-members-list');
+
+        const newMembersInMonth = window.members.filter(member => {
+            if (!member.registeredAt || !member.registeredAt.toDate) return false;
+            const regDate = member.registeredAt.toDate();
+            return regDate.getFullYear() === year && regDate.getMonth() === month;
+        });
+
+        subtitle.innerText = `${year}년 ${month + 1}월 가입 / 총 ${newMembersInMonth.length}명`;
+        list.innerHTML = '';
+
+        if (newMembersInMonth.length === 0) {
+            list.innerHTML = '<li class="text-center text-gray-400 py-4">해당 월의 신규 회원이 없습니다.</li>';
+        } else {
+            newMembersInMonth
+                .sort((a, b) => a.name.localeCompare(b.name))
+                .forEach(member => {
+                    const regDateStr = member.registeredAt.toDate().toLocaleDateString();
+                    list.innerHTML += `<li class="bg-gray-50 p-3 rounded flex justify-between items-center"><span class="font-bold text-gray-800">${member.name}</span><span class="text-xs text-gray-500">${regDateStr}</span></li>`;
+                });
+        }
+        modal.classList.remove('hidden');
+    }
+
+    window.closeNewMembersModal = function() {
+        document.getElementById('new-members-modal').classList.add('hidden');
+    }
 
     // --- 8. Common Functions ---
     window.addMember = async function() {
