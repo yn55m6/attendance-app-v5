@@ -2119,8 +2119,14 @@
     window.handlePasswordReset = async function() {
         const email = prompt("비밀번호를 재설정할 관리자 이메일 주소를 입력하세요.", document.getElementById('admin-email').value);
         if (email) {
+            // [FIX] Action URL을 명시하여 리디렉션 및 이메일 발송 안정성 확보
+            const actionCodeSettings = {
+                url: window.location.href.split('?')[0], // 파라미터 없이 현재 페이지 주소로 리디렉션
+                handleCodeInApp: true
+            };
+
             try {
-                await sendPasswordResetEmail(auth, email);
+                await sendPasswordResetEmail(auth, email, actionCodeSettings);
                 alert(`✅ ${email} 주소로 비밀번호 재설정 링크를 보냈습니다. 이메일을 확인해주세요.`);
             } catch (error) {
                 console.error("Password reset failed:", error);
