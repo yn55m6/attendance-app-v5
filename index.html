@@ -602,6 +602,16 @@
     <button id="undo-toast-button" class="font-bold text-yellow-400 hover:text-yellow-300 underline text-base mt-1">출석 취소</button>
 </div>
 
+<!-- [NEW] Update Available Toast -->
+<div id="update-toast" class="fixed bottom-24 left-1/2 -translate-x-1/2 bg-blue-600 text-white px-6 py-4 rounded-2xl shadow-lg flex items-center gap-4 z-[100] hidden transition-all duration-300">
+    <i class="fas fa-cloud-download-alt text-2xl"></i>
+    <div>
+        <p class="font-bold">새로운 버전이 있어요!</p>
+        <p class="text-sm">앱을 새로고침하여 업데이트하세요.</p>
+    </div>
+    <button id="update-now-button" class="ml-4 px-4 py-2 bg-white text-blue-600 font-bold rounded-lg hover:bg-blue-100">새로고침</button>
+</div>
+
 <script>
     // =================================================================================
     // IndexedDB Helper (데이터베이스 관리 로직)
@@ -2476,12 +2486,51 @@
     });
 
     // --- PWA Service Worker Registration ---
+    function showUpdateToast(registration) {
+        const toast = document.getElementById('update-toast');
+        const updateButton = document.getElementById('update-now-button');
+        if (!toast || !updateButton) return;
+
+        updateButton.onclick = () => {
+            const waitingWorker = registration.waiting;
+            if (waitingWorker) {
+                waitingWorker.postMessage({ type: 'SKIP_WAITING' });
+                toast.classList.add('hidden');
+            }
+        };
+
+        toast.classList.remove('hidden');
+    }
+
     if ('serviceWorker' in navigator) {
         window.addEventListener('load', () => {
             navigator.serviceWorker.register('./sw.js').then(registration => {
                 console.log('ServiceWorker registration successful with scope: ', registration.scope);
+
+                registration.onupdatefound = () => {
+                    const installingWorker = registration.installing;
+                    if (installingWorker == null) return;
+                    
+                    installingWorker.onstatechange = () => {
+                        if (installingWorker.state === 'installed') {
+                            if (navigator.serviceWorker.controller) {
+                                console.log('New content is available; please refresh.');
+                                showUpdateToast(registration);
+                            } else {
+                                console.log('Content is cached for offline use.');
+                            }
+                        }
+                    };
+                };
             }, err => {
                 console.log('ServiceWorker registration failed: ', err);
+            });
+
+            let refreshing;
+            navigator.serviceWorker.addEventListener('controllerchange', () => {
+                if (refreshing) return;
+                window.location.reload();
+                refreshing = true;
             });
         });
     }

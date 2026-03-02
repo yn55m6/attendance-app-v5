@@ -1,4 +1,4 @@
-const CACHE_NAME = 'attendance-app-cache-v2'; // 버전을 업데이트하여 캐시를 갱신할 수 있습니다.
+const CACHE_NAME = 'attendance-app-cache-v3'; // 버전을 업데이트하여 캐시를 갱신할 수 있습니다.
 const urlsToCache = [
     './',
     './index.html',
@@ -20,6 +20,13 @@ self.addEventListener('install', event => {
                 return cache.addAll(urlsToCache);
             })
     );
+});
+
+// 메시지를 수신하여 대기 상태를 건너뜀
+self.addEventListener('message', event => {
+    if (event.data && event.data.type === 'SKIP_WAITING') {
+        self.skipWaiting();
+    }
 });
 
 // 서비스 워커 활성화 및 이전 캐시 정리
