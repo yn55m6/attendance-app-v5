@@ -1353,11 +1353,36 @@
         newMembersChartInstance = new Chart(ctx, {
             type: 'bar',
             data: { labels, datasets: [{ label: '신규 회원 수', data, backgroundColor: getThemeColor('600', 0.6), borderColor: getThemeColor('600', 1), borderWidth: 1, borderRadius: 4 }] },
-            options: { 
+            options: {
+                animation: { // [NEW] Animation for smooth appearance
+                    duration: 1500, // 1.5 seconds
+                    easing: 'easeOutQuart', // Smooth easing function
+                    from: (ctx) => { // Animate from 0 on the y-axis
+                        if (ctx.type === 'data') {
+                            if (ctx.mode === 'default' && !ctx.dropped) {
+                                ctx.dropped = true;
+                                return { y: 0 };
+                            }
+                        }
+                    }
+                },
                 scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } }, 
                 responsive: true, 
                 maintainAspectRatio: false, 
-                plugins: { legend: { display: false } },
+                plugins: {
+                    legend: { display: false },
+                    datalabels: { // [NEW] Datalabels configuration for better visibility
+                        color: 'black', // Changed to black for better contrast
+                        font: {
+                            weight: 'bold',
+                            size: 14 // Increased font size
+                        },
+                        anchor: 'end', // Position label at the end of the bar
+                        align: 'end', // Align label to the end of the bar
+                        offset: 4, // Offset from the bar
+                        formatter: (value) => value > 0 ? value : '' // Only show positive values
+                    }
+                },
                 onHover: (event, chartElement) => {
                     event.native.target.style.cursor = chartElement[0] ? 'pointer' : 'default';
                 },
