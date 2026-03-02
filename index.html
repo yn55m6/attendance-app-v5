@@ -288,6 +288,11 @@
             </div>
             <div class="card">
                 <h2 class="font-bold text-xl mb-2">회원 목록 <span id="member-count" class="text-base text-theme-600 font-normal"></span></h2>
+                <!-- [NEW] Search Input -->
+                <div class="relative mb-4">
+                    <input type="text" id="member-list-search" oninput="renderMembers()" placeholder="이름 또는 전화번호로 검색" class="w-full p-3 pl-10 border rounded bg-gray-50 text-lg focus:ring-2 focus:ring-theme-200 focus:border-theme-300 outline-none">
+                    <i class="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"></i>
+                </div>
                 <p class="text-xs text-gray-400 mb-2">* 이름을 클릭하면 상세 이력을 볼 수 있습니다.</p>
                 <ul id="member-list" class="divide-y divide-gray-100"></ul>
             </div>
@@ -296,9 +301,12 @@
         <!-- Page 3: Reports (Tables & Chart) -->
         <section id="page-reports" class="page">
             <!-- Month Filter -->
-            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-4">
                 <h2 class="text-xl sm:text-2xl font-bold text-gray-800">리포트 및 통계</h2>
-                <input type="month" id="report-month-filter" class="w-full sm:w-auto p-3 border rounded bg-gray-50 font-bold text-gray-700 text-lg sm:text-2xl">
+                <div class="flex items-center gap-2">
+                    <input type="month" id="report-month-filter" class="w-full sm:w-auto p-3 border rounded bg-gray-50 font-bold text-gray-700 text-lg sm:text-base">
+                    <button onclick="exportReportToCSV()" class="p-3 bg-green-600 text-white rounded-lg font-bold hover:bg-green-700" title="현재 탭 데이터 CSV로 내보내기"><i class="fas fa-file-csv text-xl"></i></button>
+                </div>
             </div>
         
             <!-- Report Tabs -->
@@ -814,6 +822,7 @@
     window.members = [];
     window.logs = [];
     window.instructors = {}; // [NEW]
+    let reportDataCache = {}; // For CSV export
     let currentScanSession = null;
     let currentMode = ''; // 현재 활성화된 페이지 추적 (home, members, reports)
     let trendChartInstance = null; // Chart instance
@@ -1086,14 +1095,14 @@
             const isActive = index === 0;
             const tabButton = document.createElement('button');
             tabButton.dataset.target = `report-content-${tab.id}`;
-            tabButton.className = `whitespace-nowrap py-2 px-3 font-medium text-sm rounded-md ${isActive ? 'bg-indigo-100 text-indigo-700' : 'text-gray-500 hover:text-gray-700 hover:bg-gray-100'}`;
+            tabButton.className = `whitespace-nowrap py-2 px-3 font-medium text-sm rounded-md ${isActive ? 'bg-theme-100 text-theme-700' : 'text-gray-500 hover:text-gray-700 hover:bg-gray-100'}`;
             tabButton.textContent = tab.name;
             
             tabButton.onclick = () => {
                 reportTabsContainer.querySelectorAll('button').forEach(btn => {
                     btn.className = 'whitespace-nowrap py-2 px-3 font-medium text-sm rounded-md text-gray-500 hover:text-gray-700 hover:bg-gray-100';
                 });
-                tabButton.className = 'whitespace-nowrap py-2 px-3 font-medium text-sm rounded-md bg-indigo-100 text-indigo-700';
+                tabButton.className = 'whitespace-nowrap py-2 px-3 font-medium text-sm rounded-md bg-theme-100 text-theme-700';
 
                 reportContentPanels.forEach(panel => panel.classList.add('hidden'));
                 document.getElementById(tabButton.dataset.target).classList.remove('hidden');
@@ -1133,6 +1142,7 @@
             memberCounts[log.memberId].count++;
         });
         const sortedMembers = Object.values(memberCounts).sort((a, b) => b.count - a.count);
+        reportDataCache.memberRank = sortedMembers;
 
         if (sortedMembers.length === 0) {
             tbody.innerHTML = '<tr><td colspan="4" class="text-center py-4 text-gray-400">데이터가 없습니다.</td></tr>';
@@ -1175,6 +1185,7 @@
             const indexB = SESSIONS.findIndex(s => s.name === b.name);
             return indexA - indexB;
         });
+        reportDataCache.classWeekly = sortedSessionWeekly;
 
         let html = `<table class="w-full text-sm text-left text-gray-500">
             <thead class="text-xs text-gray-700 uppercase bg-gray-50">
@@ -1236,6 +1247,7 @@
         });
 
         const sortedIndiv = Object.values(individualWeekly).sort((a, b) => a.name.localeCompare(b.name));
+        reportDataCache.memberWeekly = sortedIndiv;
         
         let html = `<table class="w-full text-sm text-left text-gray-500">
             <thead class="text-xs text-gray-700 uppercase bg-gray-50">
@@ -1286,6 +1298,7 @@
             return acc;
         }, {});
         const sortedClasses = Object.entries(classCounts).sort(([, countA], [, countB]) => countB - countA);
+        reportDataCache.classPopularity = sortedClasses;
         
         const table = document.createElement('table');
         table.className = 'w-full text-sm text-left text-gray-500';
@@ -1353,6 +1366,7 @@
         const recentLogs = allLogs.filter(log => log.date && new Date(log.date) >= cutoffDate);
         const activeMemberIds = new Set(recentLogs.map(log => log.memberId));
         const inactiveMembers = allMembers.filter(member => !activeMemberIds.has(member.id));
+        reportDataCache.inactiveMembers = inactiveMembers;
         if (inactiveMembers.length === 0) {
             container.innerHTML = `<p class="text-gray-500 text-center py-4">최근 ${days}일 동안 미출석한 회원이 없습니다.</p>`;
             return;
@@ -1432,6 +1446,78 @@
         renderReport_InactiveMembers(allMembers, allLogs);
         renderMonthDependentReports(allLogs, allMembers, monthFilter.value);
     };
+
+    // --- [NEW] CSV Export Logic ---
+    window.exportReportToCSV = function() {
+        const activeTabButton = document.querySelector('#report-tabs button.bg-theme-100');
+        if (!activeTabButton) {
+            alert('활성화된 리포트 탭을 찾을 수 없습니다.');
+            return;
+        }
+
+        const targetId = activeTabButton.dataset.target;
+        const month = document.getElementById('report-month-filter').value;
+        let headers = [];
+        let rows = [];
+        let fileName = `report-${month}.csv`;
+
+        const escapeCsvCell = (cell) => {
+            const strCell = String(cell ?? ''); // Handle null/undefined
+            if (strCell.includes(',') || strCell.includes('"') || strCell.includes('\n')) {
+                return `"${strCell.replace(/"/g, '""')}"`;
+            }
+            return strCell;
+        };
+
+        const createCSV = (headers, dataRows) => {
+            let csv = headers.map(escapeCsvCell).join(',') + '\r\n';
+            dataRows.forEach(row => {
+                csv += row.map(escapeCsvCell).join(',') + '\r\n';
+            });
+            return csv;
+        };
+
+        switch (targetId) {
+            case 'report-content-member-rank':
+                headers = ['순위', '이름', '전화번호', '횟수'];
+                rows = (reportDataCache.memberRank || []).map((item, index) => [index + 1, item.name, item.phone, item.count]);
+                fileName = `report-member-rank-${month}.csv`;
+                break;
+            case 'report-content-class-weekly':
+                headers = ['차수(반)', '1주', '2주', '3주', '4주', '5주', '계'];
+                rows = (reportDataCache.classWeekly || []).map(item => {
+                    const nameParts = item.name.split(' ');
+                    const shortName = nameParts.length > 1 ? nameParts[0].charAt(0) + nameParts.slice(1).join('') : item.name;
+                    return [shortName, item.weeks[1] || 0, item.weeks[2] || 0, item.weeks[3] || 0, item.weeks[4] || 0, item.weeks[5] || 0, item.total];
+                });
+                fileName = `report-class-weekly-${month}.csv`;
+                break;
+            case 'report-content-member-weekly':
+                headers = ['이름', '1주', '2주', '3주', '4주', '5주', '계'];
+                rows = (reportDataCache.memberWeekly || []).map(item => [item.name, item.weeks[1] || 0, item.weeks[2] || 0, item.weeks[3] || 0, item.weeks[4] || 0, item.weeks[5] || 0, item.total]);
+                fileName = `report-member-weekly-${month}.csv`;
+                break;
+            case 'report-content-class-popularity':
+                headers = ['순위', '수업', '총 출석인원'];
+                rows = (reportDataCache.classPopularity || []).map((item, index) => [index + 1, item[0], item[1]]);
+                fileName = `report-class-popularity-${month}.csv`;
+                break;
+            case 'report-content-inactive-members':
+                const period = document.getElementById('inactive-period-selector').value;
+                headers = ['이름', '전화번호', '가입일'];
+                rows = (reportDataCache.inactiveMembers || []).map(item => [item.name, item.phone, new Date(item.registeredAt).toLocaleDateString()]);
+                fileName = `report-inactive-members-last-${period}-days.csv`;
+                break;
+            default:
+                alert('현재 탭의 데이터는 CSV로 내보낼 수 없습니다.'); return;
+        }
+        if (rows.length === 0) { alert('내보낼 데이터가 없습니다.'); return; }
+        const csvContent = createCSV(headers, rows);
+        const blob = new Blob(['\uFEFF' + csvContent], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url; a.download = fileName; document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url);
+    }
 
     // --- [NEW] Instructor Management Logic ---
     window.renderInstructorManagement = function() {
@@ -1955,10 +2041,28 @@
         renderMemberGrid();
     }
     window.renderMembers = function() {
+        const searchInput = document.getElementById('member-list-search');
+        const query = searchInput ? searchInput.value : '';
         const list = document.getElementById('member-list');
-        document.getElementById('member-count').innerText = `(${members.length}명)`;
+        const countSpan = document.getElementById('member-count');
+        
+        const trimmedQuery = query.trim().toLowerCase();
+        const filteredMembers = trimmedQuery
+            ? window.members.filter(m => 
+                m.name.toLowerCase().includes(trimmedQuery) || 
+                (m.phone && m.phone.includes(trimmedQuery))
+              )
+            : window.members;
+
+        countSpan.innerText = `(${filteredMembers.length} / 총 ${window.members.length}명)`;
+        
+        if (filteredMembers.length === 0) {
+            list.innerHTML = `<li class="text-center text-gray-400 py-8">${trimmedQuery ? '검색 결과가 없습니다.' : '등록된 회원이 없습니다.'}</li>`;
+            return;
+        }
+
         list.innerHTML = '';
-        members.forEach(m => {
+        filteredMembers.forEach(m => {
             list.innerHTML += `<li class="py-4 flex justify-between items-center"><div onclick="openHistoryModal('${m.id}')" class="cursor-pointer flex-1 hover:bg-theme-50 p-2 rounded transition"><p class="font-bold text-lg text-gray-800 flex items-center">${m.name} <i class="fas fa-chevron-right text-gray-300 text-xs ml-2"></i></p><p class="text-sm text-gray-400">${m.phone}</p></div><button onclick="deleteMember('${m.id}')" class="text-red-400 text-sm border border-red-200 px-3 py-2 rounded-lg hover:bg-red-50 ml-2">삭제</button></li>`;
         });
     }
@@ -1977,7 +2081,7 @@
             await dbHelper.deleteItem('members', id);
             window.members = window.members.filter(m => m.id !== id);
             alert('삭제되었습니다.');
-            renderMembers();
+            renderMembers(); // Re-render with current search query
             updateCheckUserSelect();
             renderMemberGrid();
         }
