@@ -681,10 +681,11 @@
         const grid = document.getElementById('member-grid');
         if (!grid) return;
         
-        const filtered = members.filter(m => 
-            m.name.includes(query) || getChoseong(m.name).includes(query)
-        );
-
+        const trimmedQuery = query.trim();
+        const filtered = trimmedQuery
+            ? members.filter(m => m.name.includes(trimmedQuery) || getChoseong(m.name).includes(trimmedQuery))
+            : members;
+        
         grid.innerHTML = filtered.map(m => `
             <button onclick="handleMemberGridClick('${m.id}')"
                     class="p-4 bg-white border-2 border-gray-200 rounded-2xl shadow-sm active:bg-indigo-50 active:scale-95 transition flex flex-col items-center justify-center min-h-[120px]">
@@ -694,7 +695,22 @@
         `).join('');
         
         if (filtered.length === 0) {
-            grid.innerHTML = `<div class="col-span-full py-10 text-gray-400">검색 결과가 없습니다.</div>`;
+            if (trimmedQuery) {
+                // No search results
+                grid.innerHTML = `
+                    <div class="col-span-full py-10 text-center">
+                        <p class="text-gray-400 mb-4">'${trimmedQuery}' 님을 찾을 수 없습니다.</p>
+                        <button onclick="handleNewMemberGridClick('${trimmedQuery}')"
+                                class="px-6 py-4 bg-green-600 text-white font-bold rounded-xl shadow-md hover:bg-green-700 transition">
+                            <i class="fas fa-user-plus mr-2"></i>
+                            '${trimmedQuery}' 신규 등록 및 출석
+                        </button>
+                    </div>
+                `;
+            } else {
+                // No members at all
+                grid.innerHTML = `<div class="col-span-full py-10 text-gray-400">등록된 회원이 없습니다.</div>`;
+            }
         }
     }
 
@@ -710,6 +726,37 @@
 
         if (confirm(`[${session.name}]\n${member.name}님, 출석하시겠습니까?`)) {
             confirmAttendanceWithId(memberId, false, dateStr, sessionCode);
+        }
+    }
+
+    window.handleNewMemberGridClick = async function(name) {
+        const dateStr = document.getElementById('member-mode-date').value;
+        const sessionCode = document.getElementById('member-mode-session').value;
+        const session = SESSIONS.find(s => s.code === sessionCode);
+
+        if (!session || sessionCode === "수업 없음") {
+            return alert("선택된 날짜에 진행되는 수업이 없습니다. 날짜를 확인해주세요.");
+        }
+
+        if (confirm(`'${name}' 님은 명단에 없습니다.\n새 회원으로 등록하고 출석 처리할까요?`)) {
+            try {
+                const existingMembers = members.filter(m => m.name === name);
+                if (existingMembers.length > 0) {
+                    if (!confirm(`이미 같은 이름의 회원(${name})이 ${existingMembers.length}명 존재합니다.\n동명이인으로 새로 등록하시겠습니까?`)) {
+                        return; // User cancelled
+                    }
+                }
+
+                // Create new member
+                const docRef = await addDoc(collection(db, "members"), { name, phone: "0000", registeredAt: new Date() });
+                
+                // Immediately check in
+                await confirmAttendanceWithId(docRef.id, true, dateStr, sessionCode);
+
+            } catch (e) {
+                console.error("신규 회원 등록 및 출석 처리 실패:", e);
+                alert("처리 중 오류가 발생했습니다.");
+            }
         }
     }
 
