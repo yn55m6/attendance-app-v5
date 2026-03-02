@@ -227,10 +227,13 @@
             <!-- Report Tabs -->
             <div class="border-b border-gray-200 mt-6">
                 <div class="relative">
+                    <div id="report-tab-indicator-left" class="absolute top-0 left-0 h-full w-10 bg-gradient-to-r from-white via-white/80 to-white/0 pointer-events-none flex items-center justify-start pl-1 md:hidden" style="opacity: 0; transition: opacity 0.3s; display: none;">
+                        <i class="fas fa-chevron-left text-gray-400"></i>
+                    </div>
                     <nav id="report-tabs" class="-mb-px flex space-x-1 md:space-x-4 overflow-x-auto" aria-label="Tabs" onscroll="handleTabScroll()">
                         <!-- 탭 버튼은 JavaScript로 동적 생성됩니다. -->
                     </nav>
-                    <div id="report-tab-indicator" class="absolute top-0 right-0 h-full w-10 bg-gradient-to-l from-white via-white/80 to-white/0 pointer-events-none flex items-center justify-end pr-1 md:hidden" style="display: none; transition: opacity 0.3s;">
+                    <div id="report-tab-indicator-right" class="absolute top-0 right-0 h-full w-10 bg-gradient-to-l from-white via-white/80 to-white/0 pointer-events-none flex items-center justify-end pr-1 md:hidden" style="display: none; transition: opacity 0.3s;">
                         <i class="fas fa-chevron-right text-gray-400"></i>
                     </div>
                 </div>
@@ -803,26 +806,35 @@
     // [NEW] 리포트 탭 스크롤 인디케이터 로직
     window.handleTabScroll = function() {
         const tabs = document.getElementById('report-tabs');
-        const indicator = document.getElementById('report-tab-indicator');
-        if (!tabs || !indicator) return;
+        const leftIndicator = document.getElementById('report-tab-indicator-left');
+        const rightIndicator = document.getElementById('report-tab-indicator-right');
+        if (!tabs || !leftIndicator || !rightIndicator) return;
 
+        const scrollLeft = tabs.scrollLeft;
         const maxScrollLeft = tabs.scrollWidth - tabs.clientWidth;
-        // 스크롤이 거의 끝에 도달하면 인디케이터 숨김 (5px 여유)
-        if (tabs.scrollLeft >= maxScrollLeft - 5) {
-            indicator.style.opacity = '0';
-        } else {
-            indicator.style.opacity = '1';
-        }
+
+        // Left indicator visibility (show if scrolled more than 5px)
+        leftIndicator.style.opacity = scrollLeft > 5 ? '1' : '0';
+
+        // Right indicator visibility (show if not at the end)
+        rightIndicator.style.opacity = scrollLeft < maxScrollLeft - 5 ? '1' : '0';
     }
 
     function checkTabOverflow() {
         const tabs = document.getElementById('report-tabs');
-        const indicator = document.getElementById('report-tab-indicator');
-        if (!tabs || !indicator) return;
+        const leftIndicator = document.getElementById('report-tab-indicator-left');
+        const rightIndicator = document.getElementById('report-tab-indicator-right');
+        if (!tabs || !leftIndicator || !rightIndicator) return;
 
         const isOverflowing = tabs.scrollWidth > tabs.clientWidth;
-        indicator.style.display = isOverflowing ? 'flex' : 'none';
-        handleTabScroll(); // 초기 상태 체크
+        
+        const displayStyle = isOverflowing ? 'flex' : 'none';
+        leftIndicator.style.display = displayStyle;
+        rightIndicator.style.display = displayStyle;
+        
+        if (isOverflowing) {
+            handleTabScroll();
+        }
     }
 
     // 리포트 탭 UI 초기화 및 이벤트 핸들러 설정
@@ -997,13 +1009,13 @@
         let html = `<table class="w-full text-sm text-left text-gray-500">
             <thead class="text-xs text-gray-700 uppercase bg-gray-50">
                 <tr>
-                    <th scope="col" class="px-4 py-3">이름</th>
-                    <th scope="col" class="px-4 py-3 text-center">1주</th>
-                    <th scope="col" class="px-4 py-3 text-center">2주</th>
-                    <th scope="col" class="px-4 py-3 text-center">3주</th>
-                    <th scope="col" class="px-4 py-3 text-center">4주</th>
-                    <th scope="col" class="px-4 py-3 text-center">5주</th>
-                    <th scope="col" class="px-4 py-3 text-right">계</th>
+                    <th scope="col" class="px-2 py-3">이름</th>
+                    <th scope="col" class="px-2 py-3 text-center">1주</th>
+                    <th scope="col" class="px-2 py-3 text-center">2주</th>
+                    <th scope="col" class="px-2 py-3 text-center">3주</th>
+                    <th scope="col" class="px-2 py-3 text-center">4주</th>
+                    <th scope="col" class="px-2 py-3 text-center">5주</th>
+                    <th scope="col" class="px-2 py-3 text-right">계</th>
                 </tr>
             </thead>
             <tbody>`;
@@ -1013,13 +1025,13 @@
         } else {
             sortedIndiv.forEach(item => {
                 html += `<tr class="bg-white border-b hover:bg-gray-50">
-                    <td class="px-4 py-4 font-bold text-indigo-600 cursor-pointer hover:underline" onclick="openHistoryModal('${item.id}')">${item.name}</td>
-                    <td class="px-4 py-4 text-center text-gray-500">${item.weeks[1] || '-'}</td>
-                    <td class="px-4 py-4 text-center text-gray-500">${item.weeks[2] || '-'}</td>
-                    <td class="px-4 py-4 text-center text-gray-500">${item.weeks[3] || '-'}</td>
-                    <td class="px-4 py-4 text-center text-gray-500">${item.weeks[4] || '-'}</td>
-                    <td class="px-4 py-4 text-center text-gray-500">${item.weeks[5] || '-'}</td>
-                    <td class="px-4 py-4 text-right font-bold text-blue-600">${item.total}</td>
+                    <td class="px-2 py-4 font-bold text-indigo-600 cursor-pointer hover:underline whitespace-nowrap" onclick="openHistoryModal('${item.id}')">${item.name}</td>
+                    <td class="px-2 py-4 text-center text-gray-500">${item.weeks[1] || '-'}</td>
+                    <td class="px-2 py-4 text-center text-gray-500">${item.weeks[2] || '-'}</td>
+                    <td class="px-2 py-4 text-center text-gray-500">${item.weeks[3] || '-'}</td>
+                    <td class="px-2 py-4 text-center text-gray-500">${item.weeks[4] || '-'}</td>
+                    <td class="px-2 py-4 text-center text-gray-500">${item.weeks[5] || '-'}</td>
+                    <td class="px-2 py-4 text-right font-bold text-blue-600">${item.total}</td>
                 </tr>`;
             });
         }
@@ -1138,7 +1150,9 @@
         const allLogs = window.logs;
         const allMembers = window.members;
         initializeReportTabs();
-        checkTabOverflow();
+        
+        // Let the browser render the tabs before checking overflow
+        setTimeout(checkTabOverflow, 0);
         const monthFilter = document.getElementById('report-month-filter');
         if (!monthFilter.value) {
             monthFilter.value = new Date().toISOString().slice(0, 7);
