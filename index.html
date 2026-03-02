@@ -92,17 +92,17 @@
 <div class="app-container">
     <!-- Mode Selection & Login Section -->
     <section id="start-screen" class="absolute inset-0 bg-gray-100 z-50 flex flex-col justify-center items-center p-6" aria-labelledby="mode-selection-title">
-        <div id="mode-selection" class="w-full max-w-md text-center">
-            <h1 id="mode-selection-title" class="text-4xl font-bold text-indigo-600 mb-10">몸펴기생활운동<br>연신내 출석부</h1>
+        <div id="mode-selection" class="w-full max-w-lg text-center">
+            <h1 id="mode-selection-title" class="text-3xl sm:text-4xl font-bold text-indigo-600 mb-10">몸펴기생활운동<br>연신내 출석부</h1>
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                <button onclick="enterMemberMode()" class="p-10 bg-white border-2 border-indigo-500 rounded-3xl shadow-lg hover:bg-indigo-50 transition-all duration-300 group">
+                <button onclick="enterMemberMode()" class="p-6 sm:p-10 bg-white border-2 border-indigo-500 rounded-3xl shadow-lg hover:bg-indigo-50 transition-all duration-300 group">
                     <i class="fas fa-user-check text-4xl text-indigo-500 mb-3" aria-hidden="true"></i>
-                    <p class="text-3xl font-bold text-gray-800">회원 출석하기</p>
+                    <p class="text-2xl sm:text-3xl font-bold text-gray-800">회원 출석하기</p>
                     <p class="text-base text-gray-500 mt-2">비밀번호 없이 입장</p>
                 </button>
-                <button onclick="showAdminLogin()" class="p-10 bg-gray-800 text-white rounded-3xl shadow-lg hover:bg-gray-700 transition-all duration-300">
+                <button onclick="showAdminLogin()" class="p-6 sm:p-10 bg-gray-800 text-white rounded-3xl shadow-lg hover:bg-gray-700 transition-all duration-300">
                     <i class="fas fa-user-shield text-4xl mb-3" aria-hidden="true"></i>
-                    <p class="text-3xl font-bold">관리자 전용</p>
+                    <p class="text-2xl sm:text-3xl font-bold">관리자 전용</p>
                     <p class="text-base text-gray-400 mt-2">비밀번호 입력 후 입장</p>
                 </button>
             </div>
@@ -113,23 +113,19 @@
                 <i class="fas fa-arrow-left mr-2" aria-hidden="true"></i>뒤로가기
             </button>
             <i class="fas fa-lock text-4xl text-gray-400 mb-4" aria-hidden="true"></i>
-            <h2 class="text-3xl font-bold text-gray-800 mb-2">관리자 로그인</h2>
+            <h2 class="text-2xl sm:text-3xl font-bold text-gray-800 mb-2">관리자 로그인</h2>
             <p class="text-base text-gray-500 mb-6">관리자 권한이 필요합니다.</p>
-            <div id="login-input-wrapper">
-                <input type="password" id="admin-password" class="w-full p-4 text-center text-xl border-2 rounded-lg mb-4" placeholder="••••••••" onkeyup="if(event.key==='Enter') handleLogin()" autocomplete="current-password">
-            </div>
-            <div id="recovery-input-wrapper" class="hidden">
-                <input type="text" id="recovery-master-key" class="w-full p-4 text-center text-xl border-2 border-orange-300 rounded-lg mb-4" placeholder="복구 코드 입력">
-                <p class="text-xs text-orange-600 mb-4">마스터 복구 코드를 입력하면 비밀번호가 '1234'로 초기화됩니다.</p>
+            <div id="login-input-wrapper" class="space-y-3">
+                <input type="email" id="admin-email" class="w-full p-4 text-center text-lg sm:text-xl border-2 rounded-lg" placeholder="관리자 이메일" autocomplete="email" value="admin@example.com">
+                <input type="password" id="admin-password" class="w-full p-4 text-center text-lg sm:text-xl border-2 rounded-lg" placeholder="비밀번호" onkeyup="if(event.key==='Enter') handleLogin()" autocomplete="current-password">
             </div>
 
-            <label class="flex items-center justify-center text-sm text-gray-500 mb-6 cursor-pointer">
+            <label class="flex items-center justify-center text-sm text-gray-500 my-4 cursor-pointer">
                 <input type="checkbox" onchange="window.togglePasswordVisibility(this)" class="mr-2">
                 비밀번호 표시
             </label>
-            <button id="btn-admin-login" onclick="handleLogin()" class="btn-primary">로그인</button>
-            <button id="btn-admin-recovery" onclick="handleMasterKeyReset()" class="btn-primary bg-orange-500 hidden">비밀번호 초기화</button>
-            <button onclick="toggleRecoveryMode()" id="link-forgot-pw" class="block mt-4 text-xs text-indigo-500 underline">비밀번호를 잊으셨나요?</button>
+            <button id="btn-admin-login" onclick="handleLogin()" class="btn-primary mb-4">로그인</button>
+            <button onclick="handlePasswordReset()" id="link-forgot-pw" class="block text-xs text-indigo-500 underline">비밀번호를 잊으셨나요?</button>
 
             <div class="mt-8 border-t pt-4 border-dashed border-red-300">
                 <h4 class="text-sm font-bold text-red-500 mb-2">[임시] 테스트 데이터 생성</h4>
@@ -144,19 +140,25 @@
     <main id="app-main-content" class="hidden">
         <!-- Header -->
         <header class="bg-indigo-600 text-white p-4 sticky top-0 z-40 shadow-md flex justify-between items-center no-print">
-            <h1 class="text-xl font-bold"><i class="fas fa-check-circle mr-2" aria-hidden="true"></i>연신내 출석부</h1>
-            <div class="flex gap-2">
-                <button id="btn-exit-member-mode" onclick="exitMemberMode()" class="hidden text-base bg-red-600 px-6 py-2.5 rounded-xl hover:bg-red-700 font-bold shadow-md">출석 종료</button>
-                <button onclick="resetData()" class="admin-only text-sm bg-red-600 px-4 py-2 rounded-lg hover:bg-red-700">초기화</button>
-                <button id="btn-exit-admin-mode" onclick="exitMemberMode()" class="admin-only text-base bg-gray-500 px-6 py-2.5 rounded-xl hover:bg-gray-600 font-bold shadow-md">뒤로가기</button>
+            <h1 class="text-lg sm:text-xl font-bold"><i class="fas fa-check-circle mr-2" aria-hidden="true"></i>연신내 출석부</h1>
+            <div class="flex items-center gap-1 sm:gap-2">
+                <button id="btn-exit-member-mode" onclick="handleLogout()" class="hidden text-base bg-red-600 px-3 sm:px-6 py-2.5 rounded-xl hover:bg-red-700 font-bold shadow-md flex items-center justify-center">
+                    <i class="fas fa-door-open sm:mr-2"></i><span class="hidden sm:inline">출석 종료</span>
+                </button>
+                <button onclick="resetData()" class="admin-only text-sm bg-red-600 px-3 sm:px-4 py-2 rounded-lg hover:bg-red-700 flex items-center justify-center">
+                    <i class="fas fa-trash-alt sm:mr-2"></i><span class="hidden sm:inline">초기화</span>
+                </button>
+                <button id="btn-exit-admin-mode" onclick="handleLogout()" class="admin-only text-base bg-gray-500 px-3 sm:px-6 py-2.5 rounded-xl hover:bg-gray-600 font-bold shadow-md flex items-center justify-center">
+                    <i class="fas fa-arrow-left sm:mr-2"></i><span class="hidden sm:inline">로그아웃</span>
+                </button>
             </div>
         </header>
 
         <!-- Page: Member Attendance (New) -->
         <section id="page-member-attendance" class="page">
             <div class="card text-center py-6">
-                <h2 class="text-2xl font-bold text-gray-800 mb-4 leading-relaxed">허리는 세우고,<br>가슴은 펴고,<br>고개는 들자!</h2>
-                <p id="current-session-info" class="text-indigo-600 font-bold text-xl mb-6">현재 진행 중인 수업을 찾는 중...</p>
+                <h2 class="text-xl sm:text-2xl font-bold text-gray-800 mb-4 leading-relaxed">허리는 세우고,<br>가슴은 펴고,<br>고개는 들자!</h2>
+                <p id="current-session-info" class="text-indigo-600 font-bold text-lg sm:text-xl mb-6">현재 진행 중인 수업을 찾는 중...</p>
 
                 <!-- [NEW] Date & Session Selection for Member Mode -->
                 <div class="grid grid-cols-2 gap-2 sm:gap-4 mb-8 max-w-md mx-auto px-2">
@@ -179,11 +181,11 @@
                     <label for="member-search-input" class="sr-only">회원 이름 검색</label>
                     <input type="text" id="member-search-input" oninput="renderMemberGrid(this.value)" 
                            placeholder="이름 또는 초성 검색 (예: ㄱㄷㅎ)" 
-                           class="w-full p-5 text-2xl border-2 border-indigo-200 rounded-2xl focus:border-indigo-500 outline-none shadow-inner bg-white">
-                    <i class="fas fa-search absolute right-5 top-6 text-gray-300 text-2xl" aria-hidden="true"></i>
+                           class="w-full p-4 sm:p-5 text-xl sm:text-2xl border-2 border-indigo-200 rounded-2xl focus:border-indigo-500 outline-none shadow-inner bg-white">
+                    <i class="fas fa-search absolute right-4 sm:right-5 top-5 sm:top-6 text-gray-300 text-xl sm:text-2xl" aria-hidden="true"></i>
                 </div>
 
-                <div id="member-grid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 max-h-[50vh] overflow-y-auto p-2">
+                <div id="member-grid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2 sm:gap-4 max-h-[50vh] overflow-y-auto p-1 sm:p-2">
                     <!-- Member buttons will be rendered here -->
                 </div>
             </div>
@@ -249,8 +251,8 @@
         <section id="page-reports" class="page">
             <!-- Month Filter -->
             <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-                <h2 class="text-2xl font-bold text-gray-800">리포트 및 통계</h2>
-                <input type="month" id="report-month-filter" class="w-full sm:w-auto p-3 border rounded bg-gray-50 font-bold text-gray-700 text-2xl">
+                <h2 class="text-xl sm:text-2xl font-bold text-gray-800">리포트 및 통계</h2>
+                <input type="month" id="report-month-filter" class="w-full sm:w-auto p-3 border rounded bg-gray-50 font-bold text-gray-700 text-lg sm:text-2xl">
             </div>
         
             <!-- Report Tabs -->
@@ -384,10 +386,10 @@
 
 <!-- Modal: Paper Input (Text Area) -->
 <div id="paper-input-modal" class="fixed inset-0 bg-black bg-opacity-90 z-50 hidden flex flex-col justify-center items-center p-6 no-print">
-    <div class="bg-white w-full max-w-md rounded-xl p-6 relative">
+    <div class="bg-white w-full max-w-md rounded-xl p-6 relative max-h-[90vh] overflow-y-auto">
         <button onclick="closePaperInputModal()" class="absolute top-4 right-4 text-gray-400"><i class="fas fa-times"></i></button>
         
-        <h3 class="text-2xl font-bold mb-4 text-green-700"><i class="fas fa-edit mr-2"></i>종이 명부 입력</h3>
+        <h3 class="text-xl sm:text-2xl font-bold mb-4 text-green-700"><i class="fas fa-edit mr-2"></i>종이 명부 입력</h3>
         
         <div class="mb-3">
             <label class="block text-sm font-bold text-gray-500 mb-2">1. 날짜 선택</label>
@@ -421,8 +423,8 @@
 
 <!-- Modal: User Attendance Check (QR Scan Result) -->
 <div id="user-check-modal" class="fixed inset-0 bg-black bg-opacity-90 z-50 hidden flex flex-col justify-center items-center p-6 no-print">
-    <div class="bg-white w-full max-w-md rounded-xl p-8 text-center">
-        <h3 class="text-3xl font-bold mb-6 text-indigo-600">출석 체크</h3>
+    <div class="bg-white w-full max-w-md rounded-xl p-6 sm:p-8 text-center max-h-[90vh] overflow-y-auto">
+        <h3 class="text-2xl sm:text-3xl font-bold mb-6 text-indigo-600">출석 체크</h3>
         
         <!-- Date & Session Adjustment -->
         <div class="grid grid-cols-2 gap-2 mb-4">
@@ -438,8 +440,8 @@
 
         <!-- Manual Input (Default View) -->
         <div id="check-manual-wrapper">
-            <input type="text" id="check-manual-name" placeholder="이름 입력" class="w-full p-4 border-2 border-indigo-200 rounded-xl mb-3 bg-white text-2xl font-bold text-center placeholder-gray-300 focus:border-indigo-500 outline-none h-16">
-            <input type="tel" id="check-manual-phone" placeholder="전화번호 뒷자리 (선택)" class="w-full p-4 border rounded-xl mb-4 bg-gray-50 text-xl text-center h-14">
+            <input type="text" id="check-manual-name" placeholder="이름 입력" class="w-full p-4 border-2 border-indigo-200 rounded-xl mb-3 bg-white text-xl sm:text-2xl font-bold text-center placeholder-gray-300 focus:border-indigo-500 outline-none h-16">
+            <input type="tel" id="check-manual-phone" placeholder="전화번호 뒷자리 (선택)" class="w-full p-4 border rounded-xl mb-4 bg-gray-50 text-lg sm:text-xl text-center h-14">
             
             <div onclick="toggleCheckMode('existing')" class="w-full py-4 bg-gray-100 text-gray-600 rounded-xl font-bold cursor-pointer hover:bg-gray-200 mb-4 text-lg border border-gray-200">
                 🔍 전체 명단에서 선택하기
@@ -448,7 +450,7 @@
 
         <!-- Existing Member Select (Hidden by default) -->
         <div id="check-existing-wrapper" class="hidden">
-            <select id="check-user-select" class="w-full p-4 border-2 border-indigo-100 rounded-xl mb-4 bg-white text-2xl font-bold text-gray-800 shadow-sm focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 outline-none h-20">
+            <select id="check-user-select" class="w-full p-4 border-2 border-indigo-100 rounded-xl mb-4 bg-white text-xl sm:text-2xl font-bold text-gray-800 shadow-sm focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 outline-none h-20">
                 <option value="">⬇️ 여기를 눌러 이름 선택</option>
             </select>
             <div onclick="toggleCheckMode('manual')" class="w-full py-4 bg-indigo-50 text-indigo-700 rounded-xl font-bold cursor-pointer hover:bg-indigo-100 mb-4 text-lg border border-indigo-100 shadow-sm flex items-center justify-center">
@@ -456,7 +458,7 @@
             </div>
         </div>
 
-        <button onclick="confirmAttendance()" class="btn-primary mb-2 text-2xl py-5 shadow-lg">✅ 출석 확인</button>
+        <button onclick="confirmAttendance()" class="btn-primary mb-2 text-xl sm:text-2xl py-5 shadow-lg">✅ 출석 확인</button>
         <button onclick="closeCheckModal()" class="text-gray-500 text-base mt-4 underline p-2">취소</button>
     </div>
 </div>
@@ -466,7 +468,7 @@
     <div class="bg-white w-full max-w-sm rounded-xl p-6 relative max-h-[80vh] flex flex-col">
         <button onclick="closeHistoryModal()" class="absolute top-4 right-4 text-gray-400"><i class="fas fa-times"></i></button>
         
-        <h3 class="text-2xl font-bold mb-1 text-indigo-700" id="history-member-name">회원 이름</h3>
+        <h3 class="text-xl sm:text-2xl font-bold mb-1 text-indigo-700" id="history-member-name">회원 이름</h3>
         <p class="text-xs text-gray-500 mb-4">상세 출석 이력 (최신순)</p>
         
         <div class="overflow-y-auto flex-1 border-t border-gray-100 pt-2">
@@ -483,7 +485,7 @@
 <div id="password-change-modal" class="fixed inset-0 bg-black bg-opacity-90 z-50 hidden flex flex-col justify-center items-center p-6 no-print">
     <div class="bg-white w-full max-w-xs rounded-xl p-6 relative">
         <button onclick="closePasswordChangeModal()" class="absolute top-4 right-4 text-gray-400"><i class="fas fa-times"></i></button>
-        <h3 class="text-xl font-bold mb-4 text-gray-800">비밀번호 변경</h3>
+        <h3 class="text-lg sm:text-xl font-bold mb-4 text-gray-800">비밀번호 변경</h3>
         
         <input type="password" id="current-password" placeholder="현재 비밀번호" class="w-full p-3 border rounded mb-2 bg-gray-50">
         <input type="password" id="new-password" placeholder="새 비밀번호" class="w-full p-3 border rounded mb-2 bg-gray-50">
@@ -498,7 +500,7 @@
     <div class="bg-white w-full max-w-sm rounded-xl p-6 relative max-h-[80vh] flex flex-col">
         <button onclick="closeSessionAttendeesModal()" class="absolute top-4 right-4 text-gray-400"><i class="fas fa-times"></i></button>
         
-        <h3 class="text-xl font-bold mb-1 text-green-700" id="session-attendees-title">세션 참석자 명단</h3>
+        <h3 class="text-lg sm:text-xl font-bold mb-1 text-green-700" id="session-attendees-title">세션 참석자 명단</h3>
         <p class="text-xs text-gray-500 mb-4" id="session-attendees-subtitle">월간 총 참석자 (중복 제외)</p>
         
         <div class="overflow-y-auto flex-1 border-t border-gray-100 pt-2">
@@ -516,7 +518,7 @@
     <div class="bg-white w-full max-w-sm rounded-xl p-6 relative max-h-[80vh] flex flex-col">
         <button onclick="closeNewMembersModal()" class="absolute top-4 right-4 text-gray-400"><i class="fas fa-times"></i></button>
         
-        <h3 class="text-xl font-bold mb-1 text-green-700" id="new-members-title">신규 회원 명단</h3>
+        <h3 class="text-lg sm:text-xl font-bold mb-1 text-green-700" id="new-members-title">신규 회원 명단</h3>
         <p class="text-xs text-gray-500 mb-4" id="new-members-subtitle">해당 월에 가입한 회원</p>
         
         <div class="overflow-y-auto flex-1 border-t border-gray-100 pt-2">
@@ -532,9 +534,9 @@
 <!-- Modal: Password Confirmation for Sensitive Actions -->
 <div id="password-confirm-modal" class="fixed inset-0 bg-black bg-opacity-90 z-[60] hidden flex flex-col justify-center items-center p-6 no-print">
     <div class="bg-white w-full max-w-xs rounded-xl p-6 text-center">
-        <h3 class="text-xl font-bold mb-2 text-red-600">🔐 보안 확인</h3>
+        <h3 class="text-lg sm:text-xl font-bold mb-2 text-red-600">🔐 보안 확인</h3>
         <p class="text-sm text-gray-500 mb-4">민감한 작업을 위해<br>관리자 비밀번호를 입력하세요.</p>
-        <input type="password" id="confirm-pw-input" class="w-full p-3 text-center text-lg border-2 rounded-lg mb-4" placeholder="••••" onkeyup="if(event.key==='Enter') handlePasswordConfirm()">
+        <input type="password" id="confirm-pw-input" class="w-full p-3 text-center text-base sm:text-lg border-2 rounded-lg mb-4" placeholder="••••" onkeyup="if(event.key==='Enter') handlePasswordConfirm()">
         <div class="flex gap-2">
             <button onclick="handlePasswordConfirm()" class="flex-1 btn-primary">확인</button>
             <button onclick="closePasswordConfirmModal()" class="w-1/3 py-2 bg-gray-200 text-gray-700 rounded-lg font-bold">취소</button>
@@ -548,7 +550,7 @@
         <div class="w-20 h-20 bg-red-100 text-red-600 rounded-full flex items-center justify-center mx-auto mb-6 animate-bounce">
             <i class="fas fa-exclamation-triangle text-4xl"></i>
         </div>
-        <h3 class="text-2xl font-bold mb-2 text-red-600">최종 경고: 데이터 초기화</h3>
+        <h3 class="text-xl sm:text-2xl font-bold mb-2 text-red-600">최종 경고: 데이터 초기화</h3>
         <p class="text-sm text-gray-600 mb-6 leading-relaxed">
             모든 회원 정보와 출석 기록이 <span class="font-bold text-red-600 underline">영구적으로 삭제</span>됩니다.<br>
             이 작업은 절대로 되돌릴 수 없습니다.
@@ -556,7 +558,7 @@
         
         <div class="mb-6">
             <p class="text-xs font-bold text-gray-400 mb-2 uppercase">확인을 위해 아래에 "초기화"를 입력하세요</p>
-            <input type="text" id="reset-confirm-input" class="w-full p-4 text-center text-xl border-2 border-red-100 rounded-xl focus:border-red-500 outline-none bg-red-50" placeholder="초기화" onkeyup="if(event.key==='Enter') handleResetFinalConfirm()">
+            <input type="text" id="reset-confirm-input" class="w-full p-4 text-center text-lg sm:text-xl border-2 border-red-100 rounded-xl focus:border-red-500 outline-none bg-red-50" placeholder="초기화" onkeyup="if(event.key==='Enter') handleResetFinalConfirm()">
         </div>
 
         <div class="flex flex-col gap-2">
@@ -571,8 +573,8 @@
 </div>
 
 <!-- [NEW] Undo Toast Notification -->
-<div id="undo-toast" class="fixed bottom-24 left-1/2 -translate-x-1/2 bg-gray-800 text-white px-6 py-4 rounded-2xl shadow-lg flex flex-col items-center gap-2 z-[100] hidden transition-all duration-300">
-    <span id="undo-toast-message" class="text-lg font-semibold"></span>
+<div id="undo-toast" class="fixed bottom-24 left-1/2 -translate-x-1/2 bg-gray-800 text-white px-4 sm:px-6 py-3 sm:py-4 rounded-2xl shadow-lg flex flex-col items-center gap-2 z-[100] hidden transition-all duration-300">
+    <span id="undo-toast-message" class="text-base sm:text-lg font-semibold"></span>
     <button id="undo-toast-button" class="font-bold text-yellow-400 hover:text-yellow-300 underline text-base mt-1">출석 취소</button>
 </div>
 
@@ -597,15 +599,6 @@
     const auth = getAuth(app);
 
     // --- 1. Configuration ---
-    // [CHANGED] Use localStorage for password persistence. Default is '1234'.
-    const initAdminPw = () => {
-        const pw = localStorage.getItem('adminPassword');
-        if (!pw || pw.trim() === "" || pw === 'undefined' || pw === 'null') {
-            localStorage.setItem('adminPassword', '1234');
-        }
-    };
-    initAdminPw();
-    
     // Register ChartDataLabels plugin globally
     Chart.register(ChartDataLabels);
 
@@ -718,6 +711,13 @@
     // 4. Auth State Listener
     onAuthStateChanged(auth, (user) => {
         currentUser = user;
+        // [NEW] Automatically log in if user is already signed in
+        if (user && sessionStorage.getItem('isAdminLoggedIn') === 'true') {
+            showApp();
+        } else if (!user && sessionStorage.getItem('isAdminLoggedIn') === 'true') {
+            // If session exists but auth state is logged out, clear session and show login
+            handleLogout(true); // silent logout
+        }
     });
 
     // [NEW] Helper function to populate the attendance check dropdown
@@ -762,8 +762,8 @@
         
         grid.innerHTML = filtered.map(m => `
             <button onclick="handleMemberGridClick('${m.id}')"
-                    class="p-4 bg-white border-2 border-gray-200 rounded-2xl shadow-sm active:bg-indigo-50 active:scale-95 transition flex flex-col items-center justify-center min-h-[120px]">
-                <span class="text-2xl font-bold text-gray-800">${m.name}</span>
+                    class="p-2 sm:p-4 bg-white border-2 border-gray-200 rounded-2xl shadow-sm active:bg-indigo-50 active:scale-95 transition flex flex-col items-center justify-center min-h-[100px] sm:min-h-[120px]">
+                <span class="text-xl sm:text-2xl font-bold text-gray-800 text-center break-words">${m.name}</span>
                 <span class="text-xs text-gray-400 mt-1">${m.phone === '0000' ? '' : m.phone}</span>
             </button>
         `).join('');
@@ -1982,7 +1982,7 @@
     window.showAdminLogin = function() {
         document.getElementById('mode-selection').classList.add('hidden');
         document.getElementById('login-form').classList.remove('hidden');
-        document.getElementById('admin-password').focus();
+        document.getElementById('admin-email').focus();
     }
 
     window.backToModeSelection = function() {
@@ -1995,10 +1995,16 @@
         showApp();
     }
 
-    window.exitMemberMode = function() {
+    window.handleLogout = async function(silent = false) {
+        if (currentUser) {
+            await signOut(auth);
+        }
         sessionStorage.removeItem('appMode');
         sessionStorage.removeItem('isAdminLoggedIn');
-        location.reload();
+        currentUser = null;
+        if (!silent) {
+            location.reload();
+        }
     }
 
     window.showApp = function() {
@@ -2077,50 +2083,49 @@
         }, 50); // DOM 업데이트를 위한 최소한의 지연
     };
 
-    window.handleLogin = function() {
+    window.handleLogin = async function() {
+        const emailField = document.getElementById('admin-email');
         const passwordField = document.getElementById('admin-password');
+        const email = emailField.value.trim();
         const password = passwordField.value.trim();
         
-        if (!password) return; 
+        if (!email || !password) return alert('이메일과 비밀번호를 모두 입력해주세요.');
 
-        const storedPw = (localStorage.getItem('adminPassword') || '1234').trim();
-
-        if (password === storedPw) {
+        try {
+            await signInWithEmailAndPassword(auth, email, password);
             sessionStorage.setItem('isAdminLoggedIn', 'true');
             sessionStorage.setItem('appMode', 'admin');
+            localStorage.setItem('adminEmail', email); // Remember email for next time
             showApp();
-        } else {
-            alert('비밀번호가 틀렸습니다.');
+        } catch (error) {
+            console.error("Login failed:", error.code, error.message);
+            let message = '로그인 중 오류가 발생했습니다.';
+            switch (error.code) {
+                case 'auth/invalid-credential':
+                case 'auth/user-not-found':
+                case 'auth/wrong-password':
+                    message = '이메일 또는 비밀번호가 잘못되었습니다.';
+                    break;
+                case 'auth/too-many-requests':
+                    message = '너무 많은 로그인을 시도했습니다. 잠시 후 다시 시도해주세요.';
+                    break;
+            }
+            alert(message);
             passwordField.value = '';
             passwordField.focus();
         }
     }
 
-    window.togglePasswordVisibility = function(checkbox) {
-        const passwordField = document.getElementById('admin-password');
-        passwordField.type = passwordField.type === 'password' ? 'text' : 'password';
-    }
-
-    window.toggleRecoveryMode = function() {
-        const isRecovery = document.getElementById('login-input-wrapper').classList.toggle('hidden');
-        document.getElementById('recovery-input-wrapper').classList.toggle('hidden');
-        document.getElementById('btn-admin-login').classList.toggle('hidden');
-        document.getElementById('btn-admin-recovery').classList.toggle('hidden');
-        
-        const link = document.getElementById('link-forgot-pw');
-        link.innerText = isRecovery ? "로그인으로 돌아가기" : "비밀번호를 잊으셨나요?";
-    }
-
-    window.handleMasterKeyReset = function() {
-        const inputKey = document.getElementById('recovery-master-key').value.trim();
-        const storedKey = localStorage.getItem('adminMasterKey');
-
-        if (inputKey === storedKey) {
-            localStorage.setItem('adminPassword', '1234');
-            alert('✅ 비밀번호가 "1234"로 초기화되었습니다.\n새로운 비밀번호로 즉시 변경해 주세요.');
-            location.reload();
-        } else {
-            alert('❌ 복구 코드가 일치하지 않습니다.');
+    window.handlePasswordReset = async function() {
+        const email = prompt("비밀번호를 재설정할 관리자 이메일 주소를 입력하세요.", document.getElementById('admin-email').value);
+        if (email) {
+            try {
+                await sendPasswordResetEmail(auth, email);
+                alert(`✅ ${email} 주소로 비밀번호 재설정 링크를 보냈습니다. 이메일을 확인해주세요.`);
+            } catch (error) {
+                console.error("Password reset failed:", error);
+                alert("비밀번호 재설정 이메일 발송에 실패했습니다. 이메일 주소를 확인해주세요.");
+            }
         }
     }
 
@@ -2207,11 +2212,54 @@
         if (isScanning) {
             sessionStorage.setItem('appMode', 'member');
             showApp();
+        } else if (sessionStorage.getItem('isAdminLoggedIn') === 'true' && currentUser) {
+            showApp(); // If session exists and user is authenticated, go straight to app
+        } else {
+            showLoginScreen(); // Otherwise, always show the mode selection screen
         }
-        else showLoginScreen(); // 그 외에는 항상 모드 선택 화면 표시
     })();
 
     // [NEW] Add resize listener for report tabs
+    window.addEventListener('resize', () => {
+        if (currentMode === 'reports') {
+            checkTabOverflow();
+        }
+    });
+</script>
+</body>
+</html>
+    window.addEventListener('resize', () => {
+        if (currentMode === 'reports') {
+            checkTabOverflow();
+        }
+    });
+</script>
+</body>
+</html>
+    window.addEventListener('resize', () => {
+        if (currentMode === 'reports') {
+            checkTabOverflow();
+        }
+    });
+</script>
+</body>
+</html>
+    window.addEventListener('resize', () => {
+        if (currentMode === 'reports') {
+            checkTabOverflow();
+        }
+    });
+</script>
+</body>
+</html>
+    window.addEventListener('resize', () => {
+        if (currentMode === 'reports') {
+            checkTabOverflow();
+        }
+    });
+</script>
+</body>
+</html>
     window.addEventListener('resize', () => {
         if (currentMode === 'reports') {
             checkTabOverflow();
