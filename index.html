@@ -1121,25 +1121,37 @@
     // --- 신규 리포트 3종 및 헬퍼 함수 ---
     const renderReport_ClassPopularity = (logs) => {
         const container = document.getElementById('report-class-popularity');
+        container.innerHTML = ''; // Clear previous content
+
         if (!logs || !logs.length) {
             container.innerHTML = '<p class="text-gray-500 text-center py-4">해당 월의 출석 데이터가 없습니다.</p>';
             return;
         }
+
         const classCounts = logs.reduce((acc, log) => {
             const sessionName = log.sessionName || '알 수 없는 수업';
             acc[sessionName] = (acc[sessionName] || 0) + 1;
             return acc;
         }, {});
         const sortedClasses = Object.entries(classCounts).sort(([, countA], [, countB]) => countB - countA);
-        let html = `<table class="w-full text-sm text-left text-gray-500">
-            <thead class="text-xs text-gray-700 uppercase bg-gray-50">
+        
+        const table = document.createElement('table');
+        table.className = 'w-full text-sm text-left text-gray-500';
+        table.innerHTML = `<thead class="text-xs text-gray-700 uppercase bg-gray-50">
                 <tr><th scope="col" class="px-4 py-3">순위</th><th scope="col" class="px-4 py-3">수업</th><th scope="col" class="px-4 py-3 text-right">총 출석인원</th></tr>
-            </thead><tbody>`;
+            </thead>`;
+        const tbody = document.createElement('tbody');
+
         sortedClasses.forEach(([sessionName, count], index) => {
-            html += `<tr class="bg-white border-b hover:bg-gray-50"><td class="px-4 py-4 font-medium text-gray-900">${index + 1}</td><td class="px-4 py-4">${sessionName}</td><td class="px-4 py-4 text-right font-semibold">${count}명</td></tr>`;
+            const tr = document.createElement('tr');
+            tr.className = 'bg-white border-b hover:bg-gray-50 animate-fadeInUp';
+            tr.style.animationDelay = `${index * 50}ms`;
+            tr.innerHTML = `<td class="px-4 py-4 font-medium text-gray-900">${index + 1}</td><td class="px-4 py-4">${sessionName}</td><td class="px-4 py-4 text-right font-semibold">${count}명</td>`;
+            tbody.appendChild(tr);
         });
-        html += '</tbody></table>';
-        container.innerHTML = html;
+        
+        table.appendChild(tbody);
+        container.appendChild(table);
     };
 
     const renderReport_NewMemberTrend = (members) => {
