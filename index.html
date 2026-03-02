@@ -851,6 +851,24 @@
         }
     }
 
+    // --- [NEW] Animation Helper ---
+    const animateCountUp = (element, end, duration = 1500) => {
+        if (!element) return;
+        const startTimestamp = performance.now();
+        const step = (timestamp) => {
+            const progress = Math.min((timestamp - startTimestamp) / duration, 1);
+            const current = Math.floor(progress * end);
+            element.innerText = `${current}명`;
+            if (progress < 1) {
+                window.requestAnimationFrame(step);
+            } else {
+                element.innerText = `${end}명`; // Ensure final value is exact
+            }
+        };
+        element.innerText = '0명'; // Start from 0
+        window.requestAnimationFrame(step);
+    };
+
     // --- 4. Report Logic ---
     let newMembersChartInstance = null;
 
@@ -926,7 +944,7 @@
     // --- 기존 리포트 로직을 새 구조에 맞게 재구성 ---
     const renderReport_MonthlyTotal = (logsForMonth) => {
         const uniqueMembers = new Set(logsForMonth.map(log => log.memberId)).size;
-        document.getElementById('report-monthly-total').innerText = `${uniqueMembers}명`;
+        animateCountUp(document.getElementById('report-monthly-total'), uniqueMembers);
     };
 
     const renderReport_MemberRank = (logsForMonth, members) => {
