@@ -13,7 +13,7 @@
     <meta property="og:image" content="app-icon.png">
     <!-- [NEW] PWA Manifest -->
     <link rel="manifest" href="./manifest.json">
-    <meta name="theme-color" content="#4f46e5">
+    <meta name="theme-color" content="#4f46e5"> <!-- Updated by JS -->
     <link rel="icon" href="app-icon.png">
 
     <!-- Tailwind CSS -->
@@ -43,12 +43,6 @@
         .btn-primary { background: linear-gradient(135deg, #6366f1, #4f46e5); color: white; padding: 16px; border-radius: 12px; width: 100%; font-weight: bold; text-align: center; cursor: pointer; transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1); box-shadow: 0 4px 12px rgba(79, 70, 229, 0.3); font-size: 1.125rem; }
         .btn-primary:active { transform: scale(0.98); }
         .btn-primary:hover { box-shadow: 0 6px 20px rgba(79, 70, 229, 0.4); }
-
-        /* 리포트 테이블 스타일 */
-        .report-table { width: 100%; border-collapse: collapse; font-size: 1rem; } /* 폰트 크기 확대 */
-        .report-table th { background: #f9fafb; padding: 8px; border-bottom: 2px solid #e5e7eb; text-align: left; font-weight: bold; color: #374151; white-space: nowrap; }
-        .report-table td { padding: 8px; border-bottom: 1px solid #f3f4f6; color: #4b5563; }
-        .report-table tr:last-child td { border-bottom: none; }
 
         /* 네비게이션 바 */
         .nav-bar { position: fixed; bottom: 0; width: 100%; max-width: 1024px; background: white; border-top: 1px solid #e5e7eb; display: flex; justify-content: space-around; padding: 12px 0; z-index: 50; }
@@ -89,6 +83,48 @@
             .no-print { display: none !important; }
         }
     </style>
+    <style id="theme-styles">
+        :root {
+            --theme-50-rgb: 238 242 255; --theme-100-rgb: 224 231 255; --theme-200-rgb: 199 210 254; --theme-300-rgb: 165 180 252; --theme-500-rgb: 99 102 241; --theme-600-rgb: 79 70 229; --theme-700-rgb: 67 56 202;
+        }
+        body[data-theme="blue"] {
+            --theme-50-rgb: 239 246 255; --theme-100-rgb: 219 234 254; --theme-200-rgb: 191 219 254; --theme-300-rgb: 147 197 253; --theme-500-rgb: 59 130 246; --theme-600-rgb: 37 99 235; --theme-700-rgb: 29 78 216;
+        }
+        body[data-theme="green"] {
+            --theme-50-rgb: 240 253 244; --theme-100-rgb: 220 252 231; --theme-200-rgb: 187 247 208; --theme-300-rgb: 134 239 172; --theme-500-rgb: 34 197 94; --theme-600-rgb: 22 163 74; --theme-700-rgb: 21 128 61;
+        }
+        body[data-theme="red"] {
+            --theme-50-rgb: 254 242 242; --theme-100-rgb: 254 226 226; --theme-200-rgb: 254 202 202; --theme-300-rgb: 252 165 165; --theme-500-rgb: 239 68 68; --theme-600-rgb: 220 38 38; --theme-700-rgb: 185 28 28;
+        }
+        body[data-theme="orange"] {
+            --theme-50-rgb: 255 247 237; --theme-100-rgb: 255 237 213; --theme-200-rgb: 254 215 170; --theme-300-rgb: 253 186 116; --theme-500-rgb: 249 115 22; --theme-600-rgb: 234 88 12; --theme-700-rgb: 194 65 12;
+        }
+
+        .btn-primary { background: linear-gradient(135deg, rgba(var(--theme-500-rgb), 1), rgba(var(--theme-600-rgb), 1)); box-shadow: 0 4px 12px rgba(var(--theme-600-rgb), 0.3); }
+        .btn-primary:hover { box-shadow: 0 6px 20px rgba(var(--theme-600-rgb), 0.4); }
+        
+        .bg-theme-50 { background-color: rgba(var(--theme-50-rgb), 1); }
+        .bg-theme-100 { background-color: rgba(var(--theme-100-rgb), 1); }
+        .bg-theme-600 { background-color: rgba(var(--theme-600-rgb), 1); }
+        .text-theme-500 { color: rgba(var(--theme-500-rgb), 1); }
+        .text-theme-600 { color: rgba(var(--theme-600-rgb), 1); }
+        .text-theme-700 { color: rgba(var(--theme-700-rgb), 1); }
+        .border-theme-100 { border-color: rgba(var(--theme-100-rgb), 1); }
+        .border-theme-200 { border-color: rgba(var(--theme-200-rgb), 1); }
+        .border-theme-500 { border-color: rgba(var(--theme-500-rgb), 1); }
+        .hover\:bg-theme-50:hover { background-color: rgba(var(--theme-50-rgb), 1); }
+        .focus\:border-theme-300:focus { border-color: rgba(var(--theme-300-rgb), 1); }
+        .focus\:border-theme-500:focus { border-color: rgba(var(--theme-500-rgb), 1); }
+        .focus\:ring-theme-200:focus { --tw-ring-offset-shadow: var(--tw-ring-inset) 0 0 0 var(--tw-ring-offset-width) var(--tw-ring-offset-color); --tw-ring-shadow: var(--tw-ring-inset) 0 0 0 calc(2px + var(--tw-ring-offset-width)) rgba(var(--theme-200-rgb), 1); box-shadow: var(--tw-ring-offset-shadow), var(--tw-ring-shadow), var(--tw-shadow, 0 0 #0000); }
+        
+        .nav-item.active { color: rgba(var(--theme-600-rgb), 1); }
+
+        @keyframes highlightText {
+            0% { transform: scale(1); background-color: transparent; }
+            50% { transform: scale(1.05); background-color: rgba(var(--theme-600-rgb), 0.1); color: rgba(var(--theme-700-rgb), 1); }
+            100% { transform: scale(1); background-color: transparent; }
+        }
+    </style>
 </head>
 <body>
 
@@ -96,10 +132,10 @@
     <!-- Mode Selection & Login Section -->
     <section id="start-screen" class="absolute inset-0 bg-gray-100 z-50 flex flex-col justify-center items-center p-6" aria-labelledby="mode-selection-title">
         <div id="mode-selection" class="w-full max-w-lg text-center">
-            <h1 id="mode-selection-title" class="text-3xl sm:text-4xl font-bold text-indigo-600 mb-10">몸펴기생활운동<br>연신내 출석부</h1>
+            <h1 id="mode-selection-title" class="text-3xl sm:text-4xl font-bold text-theme-600 mb-10">몸펴기생활운동<br>연신내 출석부</h1>
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                <button onclick="enterMemberMode()" class="p-6 sm:p-10 bg-white border-2 border-indigo-500 rounded-3xl shadow-lg hover:bg-indigo-50 transition-all duration-300 group">
-                    <i class="fas fa-user-check text-4xl text-indigo-500 mb-3" aria-hidden="true"></i>
+                <button onclick="enterMemberMode()" class="p-6 sm:p-10 bg-white border-2 border-theme-500 rounded-3xl shadow-lg hover:bg-theme-50 transition-all duration-300 group">
+                    <i class="fas fa-user-check text-4xl text-theme-500 mb-3" aria-hidden="true"></i>
                     <p class="text-2xl sm:text-3xl font-bold text-gray-800">회원 출석하기</p>
                     <p class="text-base text-gray-500 mt-2">비밀번호 없이 입장</p>
                 </button>
@@ -132,7 +168,7 @@
             </label>
             <button id="btn-admin-login" onclick="handleLogin()" class="btn-primary">로그인</button>
             <button id="btn-admin-recovery" onclick="handleMasterKeyReset()" class="btn-primary bg-orange-500 hidden">비밀번호 초기화</button>
-            <button onclick="toggleRecoveryMode()" id="link-forgot-pw" class="block mt-4 text-xs text-indigo-500 underline">비밀번호를 잊으셨나요?</button>
+            <button onclick="toggleRecoveryMode()" id="link-forgot-pw" class="block mt-4 text-xs text-theme-500 underline">비밀번호를 잊으셨나요?</button>
 
             <div class="mt-8 border-t pt-4 border-dashed border-red-300">
                 <h4 class="text-sm font-bold text-red-500 mb-2">[임시] 테스트 데이터 생성</h4>
@@ -146,7 +182,7 @@
     <!-- Main App Wrapper -->
     <main id="app-main-content" class="hidden">
         <!-- Header -->
-        <header class="bg-indigo-600 text-white p-4 sticky top-0 z-40 shadow-md flex justify-between items-center no-print">
+        <header class="bg-theme-600 text-white p-4 sticky top-0 z-40 shadow-md flex justify-between items-center no-print">
             <h1 class="text-lg sm:text-xl font-bold"><i class="fas fa-check-circle mr-2" aria-hidden="true"></i>연신내 출석부</h1>
             <div class="flex items-center gap-1 sm:gap-2">
                 <button id="btn-exit-member-mode" onclick="exitMemberMode()" class="hidden text-base bg-red-600 px-6 py-2.5 rounded-xl hover:bg-red-700 font-bold shadow-md">출석 종료</button>
@@ -162,19 +198,19 @@
         <section id="page-member-attendance" class="page">
             <div class="card text-center py-6">
                 <h2 class="text-xl sm:text-2xl font-bold text-gray-800 mb-4 leading-relaxed">허리는 세우고,<br>가슴은 펴고,<br>고개는 들자!</h2>
-                <p id="current-session-info" class="text-indigo-600 font-bold text-lg sm:text-xl mb-6">현재 진행 중인 수업을 찾는 중...</p>
+                <p id="current-session-info" class="text-theme-600 font-bold text-lg sm:text-xl mb-6">현재 진행 중인 수업을 찾는 중...</p>
 
                 <!-- [NEW] Date & Session Selection for Member Mode -->
                 <div class="grid grid-cols-2 gap-2 sm:gap-4 mb-8 max-w-md mx-auto px-2">
                     <div class="text-left">
-                        <label for="member-mode-date" class="block text-xs sm:text-sm font-bold text-gray-500 mb-2">출석 날짜 <span id="member-mode-day" class="text-indigo-500 font-semibold"></span></label>
-                        <input type="date" id="member-mode-date" class="w-full p-3 sm:p-4 border-2 border-gray-200 rounded-xl bg-gray-50 text-sm sm:text-base font-bold text-gray-700 focus:border-indigo-300 outline-none" onchange="updateMemberModeSessionOptions()">
+                        <label for="member-mode-date" class="block text-xs sm:text-sm font-bold text-gray-500 mb-2">출석 날짜 <span id="member-mode-day" class="text-theme-500 font-semibold"></span></label>
+                        <input type="date" id="member-mode-date" class="w-full p-3 sm:p-4 border-2 border-gray-200 rounded-xl bg-gray-50 text-sm sm:text-base font-bold text-gray-700 focus:border-theme-300 outline-none" onchange="updateMemberModeSessionOptions()">
                     </div>
                     <div class="text-left">
                         <label for="member-mode-session" class="block text-xs sm:text-sm font-bold text-gray-500 mb-2">수업(차수) 선택</label>
                         <div class="flex gap-2">
-                            <select id="member-mode-session" class="flex-1 p-3 sm:p-4 border-2 border-gray-200 rounded-xl bg-gray-50 text-sm sm:text-base font-bold text-gray-700 focus:border-indigo-300 outline-none"></select>
-                            <button id="btn-sync-member" onclick="syncMemberModeToNow()" class="p-3 sm:p-4 bg-white border-2 border-gray-200 rounded-xl text-indigo-500 hover:bg-indigo-50 transition shadow-sm" title="현재 시간으로 수업 갱신">
+                            <select id="member-mode-session" class="flex-1 p-3 sm:p-4 border-2 border-gray-200 rounded-xl bg-gray-50 text-sm sm:text-base font-bold text-gray-700 focus:border-theme-300 outline-none"></select>
+                            <button id="btn-sync-member" onclick="syncMemberModeToNow()" class="p-3 sm:p-4 bg-white border-2 border-gray-200 rounded-xl text-theme-500 hover:bg-theme-50 transition shadow-sm" title="현재 시간으로 수업 갱신">
                                 <i class="fas fa-sync-alt" id="icon-sync-member"></i>
                             </button>
                         </div>
@@ -185,7 +221,7 @@
                     <label for="member-search-input" class="sr-only">회원 이름 검색</label>
                     <input type="text" id="member-search-input" oninput="renderMemberGrid(this.value)" 
                            placeholder="이름 또는 초성 검색 (예: ㄱㄷㅎ)" 
-                           class="w-full p-4 sm:p-5 text-xl sm:text-2xl border-2 border-indigo-200 rounded-2xl focus:border-indigo-500 outline-none shadow-inner bg-white">
+                           class="w-full p-4 sm:p-5 text-xl sm:text-2xl border-2 border-theme-200 rounded-2xl focus:border-theme-500 outline-none shadow-inner bg-white">
                     <i class="fas fa-search absolute right-4 sm:right-5 top-5 sm:top-6 text-gray-300 text-xl sm:text-2xl" aria-hidden="true"></i>
                 </div>
 
@@ -217,20 +253,12 @@
                 <button onclick="openPasswordChangeModal()" class="w-full mt-4 py-3 bg-gray-100 text-gray-600 rounded-lg text-base font-bold hover:bg-gray-200 border border-gray-200">
                     <i class="fas fa-key mr-2"></i>관리자 비밀번호 변경
                 </button>
-                <!-- [NEW] Backup/Restore buttons -->
-                <div class="mt-4 pt-4 border-t border-gray-100">
-                    <h4 class="text-sm font-bold text-gray-500 mb-2">데이터 관리</h4>
-                    <div class="grid grid-cols-2 gap-2">
-                        <button onclick="exportData()" class="w-full py-3 bg-blue-50 text-blue-700 rounded-lg text-base font-bold hover:bg-blue-100 border border-blue-100 flex items-center justify-center">
-                            <i class="fas fa-download mr-2"></i>백업
-                        </button>
-                        <label for="import-file-input" class="w-full py-3 bg-orange-50 text-orange-700 rounded-lg text-base font-bold hover:bg-orange-100 border border-orange-100 cursor-pointer text-center flex items-center justify-center">
-                            <i class="fas fa-upload mr-2"></i>복구
-                        </label>
-                        <input type="file" id="import-file-input" class="hidden" accept=".json" onchange="importData(event)">
-                    </div>
-                    <p class="text-xs text-gray-400 mt-2">* 모든 데이터를 JSON 파일로 저장하거나, 파일에서 복원합니다. 복원 시 현재 데이터는 모두 삭제됩니다.</p>
-                </div>
+                <button onclick="openDataManagementModal()" class="w-full mt-2 py-3 bg-gray-100 text-gray-600 rounded-lg text-base font-bold hover:bg-gray-200 border border-gray-200">
+                    <i class="fas fa-database mr-2"></i>데이터 관리 (백업/복구)
+                </button>
+                <button onclick="openThemeModal()" class="w-full mt-2 py-3 bg-gray-100 text-gray-600 rounded-lg text-base font-bold hover:bg-gray-200 border border-gray-200">
+                    <i class="fas fa-palette mr-2"></i>테마 설정
+                </button>
             </div>
             
             <!-- [NEW] Instructor Management Card -->
@@ -244,7 +272,7 @@
             
             <div class="text-center text-xs text-gray-400 mt-4">
                 현재 접속 주소:<br>
-                <span id="current-url" class="text-indigo-500 break-all"></span>
+                <span id="current-url" class="text-theme-500 break-all"></span>
             </div>
         </section>
 
@@ -259,7 +287,7 @@
                 <button onclick="addMember()" class="btn-primary">등록하기</button>
             </div>
             <div class="card">
-                <h2 class="font-bold text-xl mb-2">회원 목록 <span id="member-count" class="text-base text-indigo-600 font-normal"></span></h2>
+                <h2 class="font-bold text-xl mb-2">회원 목록 <span id="member-count" class="text-base text-theme-600 font-normal"></span></h2>
                 <p class="text-xs text-gray-400 mb-2">* 이름을 클릭하면 상세 이력을 볼 수 있습니다.</p>
                 <ul id="member-list" class="divide-y divide-gray-100"></ul>
             </div>
@@ -295,7 +323,7 @@
                     <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
                         <div class="card lg:col-span-1">
                             <h3 class="font-bold text-lg mb-2">월간 총 출석 (UV)</h3>
-                            <p id="report-monthly-total" class="text-4xl font-bold text-indigo-600">0명</p>
+                            <p id="report-monthly-total" class="text-4xl font-bold text-theme-600">0명</p>
                             <p class="text-sm text-gray-500">해당 월에 한 번 이상 출석한 회원 수</p>
                         </div>
                         <div class="card lg:col-span-2">
@@ -373,7 +401,7 @@
         <!-- Navigation Bar -->
         <nav class="nav-bar no-print admin-only" aria-label="하단 네비게이션">
             <div class="nav-item active" onclick="switchPage(this, 'home')">
-                <i class="fas fa-home" aria-hidden="true"></i><span>홈</span>
+                <i class="fas fa-home" aria-hidden="true"></i><span class="font-bold">홈</span>
             </div>
             <div class="nav-item" onclick="switchPage(this, 'members')">
                 <i class="fas fa-users" aria-hidden="true"></i><span>회원관리</span>
@@ -442,7 +470,7 @@
 <!-- Modal: User Attendance Check (QR Scan Result) -->
 <div id="user-check-modal" class="fixed inset-0 bg-black bg-opacity-90 z-50 hidden flex flex-col justify-center items-center p-6 no-print">
     <div class="bg-white w-full max-w-md rounded-xl p-6 sm:p-8 text-center max-h-[90vh] overflow-y-auto">
-        <h3 class="text-2xl sm:text-3xl font-bold mb-6 text-indigo-600">출석 체크</h3>
+        <h3 class="text-2xl sm:text-3xl font-bold mb-6 text-theme-600">출석 체크</h3>
         
         <!-- Date & Session Adjustment -->
         <div class="grid grid-cols-2 gap-2 mb-4">
@@ -458,7 +486,7 @@
 
         <!-- Manual Input (Default View) -->
         <div id="check-manual-wrapper">
-            <input type="text" id="check-manual-name" placeholder="이름 입력" class="w-full p-4 border-2 border-indigo-200 rounded-xl mb-3 bg-white text-xl sm:text-2xl font-bold text-center placeholder-gray-300 focus:border-indigo-500 outline-none h-16">
+            <input type="text" id="check-manual-name" placeholder="이름 입력" class="w-full p-4 border-2 border-theme-200 rounded-xl mb-3 bg-white text-xl sm:text-2xl font-bold text-center placeholder-gray-300 focus:border-theme-500 outline-none h-16">
             <input type="tel" id="check-manual-phone" placeholder="전화번호 뒷자리 (선택)" class="w-full p-4 border rounded-xl mb-4 bg-gray-50 text-lg sm:text-xl text-center h-14">
             
             <div onclick="toggleCheckMode('existing')" class="w-full py-4 bg-gray-100 text-gray-600 rounded-xl font-bold cursor-pointer hover:bg-gray-200 mb-4 text-lg border border-gray-200">
@@ -468,10 +496,10 @@
 
         <!-- Existing Member Select (Hidden by default) -->
         <div id="check-existing-wrapper" class="hidden">
-            <select id="check-user-select" class="w-full p-4 border-2 border-indigo-100 rounded-xl mb-4 bg-white text-xl sm:text-2xl font-bold text-gray-800 shadow-sm focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 outline-none h-20">
+            <select id="check-user-select" class="w-full p-4 border-2 border-theme-100 rounded-xl mb-4 bg-white text-xl sm:text-2xl font-bold text-gray-800 shadow-sm focus:border-theme-500 focus:ring-2 focus:ring-theme-200 outline-none h-20">
                 <option value="">⬇️ 여기를 눌러 이름 선택</option>
             </select>
-            <div onclick="toggleCheckMode('manual')" class="w-full py-4 bg-indigo-50 text-indigo-700 rounded-xl font-bold cursor-pointer hover:bg-indigo-100 mb-4 text-lg border border-indigo-100 shadow-sm flex items-center justify-center">
+            <div onclick="toggleCheckMode('manual')" class="w-full py-4 bg-theme-50 text-theme-700 rounded-xl font-bold cursor-pointer hover:bg-theme-100 mb-4 text-lg border border-theme-100 shadow-sm flex items-center justify-center">
                 <span>⌨️ 직접 입력으로 돌아가기</span>
             </div>
         </div>
@@ -486,7 +514,7 @@
     <div class="bg-white w-full max-w-sm rounded-xl p-6 relative max-h-[80vh] flex flex-col">
         <button onclick="closeHistoryModal()" class="absolute top-4 right-4 text-gray-400"><i class="fas fa-times"></i></button>
         
-        <h3 class="text-xl sm:text-2xl font-bold mb-1 text-indigo-700" id="history-member-name">회원 이름</h3>
+        <h3 class="text-xl sm:text-2xl font-bold mb-1 text-theme-700" id="history-member-name">회원 이름</h3>
         <p class="text-xs text-gray-500 mb-4">상세 출석 이력 (최신순)</p>
         
         <div class="overflow-y-auto flex-1 border-t border-gray-100 pt-2">
@@ -526,7 +554,7 @@
         
         <h3 class="text-lg sm:text-xl font-bold mb-1 text-green-700" id="session-attendees-title">세션 참석자 명단</h3>
         <p class="text-xs text-gray-500 mb-4" id="session-attendees-subtitle">월간 총 참석자 (중복 제외)</p>
-        
+
         <div class="overflow-y-auto flex-1 border-t border-gray-100 pt-2">
             <ul id="session-attendees-list" class="text-sm space-y-2">
                 <!-- Attendee names will go here -->
@@ -612,6 +640,47 @@
     <button id="update-now-button" class="ml-4 px-4 py-2 bg-white text-blue-600 font-bold rounded-lg hover:bg-blue-100">새로고침</button>
 </div>
 
+<!-- [NEW] Modal: Theme Settings -->
+<div id="theme-modal" class="fixed inset-0 bg-black bg-opacity-90 z-50 hidden flex flex-col justify-center items-center p-6 no-print">
+    <div class="bg-white w-full max-w-xs rounded-xl p-6 relative">
+        <button onclick="closeThemeModal()" class="absolute top-4 right-4 text-gray-400"><i class="fas fa-times"></i></button>
+        <h3 class="text-lg sm:text-xl font-bold mb-4 text-gray-800"><i class="fas fa-palette mr-2"></i>테마 색상 변경</h3>
+        <div id="theme-swatches" class="grid grid-cols-4 gap-4">
+            <!-- Swatches will be rendered here by JS -->
+        </div>
+        <p class="text-xs text-gray-400 mt-4 text-center">
+            선택한 색상은 이 기기에만 저장됩니다.
+        </p>
+    </div>
+</div>
+
+<!-- [NEW] Modal: Data Management (Backup/Restore) -->
+<div id="data-management-modal" class="fixed inset-0 bg-black bg-opacity-90 z-50 hidden flex flex-col justify-center items-center p-6 no-print">
+    <div class="bg-white w-full max-w-md rounded-xl p-6 relative">
+        <button onclick="closeDataManagementModal()" class="absolute top-4 right-4 text-gray-400"><i class="fas fa-times"></i></button>
+        <h3 class="text-lg sm:text-xl font-bold mb-4 text-gray-800"><i class="fas fa-database mr-2"></i>데이터 관리</h3>
+        
+        <div class="space-y-4">
+            <div class="p-4 bg-blue-50 rounded-lg border border-blue-100">
+                <h4 class="font-bold text-blue-700">데이터 백업 (내보내기)</h4>
+                <p class="text-sm text-gray-600 my-2">모든 데이터를 암호화된 JSON 파일로 다운로드합니다. 이 파일과 비밀번호가 있으면 언제든 복구할 수 있습니다.</p>
+                <button onclick="exportData()" class="w-full py-3 bg-blue-600 text-white rounded-lg text-base font-bold hover:bg-blue-700 flex items-center justify-center">
+                    <i class="fas fa-download mr-2"></i>백업 파일 생성
+                </button>
+            </div>
+
+            <div class="p-4 bg-orange-50 rounded-lg border border-orange-100">
+                <h4 class="font-bold text-orange-700">데이터 복구 (가져오기)</h4>
+                <p class="text-sm text-gray-600 my-2">백업 파일을 사용하여 데이터를 복원합니다. <span class="font-bold text-red-500">현재 데이터는 모두 덮어씌워집니다.</span></p>
+                <label for="import-file-input" class="w-full py-3 bg-orange-500 text-white rounded-lg text-base font-bold hover:bg-orange-600 cursor-pointer text-center flex items-center justify-center">
+                    <i class="fas fa-upload mr-2"></i>백업 파일에서 복구
+                </label>
+                <input type="file" id="import-file-input" class="hidden" accept=".json" onchange="importData(event)">
+            </div>
+        </div>
+    </div>
+</div>
+
 <script>
     // =================================================================================
     // IndexedDB Helper (데이터베이스 관리 로직)
@@ -682,6 +751,20 @@
 </script>
 <script>
     // --- 0. Firebase Setup (REMOVED) ---
+    const THEMES = {
+        indigo: { name: '기본', '600': '#4f46e5' },
+        blue: { name: '파랑', '600': '#2563eb' },
+        green: { name: '초록', '600': '#16a34a' },
+        red: { name: '빨강', '600': '#dc2626' },
+        orange: { name: '주황', '600': '#ea580c' },
+    };
+
+    // Helper to get theme color for JS (e.g., charts)
+    function getThemeColor(shade, opacity = 1) {
+        const rgb = getComputedStyle(document.body).getPropertyValue(`--theme-${shade}-rgb`).trim();
+        if (!rgb) return `rgba(79, 70, 229, ${opacity})`; // Fallback to default indigo
+        return `rgba(${rgb}, ${opacity})`;
+    }
 
     // --- 1. Configuration ---
     // [CHANGED] Use localStorage for password persistence. Default is '1234'.
@@ -776,7 +859,7 @@
         const currentValue = select.value; // Preserve selection if possible
 
         select.innerHTML = '<option value="">⬇️ 여기를 눌러 이름 선택</option>'; 
-        
+
         window.members.forEach(m => {
             const opt = document.createElement('option');
             opt.value = m.id;
@@ -912,7 +995,7 @@
         }
         const [y, m, d] = dateStr.split('-').map(Number);
         const dayIndex = new Date(y, m - 1, d).getDay();
-        if (dayDisplay) dayDisplay.innerText = `(${DAYS[dayIndex]})`;
+        if (dayDisplay) dayDisplay.innerText = `(${DAYS[dayIndex] || ''})`;
 
         const select = document.getElementById('member-mode-session');
         select.innerHTML = '';
@@ -1060,9 +1143,9 @@
                 tr.style.animationDelay = `${index * 50}ms`; // 순차적 애니메이션 딜레이
                 tr.innerHTML = `
                     <td class="px-4 py-4 font-medium text-gray-900">${index + 1}</td>
-                    <td class="px-4 py-4 font-bold">${item.name}</td>
+                    <td class="px-4 py-4 font-bold text-gray-800">${item.name}</td>
                     <td class="px-4 py-4 text-xs text-gray-400">${item.phone || '-'}</td>
-                    <td class="px-4 py-4 text-right font-bold text-indigo-600">${item.count}회</td>`;
+                    <td class="px-4 py-4 text-right font-bold text-theme-600">${item.count}회</td>`;
                 tbody.appendChild(tr);
             });
         }
@@ -1128,7 +1211,7 @@
                 const shortName = dayPart + timePart;
 
                 html += `<tr class="bg-white border-b hover:bg-gray-50 animate-fadeInUp" style="animation-delay: ${index * 50}ms">
-                    <td class="px-2 py-4 font-bold text-green-700 whitespace-nowrap">${shortName}</td>
+                    <td class="px-2 py-4 font-bold text-gray-800 whitespace-nowrap">${shortName}</td>
                     ${weekCells}
                     ${totalCell}
                 </tr>`;
@@ -1173,7 +1256,7 @@
         } else {
             sortedIndiv.forEach((item, index) => {
                 html += `<tr class="bg-white border-b hover:bg-gray-50 animate-fadeInUp" style="animation-delay: ${index * 50}ms">
-                    <td class="px-2 py-4 font-bold text-indigo-600 cursor-pointer hover:underline whitespace-nowrap" onclick="openHistoryModal('${item.id}')">${item.name}</td>
+                    <td class="px-2 py-4 font-bold text-theme-600 cursor-pointer hover:underline whitespace-nowrap" onclick="openHistoryModal('${item.id}')">${item.name}</td>
                     <td class="px-2 py-4 text-center text-gray-500">${item.weeks[1] || '-'}</td>
                     <td class="px-2 py-4 text-center text-gray-500">${item.weeks[2] || '-'}</td>
                     <td class="px-2 py-4 text-center text-gray-500">${item.weeks[3] || '-'}</td>
@@ -1241,7 +1324,7 @@
         if (newMembersChartInstance) newMembersChartInstance.destroy();
         newMembersChartInstance = new Chart(ctx, {
             type: 'bar',
-            data: { labels, datasets: [{ label: '신규 회원 수', data, backgroundColor: 'rgba(34, 197, 94, 0.6)', borderColor: 'rgba(34, 197, 94, 1)', borderWidth: 1, borderRadius: 4 }] },
+            data: { labels, datasets: [{ label: '신규 회원 수', data, backgroundColor: getThemeColor('600', 0.6), borderColor: getThemeColor('600', 1), borderWidth: 1, borderRadius: 4 }] },
             options: { 
                 scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } }, 
                 responsive: true, 
@@ -1307,8 +1390,8 @@
         if (trendChartInstance) trendChartInstance.destroy();
         trendChartInstance = new Chart(ctx, {
             type: 'line',
-            data: { labels, datasets: [{ label: '월간 출석 인원', data, borderColor: '#4f46e5', backgroundColor: 'rgba(79, 70, 229, 0.1)', borderWidth: 2, tension: 0.3, fill: true, pointBackgroundColor: '#ffffff', pointBorderColor: '#4f46e5', pointRadius: 4 }] },
-            options: { responsive: true, maintainAspectRatio: false, layout: { padding: { top: 25 } }, plugins: { legend: { display: false }, datalabels: { display: true, align: 'top', anchor: 'end', offset: 4, color: '#4f46e5', font: { weight: 'bold', size: 12 }, formatter: (value) => value > 0 ? value : '' }, tooltip: { callbacks: { label: (context) => context.parsed.y + '명' } } }, scales: { y: { beginAtZero: true, grace: '15%', ticks: { stepSize: 1 }, grid: { borderDash: [2, 4] } }, x: { grid: { display: false } } } }
+            data: { labels, datasets: [{ label: '월간 출석 인원', data, borderColor: getThemeColor('600'), backgroundColor: getThemeColor('600', 0.1), borderWidth: 2, tension: 0.3, fill: true, pointBackgroundColor: '#ffffff', pointBorderColor: getThemeColor('600'), pointRadius: 4 }] },
+            options: { responsive: true, maintainAspectRatio: false, layout: { padding: { top: 25 } }, plugins: { legend: { display: false }, datalabels: { display: true, align: 'top', anchor: 'end', offset: 4, color: getThemeColor('600'), font: { weight: 'bold', size: 12 }, formatter: (value) => value > 0 ? value : '' }, tooltip: { callbacks: { label: (context) => context.parsed.y + '명' } } }, scales: { y: { beginAtZero: true, grace: '15%', ticks: { stepSize: 1 }, grid: { borderDash: [2, 4] } }, x: { grid: { display: false } } } }
         });
     };
 
@@ -1357,7 +1440,7 @@
 
         list.innerHTML = SESSIONS.map(session => {
             const instructorName = window.instructors[session.code] || '미지정';
-            const nameClass = instructorName === '미지정' ? 'text-gray-400 italic' : 'text-indigo-600 font-bold';
+            const nameClass = instructorName === '미지정' ? 'text-gray-400 italic' : 'text-theme-600 font-bold';
 
             return `
                 <li class="py-3 flex justify-between items-center">
@@ -1433,6 +1516,8 @@
         const select = document.getElementById('paper-session-select');
         if (current && select) {
             select.value = current.code;
+        } else if (select.options.length > 0) {
+            select.selectedIndex = 0;
         }
 
         document.getElementById('paper-text-area').value = '';
@@ -1463,6 +1548,8 @@
         const select = document.getElementById('paper-session-select');
         if (current && select) {
             select.value = current.code;
+        } else if (select.options.length > 0) {
+            select.selectedIndex = 0;
         }
         alert("현재 시간의 수업으로 설정되었습니다.");
     }
@@ -1763,7 +1850,7 @@
         const list = document.getElementById('history-list');
         list.innerHTML = ''; // Clear previous content
         const history = logs.filter(l => l.memberId === memberId).sort((a, b) => b.id - a.id);
-        if(history.length === 0) {
+        if (history.length === 0) {
             list.innerHTML = '<li class="text-center text-gray-400 py-4">출석 기록이 없습니다.</li>';
         } else {
             history.forEach(h => {
@@ -1791,7 +1878,7 @@
         }
 
         const attendees = [...new Set(sessionLogs.map(log => log.memberName))].sort((a, b) => a.localeCompare(b));
-
+        
         document.getElementById('session-attendees-title').innerText = `[${sessionName}] 참석자`;
         document.getElementById('session-attendees-subtitle').innerText = `${subtitle} / 총 ${attendees.length}명 (중복제외)`;
         
@@ -1872,7 +1959,7 @@
         document.getElementById('member-count').innerText = `(${members.length}명)`;
         list.innerHTML = '';
         members.forEach(m => {
-            list.innerHTML += `<li class="py-4 flex justify-between items-center"><div onclick="openHistoryModal('${m.id}')" class="cursor-pointer flex-1 hover:bg-gray-50 p-2 rounded transition"><p class="font-bold text-lg text-gray-800 flex items-center">${m.name} <i class="fas fa-chevron-right text-gray-300 text-xs ml-2"></i></p><p class="text-sm text-gray-400">${m.phone}</p></div><button onclick="deleteMember('${m.id}')" class="text-red-400 text-sm border border-red-200 px-3 py-2 rounded-lg hover:bg-red-50 ml-2">삭제</button></li>`;
+            list.innerHTML += `<li class="py-4 flex justify-between items-center"><div onclick="openHistoryModal('${m.id}')" class="cursor-pointer flex-1 hover:bg-theme-50 p-2 rounded transition"><p class="font-bold text-lg text-gray-800 flex items-center">${m.name} <i class="fas fa-chevron-right text-gray-300 text-xs ml-2"></i></p><p class="text-sm text-gray-400">${m.phone}</p></div><button onclick="deleteMember('${m.id}')" class="text-red-400 text-sm border border-red-200 px-3 py-2 rounded-lg hover:bg-red-50 ml-2">삭제</button></li>`;
         });
     }
     
@@ -2081,6 +2168,42 @@
         reader.readAsText(file);
     }
 
+    // --- Data Management Modal ---
+    window.openDataManagementModal = function() {
+        document.getElementById('data-management-modal').classList.remove('hidden');
+    }
+    window.closeDataManagementModal = function() {
+        document.getElementById('data-management-modal').classList.add('hidden');
+    }
+
+    // --- Theme Management ---
+    window.openThemeModal = function() {
+        const container = document.getElementById('theme-swatches');
+        container.innerHTML = Object.keys(THEMES).map(themeName => {
+            const theme = THEMES[themeName];
+            const isActive = (document.body.dataset.theme || 'indigo') === themeName;
+            return `
+                <div onclick="setTheme('${themeName}')" class="cursor-pointer text-center">
+                    <div class="w-12 h-12 rounded-full mx-auto mb-2 border-4 ${isActive ? 'border-gray-400' : 'border-transparent'}" style="background-color: ${theme['600']};"></div>
+                    <p class="text-xs font-bold ${isActive ? 'text-gray-800' : 'text-gray-400'}">${theme.name}</p>
+                </div>
+            `;
+        }).join('');
+        document.getElementById('theme-modal').classList.remove('hidden');
+    }
+    window.closeThemeModal = function() {
+        document.getElementById('theme-modal').classList.add('hidden');
+    }
+    window.setTheme = function(themeName) {
+        document.body.dataset.theme = themeName;
+        localStorage.setItem('appTheme', themeName);
+        document.querySelector('meta[name="theme-color"]').setAttribute('content', THEMES[themeName]['600']);
+        if (currentMode === 'reports') {
+            showReports();
+        }
+        closeThemeModal();
+    }
+
     // --- [NEW] Password Confirmation Modal Logic ---
     let passwordResolve = null;
     window.requestPassword = function() {
@@ -2171,7 +2294,7 @@
         const targetPage = document.getElementById('page-' + pageId);
         if (targetPage) targetPage.classList.add('active');
 
-        document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+        document.querySelectorAll('.nav-item').forEach(n => { n.classList.remove('active'); n.querySelector('span').classList.remove('font-bold'); });
         if (element) element.classList.add('active'); // element가 null일 경우 방어
         if (pageId === 'reports') showReports();
         if (pageId === 'home') renderInstructorManagement();
@@ -2305,7 +2428,7 @@
                 const instructorName = window.instructors[session.code];
                 const instructorText = instructorName ? ` (${instructorName} 사범)` : '';
                 infoText.innerText = `현재 수업: ${session.name}${instructorText}`;
-                if (!isAuto) alert(`✅ 현재 시간(${session.name})으로 동기화되었습니다.`);
+                if (!isAuto) showUndoToast(`✅ 현재 시간(${session.name})으로 동기화되었습니다.`);
             } else {
                 const dayName = window.DAYS ? window.DAYS[now.getDay()] : "";
                 infoText.innerText = `현재 진행 중인 수업이 없습니다. (${dayName}요일 ${now.getHours()}시)`;
@@ -2440,6 +2563,11 @@
 
     // 앱 초기화 실행
     window.onload = async () => {
+        // [NEW] Apply saved theme first
+        const savedTheme = localStorage.getItem('appTheme') || 'indigo';
+        document.body.dataset.theme = savedTheme;
+        document.querySelector('meta[name="theme-color"]').setAttribute('content', THEMES[savedTheme]['600']);
+
         try {
             await dbHelper.initDB();
             const [membersData, logsData, instructorsData] = await Promise.all([
