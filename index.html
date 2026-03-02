@@ -65,6 +65,19 @@
         }
         .animate-highlight { animation: highlightText 0.8s ease-out; border-radius: 8px; }
 
+        /* [NEW] 리스트 아이템 등장 애니메이션 */
+        @keyframes fadeInUp {
+            from { opacity: 0; transform: translateY(15px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .animate-fadeInUp {
+            opacity: 0; /* 애니메이션 시작 전 숨김 */
+            animation-name: fadeInUp;
+            animation-duration: 0.5s;
+            animation-fill-mode: forwards; /* 애니메이션 후 상태 유지 */
+            animation-timing-function: ease-out;
+        }
+
         /* 인쇄 모드 설정 */
         @media print {
             body * { visibility: hidden; }
@@ -949,6 +962,20 @@
 
     const renderReport_MemberRank = (logsForMonth, members) => {
         const container = document.getElementById('report-member-ranking');
+        container.innerHTML = ''; // 이전 내용 초기화
+
+        const table = document.createElement('table');
+        table.className = 'w-full text-sm text-left text-gray-500';
+        table.innerHTML = `<thead class="text-xs text-gray-700 uppercase bg-gray-50">
+                <tr>
+                    <th scope="col" class="px-4 py-3">순위</th>
+                    <th scope="col" class="px-4 py-3">이름</th>
+                    <th scope="col" class="px-4 py-3">전화번호</th>
+                    <th scope="col" class="px-4 py-3 text-right">횟수</th>
+                </tr>
+            </thead>`;
+        const tbody = document.createElement('tbody');
+
         const memberCounts = {};
         logsForMonth.forEach(log => {
             if (!memberCounts[log.memberId]) {
@@ -958,32 +985,24 @@
             memberCounts[log.memberId].count++;
         });
         const sortedMembers = Object.values(memberCounts).sort((a, b) => b.count - a.count);
-        
-        let html = `<table class="w-full text-sm text-left text-gray-500">
-            <thead class="text-xs text-gray-700 uppercase bg-gray-50">
-                <tr>
-                    <th scope="col" class="px-4 py-3">순위</th>
-                    <th scope="col" class="px-4 py-3">이름</th>
-                    <th scope="col" class="px-4 py-3">전화번호</th>
-                    <th scope="col" class="px-4 py-3 text-right">횟수</th>
-                </tr>
-            </thead>
-            <tbody>`;
-        
+
         if (sortedMembers.length === 0) {
-            html += '<tr><td colspan="4" class="text-center py-4 text-gray-400">데이터가 없습니다.</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="4" class="text-center py-4 text-gray-400">데이터가 없습니다.</td></tr>';
         } else {
             sortedMembers.forEach((item, index) => {
-                html += `<tr class="bg-white border-b hover:bg-gray-50">
+                const tr = document.createElement('tr');
+                tr.className = 'bg-white border-b hover:bg-gray-50 animate-fadeInUp';
+                tr.style.animationDelay = `${index * 50}ms`; // 순차적 애니메이션 딜레이
+                tr.innerHTML = `
                     <td class="px-4 py-4 font-medium text-gray-900">${index + 1}</td>
                     <td class="px-4 py-4 font-bold">${item.name}</td>
                     <td class="px-4 py-4 text-xs text-gray-400">${item.phone || '-'}</td>
-                    <td class="px-4 py-4 text-right font-bold text-indigo-600">${item.count}회</td>
-                </tr>`;
+                    <td class="px-4 py-4 text-right font-bold text-indigo-600">${item.count}회</td>`;
+                tbody.appendChild(tr);
             });
         }
-        html += '</tbody></table>';
-        container.innerHTML = html;
+        table.appendChild(tbody);
+        container.appendChild(table);
     };
 
     const renderReport_ClassWeekly = (logsForMonth) => {
