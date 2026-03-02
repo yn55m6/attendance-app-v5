@@ -2007,7 +2007,7 @@
                 sessionSelect.value = session.code;
                 // [NEW] Check for instructor
                 const instructorName = window.instructors[session.code];
-                const instructorText = instructorName ? ` (${instructorName})` : '';
+                const instructorText = instructorName ? ` (${instructorName} 사범)` : '';
                 infoText.innerText = `현재 수업: ${session.name}${instructorText}`;
                 if (!isAuto) alert(`✅ 현재 시간(${session.name})으로 동기화되었습니다.`);
             } else {
