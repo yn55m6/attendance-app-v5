@@ -117,6 +117,13 @@
             <button id="btn-admin-login" onclick="handleLogin()" class="btn-primary">로그인</button>
             <button id="btn-admin-recovery" onclick="handleMasterKeyReset()" class="btn-primary bg-orange-500 hidden">비밀번호 초기화</button>
             <button onclick="toggleRecoveryMode()" id="link-forgot-pw" class="block mt-4 text-xs text-indigo-500 underline">비밀번호를 잊으셨나요?</button>
+
+            <div class="mt-8 border-t pt-4 border-dashed border-red-300">
+                <h4 class="text-sm font-bold text-red-500 mb-2">[임시] 테스트 데이터 생성</h4>
+                <p class="text-xs text-gray-500 mb-2">선택한 월에 대해 랜덤 출석 데이터를 생성합니다. (기존 데이터는 유지됩니다)</p>
+                <input type="month" id="test-data-month" class="w-full p-2 border rounded mb-2 bg-gray-50">
+                <button onclick="generateTestData()" class="w-full py-2 bg-red-500 text-white rounded-lg font-bold hover:bg-red-600">데이터 생성 실행</button>
+            </div>
         </div>
     </section>
 
@@ -1987,6 +1994,80 @@
             alert('❌ 복구 코드가 일치하지 않습니다.');
         }
     }
+
+    // --- [NEW] Temporary Test Data Generator ---
+    window.generateTestData = async function() {
+        const monthInput = document.getElementById('test-data-month');
+        const selectedMonth = monthInput.value; // "YYYY-MM"
+
+        if (!selectedMonth) {
+            return alert('데이터를 생성할 월을 선택해주세요.');
+        }
+
+        if (!confirm(`[주의] ${selectedMonth}월에 대한 테스트 출석 데이터를 생성합니다.\n이 작업은 되돌릴 수 없습니다. 계속하시겠습니까?`)) {
+            return;
+        }
+
+        alert('데이터 생성을 시작합니다. 완료 시 알림이 표시됩니다. (약 10-20초 소요)');
+
+        const sampleNames = [
+            "김민준", "이서연", "박도윤", "최지우", "정하준", "조서아", "윤은우", "장시아", "임이준", "오하윤",
+            "한선우", "신지아", "서유준", "권아윤", "강지호", "황서윤", "송시우", "안아인", "유지안", "홍채원",
+            "전로하", "고수호", "문이안", "양지유", "손로운", "배아라", "백이현", "허서준", "남소율", "심다은"
+        ];
+
+        const [year, month] = selectedMonth.split('-').map(Number);
+        const daysInMonth = new Date(year, month, 0).getDate();
+        const batch = writeBatch(db);
+        let tempMembers = [...window.members]; // Use a local copy to manage new members within this run
+        const generatedLogs = new Set(); // To prevent duplicate logs in this run: 'memberId-date-sessionCode'
+
+        try {
+            for (let day = 1; day <= daysInMonth; day++) {
+                const currentDate = new Date(year, month - 1, day);
+                const dayOfWeek = currentDate.getDay(); // 0=Sun, 6=Sat
+
+                if (dayOfWeek === 0) continue; // Skip Sundays
+
+                const dateStr = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+                const sessionsForDay = SESSIONS.filter(s => s.day === dayOfWeek);
+
+                for (const session of sessionsForDay) {
+                    const attendanceCount = Math.floor(Math.random() * 11) + 5; // 5 to 15 attendees
+                    const shuffledNames = [...sampleNames].sort(() => 0.5 - Math.random());
+
+                    for (let i = 0; i < attendanceCount; i++) {
+                        const memberName = shuffledNames[i % shuffledNames.length];
+                        let targetMember = tempMembers.find(m => m.name === memberName);
+
+                        if (!targetMember) {
+                            const newMemberRef = doc(collection(db, "members"));
+                            const randomRegDay = Math.floor(Math.random() * day) + 1;
+                            const regDate = new Date(year, month - 1, randomRegDay);
+                            const newMemberData = { name: memberName, phone: String(Math.floor(1000 + Math.random() * 9000)), registeredAt: regDate };
+                            batch.set(newMemberRef, newMemberData);
+                            targetMember = { id: newMemberRef.id, ...newMemberData };
+                            tempMembers.push(targetMember);
+                        }
+
+                        const logKey = `${targetMember.id}-${dateStr}-${session.code}`;
+                        const alreadyExistsInDB = window.logs.some(l => l.memberId === targetMember.id && l.date === dateStr && l.sessionCode === session.code);
+                        
+                        if (!alreadyExistsInDB && !generatedLogs.has(logKey)) {
+                            const newLogRef = doc(collection(db, "logs"));
+                            batch.set(newLogRef, { memberId: targetMember.id, memberName: targetMember.name, date: dateStr, sessionCode: session.code, sessionName: session.name, timestamp: new Date(year, month - 1, day, session.start).toLocaleString() + " (테스트)" });
+                            generatedLogs.add(logKey);
+                        }
+                    }
+                }
+            }
+            await batch.commit();
+            alert(`✅ 테스트 데이터 생성이 완료되었습니다.\n총 ${generatedLogs.size}개의 출석 기록이 추가되었습니다.`);
+        } catch (error) {
+            console.error("Test data generation failed:", error);
+            alert("❌ 데이터 생성 중 오류가 발생했습니다. 콘솔을 확인해주세요.");
+        }
+    };
 
     // [FIX] Ensure Master Key exists on init
     if (!localStorage.getItem('adminMasterKey')) {
