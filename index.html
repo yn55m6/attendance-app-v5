@@ -586,6 +586,7 @@
     // --- 0. Firebase Setup ---
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
     import { getFirestore, collection, addDoc, deleteDoc, doc, onSnapshot, query, orderBy, writeBatch, getDocs, setDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+    import { getAuth, onAuthStateChanged, signOut, signInWithEmailAndPassword, updatePassword, sendPasswordResetEmail, EmailAuthProvider, reauthenticateWithCredential } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
 
     // TODO: Firebase Console에서 발급받은 설정값을 아래에 입력해주세요.
     const firebaseConfig = {
@@ -599,6 +600,7 @@
 
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
+    const auth = getAuth(app);
 
     // --- 1. Configuration ---
     // [CHANGED] Use localStorage for password persistence. Default is '1234'.
@@ -649,6 +651,7 @@
     window.logs = [];
     window.instructors = {}; // [NEW]
     let currentScanSession = null;
+    let currentUser = null; // [NEW] To store Firebase Auth user
     let currentMode = ''; // 현재 활성화된 페이지 추적 (home, members, reports)
     let trendChartInstance = null; // Chart instance
     let undoTimer = null; // [NEW] Timer for the undo toast
@@ -716,6 +719,11 @@
         // Update relevant UIs
         if (currentMode === 'home') { renderInstructorManagement(); }
         if (sessionStorage.getItem('appMode') === 'member') { syncMemberModeToNow(true); }
+    });
+
+    // 4. Auth State Listener
+    onAuthStateChanged(auth, (user) => {
+        currentUser = user;
     });
 
     // [NEW] Helper function to populate the attendance check dropdown
