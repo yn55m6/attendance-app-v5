@@ -575,6 +575,7 @@
     window.members = [];
     window.logs = [];
     let currentScanSession = null;
+    let currentMode = ''; // 현재 활성화된 페이지 추적 (home, members, reports)
     let trendChartInstance = null; // Chart instance
     let undoTimer = null; // [NEW] Timer for the undo toast
 
@@ -624,7 +625,10 @@
     // 2. Logs
     onSnapshot(query(collection(db, "logs"), orderBy("timestamp", "desc")), (snapshot) => {
         window.logs = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-        renderReports();
+        // 리포트 페이지가 활성화 상태일 때만 데이터 자동 갱신
+        if (currentMode === 'reports') {
+            showReports();
+        }
     });
 
     // [NEW] Helper function to populate the attendance check dropdown
@@ -727,28 +731,52 @@
     }
 
     // --- 4. Report Logic ---
-    window.renderReports = function() {
-        const monthInput = document.getElementById('report-month');
-        if (!monthInput.value) {
-            const now = new Date();
-            const yyyy = now.getFullYear();
-            const mm = String(now.getMonth() + 1).padStart(2, '0');
-            monthInput.value = `${yyyy}-${mm}`;
-        }
-        
-        const selectedMonth = monthInput.value; // "YYYY-MM"
-        const monthlyLogs = logs.filter(log => log.date.startsWith(selectedMonth));
+    let newMembersChartInstance = null;
 
-        // [Report 0] 월간 총 출석 인원 (Unique Count) & Chart
-        const uniqueMembers = new Set(monthlyLogs.map(log => log.memberId)).size;
-        document.getElementById('report-total-unique').innerText = `${uniqueMembers}명`;
-        
-        // Render Chart
-        renderTrendChart(selectedMonth);
+    // 리포트 탭 UI 초기화 및 이벤트 핸들러 설정
+    const initializeReportTabs = () => {
+        const reportTabsContainer = document.getElementById('report-tabs');
+        const reportContentPanels = document.querySelectorAll('.report-content-panel');
+        const reportTabs = [
+            { id: 'class-weekly', name: '차수별 주간' },
+            { id: 'member-weekly', name: '개인별 주간' },
+            { id: 'member-rank', name: '출석 순위' },
+            { id: 'class-popularity', name: '수업 인기도' },
+            { id: 'new-member-trend', name: '신규 회원' },
+            { id: 'inactive-members', name: '장기 미출석' },
+        ];
 
-        // [Report 1] 월별 회원별 출석횟수
+        reportTabsContainer.innerHTML = '';
+        reportTabs.forEach((tab, index) => {
+            const isActive = index === 0;
+            const tabButton = document.createElement('button');
+            tabButton.dataset.target = `report-content-${tab.id}`;
+            tabButton.className = `whitespace-nowrap py-2 px-3 font-medium text-sm rounded-md ${isActive ? 'bg-indigo-100 text-indigo-700' : 'text-gray-500 hover:text-gray-700 hover:bg-gray-100'}`;
+            tabButton.textContent = tab.name;
+            
+            tabButton.onclick = () => {
+                reportTabsContainer.querySelectorAll('button').forEach(btn => {
+                    btn.className = 'whitespace-nowrap py-2 px-3 font-medium text-sm rounded-md text-gray-500 hover:text-gray-700 hover:bg-gray-100';
+                });
+                tabButton.className = 'whitespace-nowrap py-2 px-3 font-medium text-sm rounded-md bg-indigo-100 text-indigo-700';
+
+                reportContentPanels.forEach(panel => panel.classList.add('hidden'));
+                document.getElementById(tabButton.dataset.target).classList.remove('hidden');
+            };
+            reportTabsContainer.appendChild(tabButton);
+        });
+    };
+
+    // --- 기존 리포트 로직을 새 구조에 맞게 재구성 ---
+    const renderReport_MonthlyTotal = (logsForMonth) => {
+        const uniqueMembers = new Set(logsForMonth.map(log => log.memberId)).size;
+        document.getElementById('report-monthly-total').innerText = `${uniqueMembers}명`;
+    };
+
+    const renderReport_MemberRank = (logsForMonth, members) => {
+        const container = document.getElementById('report-member-ranking');
         const memberCounts = {};
-        monthlyLogs.forEach(log => {
+        logsForMonth.forEach(log => {
             if (!memberCounts[log.memberId]) {
                 const m = members.find(mem => mem.id === log.memberId);
                 memberCounts[log.memberId] = { count: 0, name: log.memberName, phone: m ? m.phone : "" };
@@ -757,183 +785,261 @@
         });
         const sortedMembers = Object.values(memberCounts).sort((a, b) => b.count - a.count);
         
-        const tbody1 = document.getElementById('report-member-body');
-        tbody1.innerHTML = '';
-        if (sortedMembers.length === 0) tbody1.innerHTML = '<tr><td colspan="4" class="text-center py-4 text-gray-400">데이터가 없습니다.</td></tr>';
-        else {
+        let html = `<table class="w-full text-sm text-left text-gray-500">
+            <thead class="text-xs text-gray-700 uppercase bg-gray-50">
+                <tr>
+                    <th scope="col" class="px-4 py-3">순위</th>
+                    <th scope="col" class="px-4 py-3">이름</th>
+                    <th scope="col" class="px-4 py-3">전화번호</th>
+                    <th scope="col" class="px-4 py-3 text-right">횟수</th>
+                </tr>
+            </thead>
+            <tbody>`;
+        
+        if (sortedMembers.length === 0) {
+            html += '<tr><td colspan="4" class="text-center py-4 text-gray-400">데이터가 없습니다.</td></tr>';
+        } else {
             sortedMembers.forEach((item, index) => {
-                tbody1.innerHTML += `<tr><td>${index + 1}</td><td class="font-bold">${item.name}</td><td class="text-xs text-gray-400">${item.phone}</td><td class="text-right font-bold text-indigo-600">${item.count}회</td></tr>`;
+                html += `<tr class="bg-white border-b hover:bg-gray-50">
+                    <td class="px-4 py-4 font-medium text-gray-900">${index + 1}</td>
+                    <td class="px-4 py-4 font-bold">${item.name}</td>
+                    <td class="px-4 py-4 text-xs text-gray-400">${item.phone || '-'}</td>
+                    <td class="px-4 py-4 text-right font-bold text-indigo-600">${item.count}회</td>
+                </tr>`;
             });
         }
+        html += '</tbody></table>';
+        container.innerHTML = html;
+    };
 
-        // [NEW] 차수별 주간 출석 현황
+    const renderReport_ClassWeekly = (logsForMonth) => {
+        const container = document.getElementById('report-class-weekly-attendance');
         const sessionWeeklyCounts = {};
-        monthlyLogs.forEach(log => {
+        logsForMonth.forEach(log => {
             const week = getWeekOfMonth(log.date);
             const sessionName = log.sessionName;
             if (!sessionWeeklyCounts[sessionName]) {
-                sessionWeeklyCounts[sessionName] = { 
-                    name: sessionName, 
-                    weeks: {1:0, 2:0, 3:0, 4:0, 5:0}, 
-                    total: 0 
-                };
+                sessionWeeklyCounts[sessionName] = { name: sessionName, weeks: {1:0, 2:0, 3:0, 4:0, 5:0}, total: 0 };
             }
             if (sessionWeeklyCounts[sessionName].weeks[week] !== undefined) {
                 sessionWeeklyCounts[sessionName].weeks[week]++;
             }
             sessionWeeklyCounts[sessionName].total++;
         });
-        
-        const tbody2 = document.getElementById('report-session-weekly-body');
-        tbody2.innerHTML = '';
+
         const sortedSessionWeekly = Object.values(sessionWeeklyCounts).sort((a, b) => {
             const indexA = SESSIONS.findIndex(s => s.name === a.name);
             const indexB = SESSIONS.findIndex(s => s.name === b.name);
             return indexA - indexB;
         });
-        if (sortedSessionWeekly.length === 0) tbody2.innerHTML = '<tr><td colspan="7" class="text-center py-4 text-gray-400">데이터가 없습니다.</td></tr>';
-        else {
+
+        let html = `<table class="w-full text-sm text-left text-gray-500">
+            <thead class="text-xs text-gray-700 uppercase bg-gray-50">
+                <tr>
+                    <th scope="col" class="px-4 py-3">차수(반)</th>
+                    <th scope="col" class="px-4 py-3 text-center">1주</th>
+                    <th scope="col" class="px-4 py-3 text-center">2주</th>
+                    <th scope="col" class="px-4 py-3 text-center">3주</th>
+                    <th scope="col" class="px-4 py-3 text-center">4주</th>
+                    <th scope="col" class="px-4 py-3 text-center">5주</th>
+                    <th scope="col" class="px-4 py-3 text-right">계</th>
+                </tr>
+            </thead>
+            <tbody>`;
+
+        if (sortedSessionWeekly.length === 0) {
+            html += '<tr><td colspan="7" class="text-center py-4 text-gray-400">데이터가 없습니다.</td></tr>';
+        } else {
             sortedSessionWeekly.forEach(item => {
                 const weekCells = [1, 2, 3, 4, 5].map(weekNum => {
                     const count = item.weeks[weekNum];
-                    return count > 0
-                        ? `<td class="text-center text-gray-500 cursor-pointer underline" onclick="openSessionAttendeesModal('${item.name}', ${weekNum})">${count}</td>`
-                        : `<td class="text-center text-gray-500">-</td>`;
+                    return count > 0 ? `<td class="text-center text-gray-500 cursor-pointer underline" onclick="openSessionAttendeesModal('${item.name}', ${weekNum})">${count}</td>` : `<td class="text-center text-gray-500">-</td>`;
                 }).join('');
 
-                const totalCell = item.total > 0
-                    ? `<td class="text-right font-bold text-blue-600 cursor-pointer underline" onclick="openSessionAttendeesModal('${item.name}', null)">${item.total}</td>`
-                    : `<td class="text-right font-bold text-blue-600">${item.total}</td>`;
+                const totalCell = item.total > 0 ? `<td class="text-right font-bold text-blue-600 cursor-pointer underline" onclick="openSessionAttendeesModal('${item.name}', null)">${item.total}</td>` : `<td class="text-right font-bold text-blue-600">${item.total}</td>`;
 
-                tbody2.innerHTML += `<tr>
-                    <td class="font-bold text-green-700">${item.name}</td>
+                html += `<tr class="bg-white border-b hover:bg-gray-50">
+                    <td class="px-4 py-4 font-bold text-green-700">${item.name}</td>
                     ${weekCells}
                     ${totalCell}
                 </tr>`;
             });
         }
+        html += '</tbody></table>';
+        container.innerHTML = html;
+    };
 
-        // [Report 3] 월별 개인별 주차별 횟수
+    const renderReport_MemberWeekly = (logsForMonth) => {
+        const container = document.getElementById('report-member-weekly-attendance');
         const individualWeekly = {};
-        monthlyLogs.forEach(log => {
+        logsForMonth.forEach(log => {
             const week = getWeekOfMonth(log.date);
             if (!individualWeekly[log.memberId]) {
-                individualWeekly[log.memberId] = { 
-                    id: log.memberId, 
-                    name: log.memberName, 
-                    weeks: {1:0, 2:0, 3:0, 4:0, 5:0}, 
-                    total: 0 
-                };
+                individualWeekly[log.memberId] = { id: log.memberId, name: log.memberName, weeks: {1:0, 2:0, 3:0, 4:0, 5:0}, total: 0 };
             }
             if (individualWeekly[log.memberId].weeks[week] !== undefined) individualWeekly[log.memberId].weeks[week]++;
             individualWeekly[log.memberId].total++;
         });
 
-        const tbody3 = document.getElementById('report-weekly-body');
-        tbody3.innerHTML = '';
         const sortedIndiv = Object.values(individualWeekly).sort((a, b) => a.name.localeCompare(b.name));
-        if (sortedIndiv.length === 0) tbody3.innerHTML = '<tr><td colspan="7" class="text-center py-4 text-gray-400">데이터가 없습니다.</td></tr>';
-        else {
+        
+        let html = `<table class="w-full text-sm text-left text-gray-500">
+            <thead class="text-xs text-gray-700 uppercase bg-gray-50">
+                <tr>
+                    <th scope="col" class="px-4 py-3">이름</th>
+                    <th scope="col" class="px-4 py-3 text-center">1주</th>
+                    <th scope="col" class="px-4 py-3 text-center">2주</th>
+                    <th scope="col" class="px-4 py-3 text-center">3주</th>
+                    <th scope="col" class="px-4 py-3 text-center">4주</th>
+                    <th scope="col" class="px-4 py-3 text-center">5주</th>
+                    <th scope="col" class="px-4 py-3 text-right">계</th>
+                </tr>
+            </thead>
+            <tbody>`;
+
+        if (sortedIndiv.length === 0) {
+            html += '<tr><td colspan="7" class="text-center py-4 text-gray-400">데이터가 없습니다.</td></tr>';
+        } else {
             sortedIndiv.forEach(item => {
-                tbody3.innerHTML += `<tr>
-                    <td class="font-bold text-indigo-600 cursor-pointer hover:underline" onclick="openHistoryModal('${item.id}')">${item.name}</td>
-                    <td class="text-center text-gray-500">${item.weeks[1] || '-'}</td>
-                    <td class="text-center text-gray-500">${item.weeks[2] || '-'}</td>
-                    <td class="text-center text-gray-500">${item.weeks[3] || '-'}</td>
-                    <td class="text-center text-gray-500">${item.weeks[4] || '-'}</td>
-                    <td class="text-center text-gray-500">${item.weeks[5] || '-'}</td>
-                    <td class="text-right font-bold text-blue-600">${item.total}</td>
+                html += `<tr class="bg-white border-b hover:bg-gray-50">
+                    <td class="px-4 py-4 font-bold text-indigo-600 cursor-pointer hover:underline" onclick="openHistoryModal('${item.id}')">${item.name}</td>
+                    <td class="px-4 py-4 text-center text-gray-500">${item.weeks[1] || '-'}</td>
+                    <td class="px-4 py-4 text-center text-gray-500">${item.weeks[2] || '-'}</td>
+                    <td class="px-4 py-4 text-center text-gray-500">${item.weeks[3] || '-'}</td>
+                    <td class="px-4 py-4 text-center text-gray-500">${item.weeks[4] || '-'}</td>
+                    <td class="px-4 py-4 text-center text-gray-500">${item.weeks[5] || '-'}</td>
+                    <td class="px-4 py-4 text-right font-bold text-blue-600">${item.total}</td>
                 </tr>`;
             });
         }
-    }
+        html += '</tbody></table>';
+        container.innerHTML = html;
+    };
 
-    // [New] Render Trend Chart
-    window.renderTrendChart = function(endMonthStr) {
-        const ctx = document.getElementById('trendChart').getContext('2d');
-        
-        // Calculate last 6 months
-        const labels = [];
-        const data = [];
-        
-        // Parse "YYYY-MM"
-        const [year, month] = endMonthStr.split('-').map(Number);
-        let current = new Date(year, month - 1, 1); // Month is 0-indexed in Date
+    // --- 신규 리포트 3종 및 헬퍼 함수 ---
+    const renderReport_ClassPopularity = (logs) => {
+        const container = document.getElementById('report-class-popularity');
+        if (!logs || !logs.length) {
+            container.innerHTML = '<p class="text-gray-500 text-center py-4">해당 월의 출석 데이터가 없습니다.</p>';
+            return;
+        }
+        const classCounts = logs.reduce((acc, log) => {
+            const sessionName = log.sessionName || '알 수 없는 수업';
+            acc[sessionName] = (acc[sessionName] || 0) + 1;
+            return acc;
+        }, {});
+        const sortedClasses = Object.entries(classCounts).sort(([, countA], [, countB]) => countB - countA);
+        let html = `<table class="w-full text-sm text-left text-gray-500">
+            <thead class="text-xs text-gray-700 uppercase bg-gray-50">
+                <tr><th scope="col" class="px-4 py-3">순위</th><th scope="col" class="px-4 py-3">수업</th><th scope="col" class="px-4 py-3 text-right">총 출석인원</th></tr>
+            </thead><tbody>`;
+        sortedClasses.forEach(([sessionName, count], index) => {
+            html += `<tr class="bg-white border-b hover:bg-gray-50"><td class="px-4 py-4 font-medium text-gray-900">${index + 1}</td><td class="px-4 py-4">${sessionName}</td><td class="px-4 py-4 text-right font-semibold">${count}명</td></tr>`;
+        });
+        html += '</tbody></table>';
+        container.innerHTML = html;
+    };
 
+    const renderReport_NewMemberTrend = (members) => {
+        const ctx = document.getElementById('new-members-chart').getContext('2d');
+        const labels = []; const data = [];
+        for (let i = 5; i >= 0; i--) {
+            const d = new Date(); d.setDate(1); d.setMonth(d.getMonth() - i);
+            const year = d.getFullYear(); const month = d.getMonth();
+            labels.push(`${month + 1}월`);
+            const count = members.filter(member => {
+                if (!member.registeredAt || !member.registeredAt.toDate) return false;
+                const regDate = member.registeredAt.toDate();
+                return regDate.getFullYear() === year && regDate.getMonth() === month;
+            }).length;
+            data.push(count);
+        }
+        if (newMembersChartInstance) newMembersChartInstance.destroy();
+        newMembersChartInstance = new Chart(ctx, {
+            type: 'bar',
+            data: { labels, datasets: [{ label: '신규 회원 수', data, backgroundColor: 'rgba(34, 197, 94, 0.6)', borderColor: 'rgba(34, 197, 94, 1)', borderWidth: 1, borderRadius: 4 }] },
+            options: { scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } }, responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
+        });
+    };
+
+    const renderReport_InactiveMembers = (allMembers, allLogs) => {
+        const container = document.getElementById('report-inactive-members-list');
+        const periodSelector = document.getElementById('inactive-period-selector');
+        const days = parseInt(periodSelector.value);
+        container.innerHTML = '<p class="text-gray-500 text-center py-4">데이터를 불러오는 중...</p>';
+        const cutoffDate = new Date();
+        cutoffDate.setDate(cutoffDate.getDate() - days);
+        const recentLogs = allLogs.filter(log => log.date && new Date(log.date) >= cutoffDate);
+        const activeMemberIds = new Set(recentLogs.map(log => log.memberId));
+        const inactiveMembers = allMembers.filter(member => !activeMemberIds.has(member.id));
+        if (inactiveMembers.length === 0) {
+            container.innerHTML = `<p class="text-gray-500 text-center py-4">최근 ${days}일 동안 미출석한 회원이 없습니다.</p>`;
+            return;
+        }
+        let html = `<table class="w-full text-sm text-left text-gray-500">
+            <thead class="text-xs text-gray-700 uppercase bg-gray-50"><tr><th scope="col" class="px-4 py-3">이름</th><th scope="col" class="px-4 py-3">전화번호</th><th scope="col" class="px-4 py-3">가입일</th></tr></thead><tbody>`;
+        inactiveMembers.sort((a, b) => a.name.localeCompare(b.name)).forEach(member => {
+            const registeredDate = member.registeredAt && member.registeredAt.toDate ? member.registeredAt.toDate().toLocaleDateString() : '알 수 없음';
+            html += `<tr class="bg-white border-b hover:bg-gray-50"><td class="px-4 py-4 font-medium text-gray-900">${member.name}</td><td class="px-4 py-4">${member.phone || '-'}</td><td class="px-4 py-4">${registeredDate}</td></tr>`;
+        });
+        html += '</tbody></table>';
+        container.innerHTML = html;
+    };
+
+    const renderReport_TrendChart = (allLogs) => {
+        const ctx = document.getElementById('attendance-trend-chart').getContext('2d');
+        const labels = []; const data = [];
+        let current = new Date(); current.setDate(1);
         for(let i=0; i<6; i++) {
-            // Format YYYY-MM
-            const y = current.getFullYear();
-            const m = String(current.getMonth() + 1).padStart(2, '0');
+            const y = current.getFullYear(); const m = String(current.getMonth() + 1).padStart(2, '0');
             const key = `${y}-${m}`;
-            
-            labels.unshift(key); // Add to front
-            
-            // Count unique members for this month
-            const count = new Set(logs.filter(l => l.date.startsWith(key)).map(l => l.memberId)).size;
+            labels.unshift(`${current.getMonth() + 1}월`);
+            const count = new Set(allLogs.filter(l => l.date.startsWith(key)).map(l => l.memberId)).size;
             data.unshift(count);
-
-            // Go back 1 month
             current.setMonth(current.getMonth() - 1);
         }
-
-        if (trendChartInstance) {
-            trendChartInstance.destroy();
-        }
-
+        if (trendChartInstance) trendChartInstance.destroy();
         trendChartInstance = new Chart(ctx, {
             type: 'line',
-            data: {
-                labels: labels,
-                datasets: [{
-                    label: '월간 출석 인원',
-                    data: data,
-                    borderColor: '#4f46e5', // Indigo-600
-                    backgroundColor: 'rgba(79, 70, 229, 0.1)',
-                    borderWidth: 2,
-                    tension: 0.3, // Smooth curve
-                    fill: true,
-                    pointBackgroundColor: '#ffffff',
-                    pointBorderColor: '#4f46e5',
-                    pointRadius: 4
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                layout: { padding: { top: 25 } },
-                plugins: {
-                    legend: { display: false },
-                    datalabels: {
-                        display: true,
-                        align: 'top',
-                        anchor: 'end',
-                        offset: 4,
-                        color: '#4f46e5',
-                        font: { weight: 'bold', size: 12 },
-                        formatter: (value) => value > 0 ? value + '명' : ''
-                    },
-                    tooltip: {
-                        callbacks: {
-                            label: function(context) {
-                                return context.parsed.y + '명';
-                            }
-                        }
-                    }
-                },
-                scales: {
-                    y: {
-                        beginAtZero: true,
-                        grace: '15%',
-                        ticks: { stepSize: 1 },
-                        grid: { borderDash: [2, 4] }
-                    },
-                    x: {
-                        grid: { display: false }
-                    }
-                }
-            }
+            data: { labels, datasets: [{ label: '월간 출석 인원', data, borderColor: '#4f46e5', backgroundColor: 'rgba(79, 70, 229, 0.1)', borderWidth: 2, tension: 0.3, fill: true, pointBackgroundColor: '#ffffff', pointBorderColor: '#4f46e5', pointRadius: 4 }] },
+            options: { responsive: true, maintainAspectRatio: false, layout: { padding: { top: 25 } }, plugins: { legend: { display: false }, datalabels: { display: true, align: 'top', anchor: 'end', offset: 4, color: '#4f46e5', font: { weight: 'bold', size: 12 }, formatter: (value) => value > 0 ? value : '' }, tooltip: { callbacks: { label: (context) => context.parsed.y + '명' } } }, scales: { y: { beginAtZero: true, grace: '15%', ticks: { stepSize: 1 }, grid: { borderDash: [2, 4] } }, x: { grid: { display: false } } } }
         });
-    }
+    };
+
+    // --- 리포트 렌더링 통합 함수 ---
+    const renderMonthDependentReports = (allLogs, allMembers, month) => {
+        const year = parseInt(month.split('-')[0]);
+        const monthIndex = parseInt(month.split('-')[1]) - 1;
+        const startDate = new Date(year, monthIndex, 1);
+        const endDate = new Date(year, monthIndex + 1, 0);
+        const logsForMonth = allLogs.filter(log => {
+            const logDate = new Date(log.date);
+            return logDate >= startDate && logDate <= endDate;
+        });
+        renderReport_MonthlyTotal(logsForMonth);
+        renderReport_ClassWeekly(logsForMonth);
+        renderReport_MemberWeekly(logsForMonth);
+        renderReport_MemberRank(logsForMonth, allMembers);
+        renderReport_ClassPopularity(logsForMonth);
+    };
+
+    window.showReports = function() {
+        const allLogs = window.logs;
+        const allMembers = window.members;
+        initializeReportTabs();
+        const monthFilter = document.getElementById('report-month-filter');
+        if (!monthFilter.value) {
+            monthFilter.value = new Date().toISOString().slice(0, 7);
+        }
+        monthFilter.onchange = () => {
+            renderMonthDependentReports(allLogs, allMembers, monthFilter.value);
+        };
+        document.getElementById('inactive-period-selector').onchange = () => renderReport_InactiveMembers(allMembers, allLogs);
+        renderReport_TrendChart(allLogs);
+        renderReport_NewMemberTrend(allMembers);
+        renderReport_InactiveMembers(allMembers, allLogs);
+        renderMonthDependentReports(allLogs, allMembers, monthFilter.value);
+    };
 
     // --- 5. QR & Paper Input Logic ---
     window.openQRPrintModal = function() {
@@ -963,6 +1069,21 @@
         // 2. 해당 날짜의 수업 옵션들 생성
         updateSessionOptions();
         // 3. 현재 시간에 맞는 수업(차수) 자동 선택
+        const current = getCurrentSession();
+        const select = document.getElementById('paper-session-select');
+        if (current && select) {
+            select.value = current.code;
+        }
+
+        document.getElementById('paper-text-area').value = '';
+        modal.classList.remove('hidden');
+    }
+
+    window.syncPaperInputToNow = function() {
+        const todayStr = getTodayStr();
+        document.getElementById('paper-date').value = todayStr;
+        updateSessionOptions();
+        
         const current = getCurrentSession();
         const select = document.getElementById('paper-session-select');
         if (current && select) {
@@ -1037,7 +1158,7 @@
             if (candidates.length === 0) {
                 // Create new member ref
                 const newMemberRef = doc(collection(db, "members"));
-                const newMemberData = { name: inputName, phone: inputPhone || "0000" };
+                const newMemberData = { name: inputName, phone: inputPhone || "0000", registeredAt: new Date() };
                 batch.set(newMemberRef, newMemberData);
                 
                 targetMember = { id: newMemberRef.id, ...newMemberData };
@@ -1047,7 +1168,7 @@
                 if (inputPhone && candidates[0].phone !== "0000" && candidates[0].phone !== inputPhone) {
                     // Different person (same name, diff phone)
                     const newMemberRef = doc(collection(db, "members"));
-                    const newMemberData = { name: inputName, phone: inputPhone };
+                    const newMemberData = { name: inputName, phone: inputPhone, registeredAt: new Date() };
                     batch.set(newMemberRef, newMemberData);
                     
                     targetMember = { id: newMemberRef.id, ...newMemberData };
@@ -1065,7 +1186,7 @@
                 if (inputPhone) targetMember = candidates.find(m => m.phone === inputPhone);
                 if (!targetMember && inputPhone) {
                     const newMemberRef = doc(collection(db, "members"));
-                    const newMemberData = { name: inputName, phone: inputPhone };
+                    const newMemberData = { name: inputName, phone: inputPhone, registeredAt: new Date() };
                     batch.set(newMemberRef, newMemberData);
                     targetMember = { id: newMemberRef.id, ...newMemberData };
                     tempMembers.push(targetMember);
@@ -1206,8 +1327,8 @@
             // 2. If not found, create a new one
             if (!member) {
                 try {
-                    const docRef = await addDoc(collection(db, "members"), { name, phone });
-                    member = { id: docRef.id, name, phone };
+                    const docRef = await addDoc(collection(db, "members"), { name, phone, registeredAt: new Date() });
+                    member = { id: docRef.id, name, phone, registeredAt: new Date() };
                     isNewMember = true;
                 } catch (e) {
                     console.error(e);
@@ -1338,7 +1459,7 @@
             return alert(`⚠️ 이미 등록된 회원입니다.\n(이름: ${name}, 번호: ${phone})`);
         }
         
-        await addDoc(collection(db, "members"), { name, phone });
+        await addDoc(collection(db, "members"), { name, phone, registeredAt: new Date() });
         document.getElementById('new-member-name').value = ''; document.getElementById('new-member-phone').value = '';
         alert('회원이 등록되었습니다.');
     }
@@ -1480,6 +1601,7 @@
     }
 
     window.switchPage = function(element, pageId) {
+        currentMode = pageId; // 현재 모드 설정
         const pages = document.querySelectorAll('.page');
         pages.forEach(p => p.classList.remove('active'));
         const targetPage = document.getElementById('page-' + pageId);
@@ -1487,7 +1609,7 @@
 
         document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
         if (element) element.classList.add('active'); // element가 null일 경우 방어
-        if(pageId === 'reports') renderReports();
+        if(pageId === 'reports') showReports(); // 새 리포트 함수 호출
     }
 
     // --- 11. Password Management ---
