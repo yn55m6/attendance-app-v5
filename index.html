@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="ko" data-theme="light">
+<html lang="ko">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
@@ -14,7 +14,6 @@
     <link rel="icon" href="app-icon.png">
 
     <!-- Tailwind CSS -->
-    <link href="https://cdn.jsdelivr.net/npm/daisyui@4.11.1/dist/full.min.css" rel="stylesheet" type="text/css" />
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- QRCode.js -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
@@ -26,17 +25,45 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
 
     <style>
+        /* 메쉬 그라데이션 배경 */
         /* [SENIOR FRIENDLY] 고대비 및 가독성 향상 스타일 */
         body {
             font-family: 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif;
+            background-color: #f3f4f6; /* bg-gray-100 */
             font-size: 16px; /* 기본 폰트 크기 상향 */
         }
-        .app-container { max-width: 1024px; margin: 0 auto; background-color: hsl(var(--b1)); min-height: 100vh; position: relative; padding-bottom: 80px; box-shadow: 0 0 20px rgba(0,0,0,0.1); }
+        .app-container { max-width: 1024px; margin: 0 auto; background: white; min-height: 100vh; position: relative; padding-bottom: 80px; box-shadow: 0 0 20px rgba(0,0,0,0.1); }
+        
+        /* [SENIOR FRIENDLY] 카드 스타일 */
+        .card { background: white; border-radius: 16px; padding: 24px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1); margin-bottom: 20px; border: 1px solid #e5e7eb; }
+
+        .btn-primary { background: linear-gradient(135deg, #6366f1, #4f46e5); color: white; padding: 16px; border-radius: 12px; width: 100%; font-weight: bold; text-align: center; cursor: pointer; transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1); box-shadow: 0 4px 12px rgba(79, 70, 229, 0.3); font-size: 1.125rem; }
+        .btn-primary:active { transform: scale(0.98); }
+        .btn-primary:hover { box-shadow: 0 6px 20px rgba(79, 70, 229, 0.4); }
+
+        /* 리포트 테이블 스타일 */
+        .report-table { width: 100%; border-collapse: collapse; font-size: 1rem; } /* 폰트 크기 확대 */
+        .report-table th { background: #f9fafb; padding: 8px; border-bottom: 2px solid #e5e7eb; text-align: left; font-weight: bold; color: #374151; white-space: nowrap; }
+        .report-table td { padding: 8px; border-bottom: 1px solid #f3f4f6; color: #4b5563; }
+        .report-table tr:last-child td { border-bottom: none; }
+
+        /* 네비게이션 바 */
+        .nav-bar { position: fixed; bottom: 0; width: 100%; max-width: 1024px; background: white; border-top: 1px solid #e5e7eb; display: flex; justify-content: space-around; padding: 12px 0; z-index: 50; }
+        .nav-item { display: flex; flex-direction: column; align-items: center; color: #9ca3af; font-size: 0.875rem; cursor: pointer; transition: all 0.2s; } /* 폰트 크기 확대 */
+        .nav-item.active { color: #4f46e5; transform: translateY(-2px); }
         
         /* 페이지 전환 애니메이션 */
         .page { display: none; padding: 20px; animation: slideUp 0.4s cubic-bezier(0.16, 1, 0.3, 1); }
         .page.active { display: block; }
         @keyframes slideUp { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+        /* 텍스트 강조 애니메이션 */
+        @keyframes highlightText {
+            0% { transform: scale(1); background-color: transparent; }
+            50% { transform: scale(1.05); background-color: rgba(79, 70, 229, 0.1); color: #4338ca; }
+            100% { transform: scale(1); background-color: transparent; }
+        }
+        .animate-highlight { animation: highlightText 0.8s ease-out; border-radius: 8px; }
 
         /* [NEW] 리스트 아이템 등장 애니메이션 */
         @keyframes fadeInUp {
@@ -65,15 +92,15 @@
 <div class="app-container">
     <!-- Mode Selection & Login Section -->
     <section id="start-screen" class="absolute inset-0 bg-gray-100 z-50 flex flex-col justify-center items-center p-6" aria-labelledby="mode-selection-title">
-        <div id="mode-selection" class="w-full max-w-lg text-center">
+        <div id="mode-selection" class="w-full max-w-md text-center">
             <h1 id="mode-selection-title" class="text-4xl font-bold text-indigo-600 mb-10">몸펴기생활운동<br>연신내 출석부</h1>
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                <button onclick="enterMemberMode()" class="btn h-auto flex-col p-10 bg-base-100 border-2 border-primary rounded-3xl shadow-lg hover:bg-base-200 transition-all duration-300 group">
+                <button onclick="enterMemberMode()" class="p-10 bg-white border-2 border-indigo-500 rounded-3xl shadow-lg hover:bg-indigo-50 transition-all duration-300 group">
                     <i class="fas fa-user-check text-4xl text-indigo-500 mb-3" aria-hidden="true"></i>
                     <p class="text-3xl font-bold text-gray-800">회원 출석하기</p>
                     <p class="text-base text-gray-500 mt-2">비밀번호 없이 입장</p>
                 </button>
-                <button onclick="showAdminLogin()" class="btn h-auto flex-col p-10 bg-neutral text-neutral-content rounded-3xl shadow-lg hover:bg-neutral-focus transition-all duration-300">
+                <button onclick="showAdminLogin()" class="p-10 bg-gray-800 text-white rounded-3xl shadow-lg hover:bg-gray-700 transition-all duration-300">
                     <i class="fas fa-user-shield text-4xl mb-3" aria-hidden="true"></i>
                     <p class="text-3xl font-bold">관리자 전용</p>
                     <p class="text-base text-gray-400 mt-2">비밀번호 입력 후 입장</p>
@@ -88,23 +115,21 @@
             <i class="fas fa-lock text-4xl text-gray-400 mb-4" aria-hidden="true"></i>
             <h2 class="text-3xl font-bold text-gray-800 mb-2">관리자 로그인</h2>
             <p class="text-base text-gray-500 mb-6">관리자 권한이 필요합니다.</p>
-            <div id="login-input-wrapper" class="form-control">
-                <label class="input input-bordered flex items-center gap-2 mb-4">
-                    <input type="password" id="admin-password" class="grow text-center" placeholder="••••••••" onkeyup="if(event.key==='Enter') handleLogin()" autocomplete="current-password" />
-                    <label class="swap">
-                        <input type="checkbox" onchange="window.togglePasswordVisibility(this)" />
-                        <i class="swap-on fas fa-eye-slash"></i>
-                        <i class="swap-off fas fa-eye"></i>
-                    </label>
-                </label>
+            <div id="login-input-wrapper">
+                <input type="password" id="admin-password" class="w-full p-4 text-center text-xl border-2 rounded-lg mb-4" placeholder="••••••••" onkeyup="if(event.key==='Enter') handleLogin()" autocomplete="current-password">
             </div>
-            <div id="recovery-input-wrapper" class="hidden form-control">
-                <input type="text" id="recovery-master-key" class="input input-bordered input-warning w-full text-center" placeholder="복구 코드 입력">
+            <div id="recovery-input-wrapper" class="hidden">
+                <input type="text" id="recovery-master-key" class="w-full p-4 text-center text-xl border-2 border-orange-300 rounded-lg mb-4" placeholder="복구 코드 입력">
                 <p class="text-xs text-orange-600 mb-4">마스터 복구 코드를 입력하면 비밀번호가 '1234'로 초기화됩니다.</p>
             </div>
-            <button id="btn-admin-login" onclick="handleLogin()" class="btn btn-primary w-full mb-4">로그인</button>
-            <button id="btn-admin-recovery" onclick="handleMasterKeyReset()" class="btn btn-warning w-full mb-4 hidden">비밀번호 초기화</button>
-            <button onclick="toggleRecoveryMode()" id="link-forgot-pw" class="link link-primary text-xs">비밀번호를 잊으셨나요?</button>
+
+            <label class="flex items-center justify-center text-sm text-gray-500 mb-6 cursor-pointer">
+                <input type="checkbox" onchange="window.togglePasswordVisibility(this)" class="mr-2">
+                비밀번호 표시
+            </label>
+            <button id="btn-admin-login" onclick="handleLogin()" class="btn-primary">로그인</button>
+            <button id="btn-admin-recovery" onclick="handleMasterKeyReset()" class="btn-primary bg-orange-500 hidden">비밀번호 초기화</button>
+            <button onclick="toggleRecoveryMode()" id="link-forgot-pw" class="block mt-4 text-xs text-indigo-500 underline">비밀번호를 잊으셨나요?</button>
 
             <div class="mt-8 border-t pt-4 border-dashed border-red-300">
                 <h4 class="text-sm font-bold text-red-500 mb-2">[임시] 테스트 데이터 생성</h4>
@@ -118,19 +143,18 @@
     <!-- Main App Wrapper -->
     <main id="app-main-content" class="hidden">
         <!-- Header -->
-        <header class="bg-primary text-primary-content p-4 sticky top-0 z-40 shadow-md flex justify-between items-center no-print">
+        <header class="bg-indigo-600 text-white p-4 sticky top-0 z-40 shadow-md flex justify-between items-center no-print">
             <h1 class="text-xl font-bold"><i class="fas fa-check-circle mr-2" aria-hidden="true"></i>연신내 출석부</h1>
             <div class="flex gap-2">
-                <button id="btn-exit-member-mode" onclick="exitMemberMode()" class="hidden btn btn-error btn-md">출석 종료</button>
-                <button onclick="resetData()" class="admin-only btn btn-error btn-sm">초기화</button>
-                <button id="btn-exit-admin-mode" onclick="exitMemberMode()" class="admin-only btn btn-ghost btn-md">뒤로가기</button>
+                <button id="btn-exit-member-mode" onclick="exitMemberMode()" class="hidden text-base bg-red-600 px-6 py-2.5 rounded-xl hover:bg-red-700 font-bold shadow-md">출석 종료</button>
+                <button onclick="resetData()" class="admin-only text-sm bg-red-600 px-4 py-2 rounded-lg hover:bg-red-700">초기화</button>
+                <button id="btn-exit-admin-mode" onclick="exitMemberMode()" class="admin-only text-base bg-gray-500 px-6 py-2.5 rounded-xl hover:bg-gray-600 font-bold shadow-md">뒤로가기</button>
             </div>
         </header>
 
         <!-- Page: Member Attendance (New) -->
         <section id="page-member-attendance" class="page">
-            <div class="card bg-base-100 shadow-xl text-center">
-              <div class="card-body">
+            <div class="card text-center py-6">
                 <h2 class="text-2xl font-bold text-gray-800 mb-4 leading-relaxed">허리는 세우고,<br>가슴은 펴고,<br>고개는 들자!</h2>
                 <p id="current-session-info" class="text-indigo-600 font-bold text-xl mb-6">현재 진행 중인 수업을 찾는 중...</p>
 
@@ -138,13 +162,13 @@
                 <div class="grid grid-cols-2 gap-2 sm:gap-4 mb-8 max-w-md mx-auto px-2">
                     <div class="text-left">
                         <label for="member-mode-date" class="block text-xs sm:text-sm font-bold text-gray-500 mb-2">출석 날짜</label>
-                        <input type="date" id="member-mode-date" class="input input-bordered w-full" onchange="updateMemberModeSessionOptions()">
+                        <input type="date" id="member-mode-date" class="w-full p-3 sm:p-4 border-2 border-gray-200 rounded-xl bg-gray-50 text-sm sm:text-base font-bold text-gray-700 focus:border-indigo-300 outline-none" onchange="updateMemberModeSessionOptions()">
                     </div>
                     <div class="text-left">
                         <label for="member-mode-session" class="block text-xs sm:text-sm font-bold text-gray-500 mb-2">수업(차수) 선택</label>
-                        <div class="join w-full">
-                            <select id="member-mode-session" class="select select-bordered join-item flex-1"></select>
-                            <button id="btn-sync-member" onclick="syncMemberModeToNow()" class="btn join-item" title="현재 시간으로 수업 갱신">
+                        <div class="flex gap-2">
+                            <select id="member-mode-session" class="flex-1 p-3 sm:p-4 border-2 border-gray-200 rounded-xl bg-gray-50 text-sm sm:text-base font-bold text-gray-700 focus:border-indigo-300 outline-none"></select>
+                            <button id="btn-sync-member" onclick="syncMemberModeToNow()" class="p-3 sm:p-4 bg-white border-2 border-gray-200 rounded-xl text-indigo-500 hover:bg-indigo-50 transition shadow-sm" title="현재 시간으로 수업 갱신">
                                 <i class="fas fa-sync-alt" id="icon-sync-member"></i>
                             </button>
                         </div>
@@ -153,8 +177,9 @@
                 
                 <div class="relative mb-8">
                     <label for="member-search-input" class="sr-only">회원 이름 검색</label>
-                    <input type="text" id="member-search-input" oninput="renderMemberGrid(this.value)" placeholder="이름 또는 초성 검색 (예: ㄱㄷㅎ)" 
-                           class="input input-bordered input-lg w-full text-2xl">
+                    <input type="text" id="member-search-input" oninput="renderMemberGrid(this.value)" 
+                           placeholder="이름 또는 초성 검색 (예: ㄱㄷㅎ)" 
+                           class="w-full p-5 text-2xl border-2 border-indigo-200 rounded-2xl focus:border-indigo-500 outline-none shadow-inner bg-white">
                     <i class="fas fa-search absolute right-5 top-6 text-gray-300 text-2xl" aria-hidden="true"></i>
                 </div>
 
@@ -162,46 +187,39 @@
                     <!-- Member buttons will be rendered here -->
                 </div>
             </div>
-            </div>
         </section>
 
         <!-- Page 1: Home (QR & Tools) -->
         <section id="page-home" class="page">
-            <div class="card bg-base-100 shadow-xl">
-                <div class="card-body">
-                    <h2 class="card-title"><i class="fas fa-qrcode mr-2" aria-hidden="true"></i>QR 코드 관리</h2>
-                    <p>강의실 부착용 QR 코드를 인쇄하세요.</p>
-                    <div class="card-actions justify-end">
-                        <button onclick="openQRPrintModal()" class="btn btn-neutral w-full"><i class="fas fa-print mr-2"></i>QR 코드 목록 보기</button>
-                    </div>
-                </div>
+            <div class="card">
+                <h2 class="text-gray-800 font-bold text-xl mb-2"><i class="fas fa-qrcode mr-2" aria-hidden="true"></i>QR 코드 관리</h2>
+                <p class="text-base text-gray-500 mb-4">강의실 부착용 QR 코드를 인쇄하세요.</p>
+                <button onclick="openQRPrintModal()" class="w-full py-4 bg-gray-800 text-white rounded-lg font-bold hover:bg-gray-700 text-lg">
+                    <i class="fas fa-print mr-2"></i>QR 코드 목록 보기
+                </button>
             </div>
 
-            <div class="card bg-base-100 shadow-xl mt-5">
-                <div class="card-body">
-                    <h2 class="card-title"><i class="fas fa-tools mr-2" aria-hidden="true"></i>관리자 도구</h2>
-                    <button onclick="openPaperInputModal()" class="btn btn-success text-white">
-                        <i class="fas fa-edit mr-2"></i>종이 명부 입력 (텍스트)
-                    </button>
-                    <p class="text-xs text-gray-400 mt-1">
-                        * 이름만 입력하면 자동 가입/출석 처리됩니다.<br>
-                        * 동명이인은 <strong>이름 번호뒷자리</strong> (예: 김철수 1234)
-                    </p>
-                    <button onclick="openPasswordChangeModal()" class="btn btn-ghost mt-4">
-                        <i class="fas fa-key mr-2"></i>관리자 비밀번호 변경
-                    </button>
-                </div>
+            <div class="card">
+                <h3 class="font-bold text-xl text-gray-700 mb-3"><i class="fas fa-tools mr-2" aria-hidden="true"></i>관리자 도구</h3>
+                <button onclick="openPaperInputModal()" class="btn-primary mb-2 bg-gradient-to-r from-green-500 to-emerald-600">
+                    <i class="fas fa-edit mr-2"></i>종이 명부 입력 (텍스트)
+                </button>
+                <p class="text-xs text-gray-400 mt-1">
+                    * 이름만 입력하면 자동 가입/출석 처리됩니다.<br>
+                    * 동명이인은 <strong>이름 번호뒷자리</strong> (예: 김철수 1234)
+                </p>
+                <button onclick="openPasswordChangeModal()" class="w-full mt-4 py-3 bg-gray-100 text-gray-600 rounded-lg text-base font-bold hover:bg-gray-200 border border-gray-200">
+                    <i class="fas fa-key mr-2"></i>관리자 비밀번호 변경
+                </button>
             </div>
             
             <!-- [NEW] Instructor Management Card -->
-            <div class="card bg-base-100 shadow-xl mt-5 admin-only">
-                <div class="card-body">
-                    <h2 class="card-title"><i class="fas fa-chalkboard-teacher mr-2"></i>담당 사범 관리</h2>
-                    <p class="text-xs">* 각 수업(차수)별 담당 사범을 등록/수정/삭제합니다.</p>
-                    <ul id="instructor-management-list" class="divide-y divide-gray-100">
-                        <!-- Instructor list will be rendered here by JS -->
-                    </ul>
-                </div>
+            <div class="card admin-only">
+                <h3 class="font-bold text-xl text-gray-700 mb-3"><i class="fas fa-chalkboard-teacher mr-2"></i>담당 사범 관리</h3>
+                <p class="text-xs text-gray-400 mb-4">* 각 수업(차수)별 담당 사범을 등록/수정/삭제합니다.</p>
+                <ul id="instructor-management-list" class="divide-y divide-gray-100">
+                    <!-- Instructor list will be rendered here by JS -->
+                </ul>
             </div>
             
             <div class="text-center text-xs text-gray-400 mt-4">
@@ -212,24 +230,18 @@
 
         <!-- Page 2: Members -->
         <section id="page-members" class="page">
-            <div class="card bg-base-100 shadow-xl">
-                <div class="card-body">
-                    <h2 class="card-title">회원 등록</h2>
-                    <div class="join w-full">
-                        <input type="text" id="new-member-name" placeholder="이름 (필수)" class="input input-bordered join-item flex-1">
-                        <input type="tel" id="new-member-phone" placeholder="뒷번호 (선택)" class="input input-bordered join-item w-1/3">
-                    </div>
-                    <div class="card-actions justify-end">
-                        <button onclick="addMember()" class="btn btn-primary w-full">등록하기</button>
-                    </div>
+            <div class="card">
+                <h2 class="font-bold text-xl mb-4">회원 등록</h2>
+                <div class="flex gap-3 mb-3">
+                    <input type="text" id="new-member-name" placeholder="이름 (필수)" class="flex-1 p-3 border rounded bg-gray-50 text-lg">
+                    <input type="tel" id="new-member-phone" placeholder="뒷번호 (생략가능)" class="w-1/3 p-3 border rounded bg-gray-50 text-lg">
                 </div>
+                <button onclick="addMember()" class="btn-primary">등록하기</button>
             </div>
-            <div class="card bg-base-100 shadow-xl mt-5">
-                <div class="card-body">
-                    <h2 class="card-title">회원 목록 <span id="member-count" class="text-base text-indigo-600 font-normal"></span></h2>
-                    <p class="text-xs">* 이름을 클릭하면 상세 이력을 볼 수 있습니다.</p>
-                    <ul id="member-list" class="divide-y divide-gray-100"></ul>
-                </div>
+            <div class="card">
+                <h2 class="font-bold text-xl mb-2">회원 목록 <span id="member-count" class="text-base text-indigo-600 font-normal"></span></h2>
+                <p class="text-xs text-gray-400 mb-2">* 이름을 클릭하면 상세 이력을 볼 수 있습니다.</p>
+                <ul id="member-list" class="divide-y divide-gray-100"></ul>
             </div>
         </section>
 
@@ -238,11 +250,23 @@
             <!-- Month Filter -->
             <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                 <h2 class="text-2xl font-bold text-gray-800">리포트 및 통계</h2>
-                <input type="month" id="report-month-filter" class="input input-bordered w-full sm:w-auto font-bold text-lg">
+                <input type="month" id="report-month-filter" class="w-full sm:w-auto p-3 border rounded bg-gray-50 font-bold text-gray-700 text-2xl">
             </div>
         
             <!-- Report Tabs -->
-            <div id="report-tabs-wrapper" class="mt-6"></div>
+            <div class="border-b border-gray-200 mt-6">
+                <div class="relative">
+                    <div id="report-tab-indicator-left" class="absolute top-0 left-0 h-full w-10 bg-gradient-to-r from-white via-white/80 to-white/0 pointer-events-none flex items-center justify-start pl-1 md:hidden" style="opacity: 0; transition: opacity 0.3s; display: none;">
+                        <i class="fas fa-chevron-left text-gray-400"></i>
+                    </div>
+                    <nav id="report-tabs" class="-mb-px flex space-x-1 md:space-x-4 overflow-x-auto" aria-label="Tabs" onscroll="handleTabScroll()">
+                        <!-- 탭 버튼은 JavaScript로 동적 생성됩니다. -->
+                    </nav>
+                    <div id="report-tab-indicator-right" class="absolute top-0 right-0 h-full w-10 bg-gradient-to-l from-white via-white/80 to-white/0 pointer-events-none flex items-center justify-end pr-1 md:hidden" style="display: none; transition: opacity 0.3s;">
+                        <i class="fas fa-chevron-right text-gray-400"></i>
+                    </div>
+                </div>
+            </div>
 
             <!-- Report Contents -->
             <div id="report-contents" class="mt-6">
@@ -254,7 +278,7 @@
                             <p id="report-monthly-total" class="text-4xl font-bold text-indigo-600">0명</p>
                             <p class="text-sm text-gray-500">해당 월에 한 번 이상 출석한 회원 수</p>
                         </div>
-                        <div class="card bg-base-100 shadow-xl lg:col-span-2">
+                        <div class="card lg:col-span-2">
                             <h3 class="font-bold text-lg mb-2">출석 인원 추이 (최근 6개월)</h3>
                             <div class="h-48">
                                 <canvas id="attendance-trend-chart"></canvas>
@@ -263,51 +287,51 @@
                     </div>
                 </div>
                 <!-- 탭 2: 차수별 주간 출석 -->
-                <div id="report-content-class-weekly" class="report-content-panel space-y-6">
-                    <div class="card bg-base-100 shadow-xl">
+                <div id="report-content-class-weekly" class="report-content-panel hidden space-y-6">
+                    <div class="card">
                         <h3 class="font-bold text-lg mb-4">차수별 주간 출석</h3>
                         <p class="text-sm text-gray-500 mb-4">선택한 월의 각 수업(차수)별 주차 출석 현황입니다. 숫자를 클릭하면 참석자 명단을 볼 수 있습니다.</p>
                         <div id="report-class-weekly-attendance" class="overflow-x-auto"></div>
                     </div>
                 </div>
                 <!-- 탭 3: 개인별 주간 출석 -->
-                <div id="report-content-member-weekly" class="report-content-panel space-y-6">
-                    <div class="card bg-base-100 shadow-xl">
+                <div id="report-content-member-weekly" class="report-content-panel hidden space-y-6">
+                    <div class="card">
                         <h3 class="font-bold text-lg mb-4">개인별 주간 출석</h3>
                         <p class="text-sm text-gray-500 mb-4">선택한 월의 회원별 주차 출석 현황입니다.</p>
                         <div id="report-member-weekly-attendance" class="overflow-x-auto"></div>
                     </div>
                 </div>
                 <!-- 탭 4: 출석 순위 -->
-                <div id="report-content-member-rank" class="report-content-panel space-y-6">
-                    <div class="card bg-base-100 shadow-xl">
+                <div id="report-content-member-rank" class="report-content-panel hidden space-y-6">
+                    <div class="card">
                         <h3 class="font-bold text-lg mb-4">출석 순위</h3>
                         <p class="text-sm text-gray-500 mb-4">선택한 월의 회원별 총 출석 횟수 순위입니다.</p>
                         <div id="report-member-ranking" class="overflow-x-auto"></div>
                     </div>
                 </div>
                 <!-- 탭 5: 수업 참여 현황 -->
-                <div id="report-content-class-popularity" class="report-content-panel space-y-6">
-                    <div class="card bg-base-100 shadow-xl">
+                <div id="report-content-class-popularity" class="report-content-panel hidden space-y-6">
+                    <div class="card">
                         <h3 class="font-bold text-lg mb-4">수업(차수)별 참여 현황</h3>
                         <p class="text-sm text-gray-500 mb-4">선택한 월에 참여 인원이 많은 수업 순위입니다.</p>
                         <div id="report-class-popularity" class="overflow-x-auto"></div>
                     </div>
                 </div>
                 <!-- 탭 6: 신규 회원 -->
-                <div id="report-content-new-member-trend" class="report-content-panel space-y-6">
-                    <div class="card bg-base-100 shadow-xl">
+                <div id="report-content-new-member-trend" class="report-content-panel hidden space-y-6">
+                    <div class="card">
                         <h3 class="font-bold text-lg mb-4">월별 신규 회원 유입 현황</h3>
                         <p class="text-sm text-gray-500 mb-4">최근 6개월간 새로 가입한 회원 수 추이입니다.</p>
                         <div class="h-72 mb-4">
                             <canvas id="new-members-chart"></canvas>
                         </div>
-                        <div class="alert alert-warning text-xs">※ 참고: 시스템 도입 첫 달에는 기존 회원이 모두 신규로 집계될 수 있습니다.</div>
+                        <p class="text-xs text-orange-500 bg-orange-50 p-2 rounded-md">※ 참고: 시스템 도입 첫 달에는 기존 회원이 모두 신규로 집계될 수 있습니다.</p>
                     </div>
                 </div>
                 <!-- 탭 7: 장기 미출석 -->
-                <div id="report-content-inactive-members" class="report-content-panel space-y-6">
-                    <div class="card bg-base-100 shadow-xl">
+                <div id="report-content-inactive-members" class="report-content-panel hidden space-y-6">
+                    <div class="card">
                         <div class="flex flex-col sm:flex-row sm:justify-between sm:items-center mb-4 gap-2">
                             <div>
                                 <h3 class="font-bold text-lg">장기 미출석 회원</h3>
@@ -327,53 +351,56 @@
         </section>
 
         <!-- Navigation Bar -->
-        <div class="btm-nav no-print admin-only">
-            <button class="active" onclick="switchPage(this, 'home')">
+        <nav class="nav-bar no-print admin-only" aria-label="하단 네비게이션">
+            <div class="nav-item active" onclick="switchPage(this, 'home')">
                 <i class="fas fa-home" aria-hidden="true"></i><span>홈</span>
-            </button>
-            <button onclick="switchPage(this, 'members')">
+            </div>
+            <div class="nav-item" onclick="switchPage(this, 'members')">
                 <i class="fas fa-users" aria-hidden="true"></i><span>회원관리</span>
-            </button>
-            <button onclick="switchPage(this, 'reports')">
+            </div>
+            <div class="nav-item" onclick="switchPage(this, 'reports')">
                 <i class="fas fa-chart-bar" aria-hidden="true"></i><span>리포트</span>
-            </button>
-        </div>
+            </div>
+        </nav>
     </main>
 </div>
 
 <!-- Modal: QR Print View -->
-<dialog id="qr-print-modal" class="modal">
-    <div class="modal-box w-11/12 max-w-2xl">
-        <div id="print-area">
-            <div class="flex justify-between items-center mb-6 no-print">
-                <h2 class="text-2xl font-bold">인쇄용 QR 코드</h2>
-                <form method="dialog"><button class="btn btn-sm btn-circle btn-ghost"><i class="fas fa-times"></i></button></form>
-            </div>
-            <div class="no-print mb-4 text-center">
-                <button onclick="window.print()" class="btn btn-info text-white"><i class="fas fa-print mr-2"></i>인쇄하기</button>
-                <div class="alert alert-warning text-xs mt-2">※ 주의: 이 QR 코드는 현재 웹사이트 주소 기반입니다. 서버 주소가 바뀌면 다시 출력해야 합니다.</div>
-            </div>
-            <div id="static-qr-list" class="grid grid-cols-1 md:grid-cols-2 gap-8 text-center"></div>
+<div id="qr-print-modal" class="fixed inset-0 bg-white z-50 hidden overflow-y-auto">
+    <div class="p-6 max-w-2xl mx-auto" id="print-area">
+        <div class="flex justify-between items-center mb-6 no-print">
+            <h2 class="text-2xl font-bold">인쇄용 QR 코드</h2>
+            <button onclick="closeQRPrintModal()" class="text-gray-500 text-lg"><i class="fas fa-times"></i></button>
         </div>
+        <div class="no-print mb-4 text-center">
+            <button onclick="window.print()" class="bg-blue-600 text-white px-6 py-2 rounded-lg font-bold shadow hover:bg-blue-700">
+                <i class="fas fa-print mr-2"></i>인쇄하기
+            </button>
+            <p class="text-xs text-red-500 mt-2">※ 주의: 이 QR 코드는 현재 웹사이트 주소 기반입니다.<br>서버 주소가 바뀌면 다시 출력해야 합니다.</p>
+        </div>
+        <div id="static-qr-list" class="grid grid-cols-1 md:grid-cols-2 gap-8 text-center"></div>
     </div>
-</dialog>
+</div>
 
 <!-- Modal: Paper Input (Text Area) -->
-<dialog id="paper-input-modal" class="modal">
-    <div class="modal-box w-11/12 max-w-md">
+<div id="paper-input-modal" class="fixed inset-0 bg-black bg-opacity-90 z-50 hidden flex flex-col justify-center items-center p-6 no-print">
+    <div class="bg-white w-full max-w-md rounded-xl p-6 relative">
+        <button onclick="closePaperInputModal()" class="absolute top-4 right-4 text-gray-400"><i class="fas fa-times"></i></button>
+        
         <h3 class="text-2xl font-bold mb-4 text-green-700"><i class="fas fa-edit mr-2"></i>종이 명부 입력</h3>
+        
         <div class="mb-3">
             <label class="block text-sm font-bold text-gray-500 mb-2">1. 날짜 선택</label>
-            <input type="date" id="paper-date" class="input input-bordered w-full font-bold text-lg" onchange="updateSessionOptions()">
+            <input type="date" id="paper-date" class="w-full p-3 border rounded bg-gray-50 font-bold text-gray-700 text-lg" onchange="updateSessionOptions()">
         </div>
 
         <div class="mb-3">
             <label class="block text-sm font-bold text-gray-500 mb-2">2. 수업(차수) 선택</label>
-            <div class="join w-full">
-                <select id="paper-session-select" class="select select-bordered join-item flex-1 font-bold">
+            <div class="flex gap-2">
+                <select id="paper-session-select" class="flex-1 p-3 border rounded bg-gray-50 text-base font-bold">
                     <!-- JS로 옵션 채움 -->
                 </select>
-                <button onclick="syncPaperInputToNow()" class="btn join-item" title="현재 시간으로 맞춤">
+                <button onclick="syncPaperInputToNow()" class="px-4 bg-gray-100 text-indigo-600 rounded-lg hover:bg-gray-200 transition" title="현재 시간으로 맞춤">
                     <i class="fas fa-sync-alt"></i>
                 </button>
             </div>
@@ -381,141 +408,149 @@
 
         <div class="mb-4">
             <label class="block text-sm font-bold text-gray-500 mb-2">3. 명단 입력 (이름만 입력 가능)</label>
-            <textarea id="paper-text-area" class="textarea textarea-bordered w-full h-40 font-mono" placeholder="김철수&#13;&#10;이영희&#13;&#10;박민수 5678"></textarea>
+            <textarea id="paper-text-area" class="w-full h-40 p-3 border rounded bg-gray-50 text-base font-mono" placeholder="김철수&#13;&#10;이영희&#13;&#10;박민수 5678"></textarea>
             <p class="text-xs text-indigo-500 mt-1">* 없는 회원은 자동 가입됩니다.</p>
         </div>
-        <div class="modal-action">
-            <button onclick="processPaperInput()" class="btn btn-success text-white">일괄 출석 처리</button>
-            <form method="dialog"><button class="btn">닫기</button></form>
+        
+        <div class="flex gap-2">
+            <button onclick="processPaperInput()" class="flex-1 btn-primary bg-green-600">일괄 출석 처리</button>
+            <button onclick="closePaperInputModal()" class="w-1/3 py-2 bg-gray-200 text-gray-700 rounded-lg font-bold">닫기</button>
         </div>
     </div>
-</dialog>
+</div>
 
 <!-- Modal: User Attendance Check (QR Scan Result) -->
-<dialog id="user-check-modal" class="modal">
-    <div class="modal-box w-11/12 max-w-md text-center">
+<div id="user-check-modal" class="fixed inset-0 bg-black bg-opacity-90 z-50 hidden flex flex-col justify-center items-center p-6 no-print">
+    <div class="bg-white w-full max-w-md rounded-xl p-8 text-center">
         <h3 class="text-3xl font-bold mb-6 text-indigo-600">출석 체크</h3>
+        
         <!-- Date & Session Adjustment -->
         <div class="grid grid-cols-2 gap-2 mb-4">
             <div class="text-left">
                 <label class="block text-sm font-bold text-gray-500 mb-2">출석 날짜</label>
-                <input type="date" id="check-date" class="input input-bordered w-full" onchange="updateCheckSessionOptions()">
+                <input type="date" id="check-date" class="w-full p-3 border rounded bg-gray-50 text-base font-bold text-gray-700" onchange="updateCheckSessionOptions()">
             </div>
             <div class="text-left">
                 <label class="block text-sm font-bold text-gray-500 mb-2">수업(차수) 선택</label>
-                <select id="check-session-select" class="select select-bordered w-full"></select>
+                <select id="check-session-select" class="w-full p-3 border rounded bg-gray-50 text-base font-bold text-gray-700"></select>
             </div>
         </div>
 
         <!-- Manual Input (Default View) -->
         <div id="check-manual-wrapper">
-            <input type="text" id="check-manual-name" placeholder="이름 입력" class="input input-bordered input-lg w-full mb-3 text-center">
-            <input type="tel" id="check-manual-phone" placeholder="전화번호 뒷자리 (선택)" class="input input-bordered w-full mb-4 text-center">
-            <button onclick="toggleCheckMode('existing')" class="btn btn-ghost w-full mb-4">
+            <input type="text" id="check-manual-name" placeholder="이름 입력" class="w-full p-4 border-2 border-indigo-200 rounded-xl mb-3 bg-white text-2xl font-bold text-center placeholder-gray-300 focus:border-indigo-500 outline-none h-16">
+            <input type="tel" id="check-manual-phone" placeholder="전화번호 뒷자리 (선택)" class="w-full p-4 border rounded-xl mb-4 bg-gray-50 text-xl text-center h-14">
+            
+            <div onclick="toggleCheckMode('existing')" class="w-full py-4 bg-gray-100 text-gray-600 rounded-xl font-bold cursor-pointer hover:bg-gray-200 mb-4 text-lg border border-gray-200">
                 🔍 전체 명단에서 선택하기
-            </button>
+            </div>
         </div>
 
         <!-- Existing Member Select (Hidden by default) -->
         <div id="check-existing-wrapper" class="hidden">
-            <select id="check-user-select" class="select select-bordered select-lg w-full mb-4 h-20">
+            <select id="check-user-select" class="w-full p-4 border-2 border-indigo-100 rounded-xl mb-4 bg-white text-2xl font-bold text-gray-800 shadow-sm focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 outline-none h-20">
                 <option value="">⬇️ 여기를 눌러 이름 선택</option>
             </select>
-            <button onclick="toggleCheckMode('manual')" class="btn btn-ghost w-full mb-4">⌨️ 직접 입력으로 돌아가기</button>
+            <div onclick="toggleCheckMode('manual')" class="w-full py-4 bg-indigo-50 text-indigo-700 rounded-xl font-bold cursor-pointer hover:bg-indigo-100 mb-4 text-lg border border-indigo-100 shadow-sm flex items-center justify-center">
+                <span>⌨️ 직접 입력으로 돌아가기</span>
+            </div>
         </div>
 
-        <div class="modal-action mt-4 justify-center">
-            <button onclick="confirmAttendance()" class="btn btn-primary btn-lg">✅ 출석 확인</button>
-            <form method="dialog"><button class="btn btn-ghost">취소</button></form>
-        </div>
+        <button onclick="confirmAttendance()" class="btn-primary mb-2 text-2xl py-5 shadow-lg">✅ 출석 확인</button>
+        <button onclick="closeCheckModal()" class="text-gray-500 text-base mt-4 underline p-2">취소</button>
     </div>
-</dialog>
+</div>
 
 <!-- Modal: Member History -->
-<dialog id="history-modal" class="modal">
-    <div class="modal-box w-11/12 max-w-sm max-h-[80vh] flex flex-col">
+<div id="history-modal" class="fixed inset-0 bg-black bg-opacity-90 z-50 hidden flex flex-col justify-center items-center p-6 no-print">
+    <div class="bg-white w-full max-w-sm rounded-xl p-6 relative max-h-[80vh] flex flex-col">
+        <button onclick="closeHistoryModal()" class="absolute top-4 right-4 text-gray-400"><i class="fas fa-times"></i></button>
+        
         <h3 class="text-2xl font-bold mb-1 text-indigo-700" id="history-member-name">회원 이름</h3>
         <p class="text-xs text-gray-500 mb-4">상세 출석 이력 (최신순)</p>
+        
         <div class="overflow-y-auto flex-1 border-t border-gray-100 pt-2">
             <ul id="history-list" class="text-base space-y-3">
                 <!-- History items will go here -->
             </ul>
         </div>
-        <div class="modal-action mt-4">
-            <form method="dialog"><button class="btn w-full">닫기</button></form>
-        </div>
+        
+        <button onclick="closeHistoryModal()" class="mt-4 w-full py-3 bg-gray-100 text-gray-600 rounded text-base font-bold">닫기</button>
     </div>
-</dialog>
+</div>
 
 <!-- Modal: Change Password -->
-<dialog id="password-change-modal" class="modal">
-    <div class="modal-box w-11/12 max-w-xs">
+<div id="password-change-modal" class="fixed inset-0 bg-black bg-opacity-90 z-50 hidden flex flex-col justify-center items-center p-6 no-print">
+    <div class="bg-white w-full max-w-xs rounded-xl p-6 relative">
+        <button onclick="closePasswordChangeModal()" class="absolute top-4 right-4 text-gray-400"><i class="fas fa-times"></i></button>
         <h3 class="text-xl font-bold mb-4 text-gray-800">비밀번호 변경</h3>
-        <input type="password" id="current-password" placeholder="현재 비밀번호" class="input input-bordered w-full mb-2">
-        <input type="password" id="new-password" placeholder="새 비밀번호" class="input input-bordered w-full mb-2">
-        <input type="password" id="confirm-password" placeholder="새 비밀번호 확인" class="input input-bordered w-full mb-4">
-        <button onclick="changePassword()" class="btn btn-primary w-full">변경하기</button>
-        <div class="alert alert-warning mt-6 text-left">
-            <div class="text-xs">
-                <h3 class="font-bold uppercase">마스터 복구 코드 (분실 대비)</h3>
-                <p id="master-key-display" class="font-mono font-bold break-all select-all"></p>
-                <p class="text-[9px]">* 비밀번호 분실 시 이 코드로 초기화가 가능합니다. 따로 기록해 두세요.</p>
-            </div>
-        </div>
-        <div class="modal-action mt-2">
-            <form method="dialog"><button class="btn btn-sm btn-ghost">닫기</button></form>
+        
+        <input type="password" id="current-password" placeholder="현재 비밀번호" class="w-full p-3 border rounded mb-2 bg-gray-50">
+        <input type="password" id="new-password" placeholder="새 비밀번호" class="w-full p-3 border rounded mb-2 bg-gray-50">
+        <input type="password" id="confirm-password" placeholder="새 비밀번호 확인" class="w-full p-3 border rounded mb-4 bg-gray-50">
+        
+        <button onclick="changePassword()" class="btn-primary">변경하기</button>
+
+        <div class="mt-6 p-3 bg-orange-50 border border-orange-100 rounded-lg text-left">
+            <p class="text-[10px] font-bold text-orange-400 uppercase mb-1">마스터 복구 코드 (분실 대비)</p>
+            <p id="master-key-display" class="text-sm font-mono font-bold text-orange-700 break-all select-all"></p>
+            <p class="text-[9px] text-orange-400 mt-1">* 비밀번호 분실 시 이 코드로 초기화가 가능합니다. 따로 기록해 두세요.</p>
         </div>
     </div>
-</dialog>
+</div>
 
 <!-- Modal: Session Attendees -->
-<dialog id="session-attendees-modal" class="modal">
-    <div class="modal-box w-11/12 max-w-sm max-h-[80vh] flex flex-col">
+<div id="session-attendees-modal" class="fixed inset-0 bg-black bg-opacity-90 z-50 hidden flex flex-col justify-center items-center p-6 no-print">
+    <div class="bg-white w-full max-w-sm rounded-xl p-6 relative max-h-[80vh] flex flex-col">
+        <button onclick="closeSessionAttendeesModal()" class="absolute top-4 right-4 text-gray-400"><i class="fas fa-times"></i></button>
+        
         <h3 class="text-xl font-bold mb-1 text-green-700" id="session-attendees-title">세션 참석자 명단</h3>
         <p class="text-xs text-gray-500 mb-4" id="session-attendees-subtitle">월간 총 참석자 (중복 제외)</p>
+        
         <div class="overflow-y-auto flex-1 border-t border-gray-100 pt-2">
             <ul id="session-attendees-list" class="text-sm space-y-2">
                 <!-- Attendee names will go here -->
             </ul>
         </div>
-        <div class="modal-action mt-4">
-            <form method="dialog"><button class="btn w-full">닫기</button></form>
-        </div>
+        
+        <button onclick="closeSessionAttendeesModal()" class="mt-4 w-full py-2 bg-gray-100 text-gray-600 rounded text-sm font-bold">닫기</button>
     </div>
-</dialog>
+</div>
 
 <!-- Modal: New Members List -->
-<dialog id="new-members-modal" class="modal">
-    <div class="modal-box w-11/12 max-w-sm max-h-[80vh] flex flex-col">
+<div id="new-members-modal" class="fixed inset-0 bg-black bg-opacity-90 z-50 hidden flex flex-col justify-center items-center p-6 no-print">
+    <div class="bg-white w-full max-w-sm rounded-xl p-6 relative max-h-[80vh] flex flex-col">
+        <button onclick="closeNewMembersModal()" class="absolute top-4 right-4 text-gray-400"><i class="fas fa-times"></i></button>
+        
         <h3 class="text-xl font-bold mb-1 text-green-700" id="new-members-title">신규 회원 명단</h3>
         <p class="text-xs text-gray-500 mb-4" id="new-members-subtitle">해당 월에 가입한 회원</p>
+        
         <div class="overflow-y-auto flex-1 border-t border-gray-100 pt-2">
             <ul id="new-members-list" class="text-sm space-y-2">
                 <!-- New member names will go here -->
             </ul>
         </div>
-        <div class="modal-action mt-4">
-            <form method="dialog"><button class="btn w-full">닫기</button></form>
-        </div>
+        
+        <button onclick="closeNewMembersModal()" class="mt-4 w-full py-2 bg-gray-100 text-gray-600 rounded text-sm font-bold">닫기</button>
     </div>
-</dialog>
+</div>
 
 <!-- Modal: Password Confirmation for Sensitive Actions -->
-<dialog id="password-confirm-modal" class="modal">
-    <div class="modal-box w-11/12 max-w-xs text-center">
+<div id="password-confirm-modal" class="fixed inset-0 bg-black bg-opacity-90 z-[60] hidden flex flex-col justify-center items-center p-6 no-print">
+    <div class="bg-white w-full max-w-xs rounded-xl p-6 text-center">
         <h3 class="text-xl font-bold mb-2 text-red-600">🔐 보안 확인</h3>
         <p class="text-sm text-gray-500 mb-4">민감한 작업을 위해<br>관리자 비밀번호를 입력하세요.</p>
-        <input type="password" id="confirm-pw-input" class="input input-bordered w-full text-center" placeholder="••••" onkeyup="if(event.key==='Enter') handlePasswordConfirm()">
-        <div class="modal-action mt-4">
-            <button onclick="handlePasswordConfirm()" class="btn btn-primary">확인</button>
-            <form method="dialog"><button class="btn">취소</button></form>
+        <input type="password" id="confirm-pw-input" class="w-full p-3 text-center text-lg border-2 rounded-lg mb-4" placeholder="••••" onkeyup="if(event.key==='Enter') handlePasswordConfirm()">
+        <div class="flex gap-2">
+            <button onclick="handlePasswordConfirm()" class="flex-1 btn-primary">확인</button>
+            <button onclick="closePasswordConfirmModal()" class="w-1/3 py-2 bg-gray-200 text-gray-700 rounded-lg font-bold">취소</button>
         </div>
     </div>
-</dialog>
+</div>
 
 <!-- Modal: Final Reset Confirmation -->
-<dialog id="reset-confirm-modal" class="modal">
-    <div class="modal-box w-11/12 max-w-sm text-center border-4 border-error">
+<div id="reset-confirm-modal" class="fixed inset-0 bg-black bg-opacity-90 z-[70] hidden flex flex-col justify-center items-center p-6 no-print">
+    <div class="bg-white w-full max-w-sm rounded-3xl p-8 text-center shadow-2xl border-4 border-red-500">
         <div class="w-20 h-20 bg-red-100 text-red-600 rounded-full flex items-center justify-center mx-auto mb-6 animate-bounce">
             <i class="fas fa-exclamation-triangle text-4xl"></i>
         </div>
@@ -527,19 +562,24 @@
         
         <div class="mb-6">
             <p class="text-xs font-bold text-gray-400 mb-2 uppercase">확인을 위해 아래에 "초기화"를 입력하세요</p>
-            <input type="text" id="reset-confirm-input" class="input input-bordered input-error w-full text-center" placeholder="초기화" onkeyup="if(event.key==='Enter') handleResetFinalConfirm()">
+            <input type="text" id="reset-confirm-input" class="w-full p-4 text-center text-xl border-2 border-red-100 rounded-xl focus:border-red-500 outline-none bg-red-50" placeholder="초기화" onkeyup="if(event.key==='Enter') handleResetFinalConfirm()">
         </div>
 
-        <div class="modal-action flex-col gap-2">
-            <button onclick="handleResetFinalConfirm()" class="btn btn-error w-full">전체 삭제 실행</button>
-            <form method="dialog"><button class="btn w-full">취소</button></form>
+        <div class="flex flex-col gap-2">
+            <button onclick="handleResetFinalConfirm()" class="w-full py-4 bg-red-600 text-white rounded-xl font-bold hover:bg-red-700 shadow-lg transition-all active:scale-95">
+                전체 삭제 실행
+            </button>
+            <button onclick="closeResetConfirmModal()" class="w-full py-3 bg-gray-100 text-gray-500 rounded-xl font-bold hover:bg-gray-200 transition-all">
+                취소
+            </button>
         </div>
     </div>
-</dialog>
+</div>
 
-<!-- [NEW] daisyUI Toast Container -->
-<div id="toast-container" class="toast toast-bottom toast-center z-[100]">
-    <!-- Toast alerts will be dynamically added here -->
+<!-- [NEW] Undo Toast Notification -->
+<div id="undo-toast" class="fixed bottom-24 left-1/2 -translate-x-1/2 bg-gray-800 text-white px-6 py-4 rounded-2xl shadow-lg flex flex-col items-center gap-2 z-[100] hidden transition-all duration-300">
+    <span id="undo-toast-message" class="text-lg font-semibold"></span>
+    <button id="undo-toast-button" class="font-bold text-yellow-400 hover:text-yellow-300 underline text-base mt-1">출석 취소</button>
 </div>
 
 <script type="module">
@@ -614,31 +654,36 @@
     let undoTimer = null; // [NEW] Timer for the undo toast
 
     // [NEW] Function to show the undo toast
-    function showUndoToast(message, onUndoCallback, duration = 5000) {
-        const container = document.getElementById('toast-container');
-        if (!container) return;
+    function showUndoToast(message, onUndoCallback) {
+        const toast = document.getElementById('undo-toast');
+        const messageSpan = document.getElementById('undo-toast-message');
+        const undoButton = document.getElementById('undo-toast-button');
 
-        const toastDiv = document.createElement('div');
-        const isUndoable = !!onUndoCallback;
-        const alertType = message.includes('⚠️') ? 'alert-warning' : (message.includes('🚫') ? 'alert-error' : 'alert-success');
-        
-        toastDiv.className = `alert ${alertType} shadow-lg`;
-        
-        let innerHTML = `<span>${message}</span>`;
-        if (isUndoable) {
-            innerHTML += `<button class="btn btn-sm btn-ghost">출석 취소</button>`;
-        }
-        toastDiv.innerHTML = innerHTML;
+        if (!toast || !messageSpan || !undoButton) return;
 
-        if (isUndoable) {
-            toastDiv.querySelector('button').onclick = () => {
+        // Clear any existing timer
+        if (undoTimer) clearTimeout(undoTimer);
+
+        messageSpan.innerText = message;
+        
+        if (onUndoCallback) {
+            undoButton.style.display = 'block';
+            // The undo action
+            undoButton.onclick = () => {
                 onUndoCallback();
-                toastDiv.remove();
+                toast.classList.add('hidden');
+                clearTimeout(undoTimer);
             };
+        } else {
+            undoButton.style.display = 'none';
         }
-        container.appendChild(toastDiv);
-        setTimeout(() => {
-            toastDiv.remove();
+
+        // Show the toast
+        toast.classList.remove('hidden');
+
+        // Hide it after 5 seconds
+        undoTimer = setTimeout(() => {
+            toast.classList.add('hidden');
         }, 5000); // 5 seconds
     }
 
@@ -715,8 +760,8 @@
         
         grid.innerHTML = filtered.map(m => `
             <button onclick="handleMemberGridClick('${m.id}')"
-                    class="btn h-auto flex-col items-center justify-center min-h-[120px] p-4 bg-base-100 border-2 border-base-300 shadow-sm">
-                <span class="text-2xl font-bold">${m.name}</span>
+                    class="p-4 bg-white border-2 border-gray-200 rounded-2xl shadow-sm active:bg-indigo-50 active:scale-95 transition flex flex-col items-center justify-center min-h-[120px]">
+                <span class="text-2xl font-bold text-gray-800">${m.name}</span>
                 <span class="text-xs text-gray-400 mt-1">${m.phone === '0000' ? '' : m.phone}</span>
             </button>
         `).join('');
@@ -727,7 +772,8 @@
                 grid.innerHTML = `
                     <div class="col-span-full py-10 text-center">
                         <p class="text-gray-400 mb-4">'${trimmedQuery}' 님을 찾을 수 없습니다.</p>
-                        <button onclick="handleNewMemberGridClick('${trimmedQuery}')" class="btn btn-success text-white">
+                        <button onclick="handleNewMemberGridClick('${trimmedQuery}')"
+                                class="px-6 py-4 bg-green-600 text-white font-bold rounded-xl shadow-md hover:bg-green-700 transition">
                             <i class="fas fa-user-plus mr-2"></i>
                             '${trimmedQuery}' 신규 등록 및 출석
                         </button>
@@ -839,48 +885,73 @@
     // --- 4. Report Logic ---
     let newMembersChartInstance = null;
 
+    // [NEW] 리포트 탭 스크롤 인디케이터 로직
+    window.handleTabScroll = function() {
+        const tabs = document.getElementById('report-tabs');
+        const leftIndicator = document.getElementById('report-tab-indicator-left');
+        const rightIndicator = document.getElementById('report-tab-indicator-right');
+        if (!tabs || !leftIndicator || !rightIndicator) return;
+
+        const scrollLeft = tabs.scrollLeft;
+        const maxScrollLeft = tabs.scrollWidth - tabs.clientWidth;
+
+        // Left indicator visibility (show if scrolled more than 5px)
+        leftIndicator.style.opacity = scrollLeft > 5 ? '1' : '0';
+
+        // Right indicator visibility (show if not at the end)
+        rightIndicator.style.opacity = scrollLeft < maxScrollLeft - 5 ? '1' : '0';
+    }
+
+    function checkTabOverflow() {
+        const tabs = document.getElementById('report-tabs');
+        const leftIndicator = document.getElementById('report-tab-indicator-left');
+        const rightIndicator = document.getElementById('report-tab-indicator-right');
+        if (!tabs || !leftIndicator || !rightIndicator) return;
+
+        const isOverflowing = tabs.scrollWidth > tabs.clientWidth;
+        
+        const displayStyle = isOverflowing ? 'flex' : 'none';
+        leftIndicator.style.display = displayStyle;
+        rightIndicator.style.display = displayStyle;
+        
+        if (isOverflowing) {
+            handleTabScroll();
+        }
+    }
+
     // 리포트 탭 UI 초기화 및 이벤트 핸들러 설정
     const initializeReportTabs = () => {
-        const wrapper = document.getElementById('report-tabs-wrapper');
-        if (!wrapper) return;
-        wrapper.innerHTML = ''; // Clear
-
-        const tabData = [
+        const reportTabsContainer = document.getElementById('report-tabs');
+        const reportContentPanels = document.querySelectorAll('.report-content-panel');
+        const reportTabs = [
             { id: 'dashboard', name: '대시보드' },
             { id: 'class-weekly', name: '차수별 주간' },
             { id: 'member-weekly', name: '개인별 주간' },
             { id: 'member-rank', name: '출석 순위' },
             { id: 'class-popularity', name: '수업 참여' },
             { id: 'new-member-trend', name: '신규 회원' },
-            { id: 'inactive-members', name: '장기 미출석' }
+            { id: 'inactive-members', name: '장기 미출석' },
         ];
 
-        const tabContainer = document.createElement('div');
-        tabContainer.className = 'tabs tabs-lifted';
-        tabContainer.setAttribute('role', 'tablist');
+        reportTabsContainer.innerHTML = '';
+        reportTabs.forEach((tab, index) => {
+            const isActive = index === 0;
+            const tabButton = document.createElement('button');
+            tabButton.dataset.target = `report-content-${tab.id}`;
+            tabButton.className = `whitespace-nowrap py-2 px-3 font-medium text-sm rounded-md ${isActive ? 'bg-indigo-100 text-indigo-700' : 'text-gray-500 hover:text-gray-700 hover:bg-gray-100'}`;
+            tabButton.textContent = tab.name;
+            
+            tabButton.onclick = () => {
+                reportTabsContainer.querySelectorAll('button').forEach(btn => {
+                    btn.className = 'whitespace-nowrap py-2 px-3 font-medium text-sm rounded-md text-gray-500 hover:text-gray-700 hover:bg-gray-100';
+                });
+                tabButton.className = 'whitespace-nowrap py-2 px-3 font-medium text-sm rounded-md bg-indigo-100 text-indigo-700';
 
-        // Move existing panels into the tab structure
-        const reportContents = document.getElementById('report-contents');
-
-        tabData.forEach((tab, index) => {
-            const radio = document.createElement('input');
-            radio.type = 'radio';
-            radio.name = 'report_tabs';
-            radio.className = 'tab';
-            radio.setAttribute('role', 'tab');
-            radio.setAttribute('aria-label', tab.name);
-            if (index === 0) radio.checked = true;
-
-            const panel = document.getElementById(`report-content-${tab.id}`);
-            if (panel) {
-                panel.className = 'tab-content bg-base-100 border-base-300 rounded-box p-4 sm:p-6';
-                tabContainer.appendChild(radio);
-                tabContainer.appendChild(panel);
-            }
+                reportContentPanels.forEach(panel => panel.classList.add('hidden'));
+                document.getElementById(tabButton.dataset.target).classList.remove('hidden');
+            };
+            reportTabsContainer.appendChild(tabButton);
         });
-        
-        wrapper.appendChild(tabContainer);
-        reportContents.remove(); // Remove the old container
     };
 
     // --- 기존 리포트 로직을 새 구조에 맞게 재구성 ---
@@ -891,10 +962,10 @@
 
     const renderReport_MemberRank = (logsForMonth, members) => {
         const container = document.getElementById('report-member-ranking');
-        container.innerHTML = '';
+        container.innerHTML = ''; // 이전 내용 초기화
         
         const table = document.createElement('table');
-        table.className = 'table table-zebra w-full';
+        table.className = 'w-full text-sm text-left text-gray-500';
         table.innerHTML = `<thead class="text-xs text-gray-700 uppercase bg-gray-50">
                 <tr>
                     <th scope="col" class="px-4 py-3">순위</th>
@@ -920,7 +991,7 @@
         } else {
             sortedMembers.forEach((item, index) => {
                 const tr = document.createElement('tr');
-                tr.className = 'hover animate-fadeInUp';
+                tr.className = 'bg-white border-b hover:bg-gray-50 animate-fadeInUp';
                 tr.style.animationDelay = `${index * 50}ms`; // 순차적 애니메이션 딜레이
                 tr.innerHTML = `
                     <td class="px-4 py-4 font-medium text-gray-900">${index + 1}</td>
@@ -936,7 +1007,7 @@
 
     const renderReport_ClassWeekly = (logsForMonth) => {
         const container = document.getElementById('report-class-weekly-attendance');
-        container.innerHTML = '';
+        container.innerHTML = ''; // Clear previous content
 
         const sessionWeeklyCounts = {};
         logsForMonth.forEach(log => {
@@ -957,9 +1028,7 @@
             return indexA - indexB;
         });
 
-        const table = document.createElement('table');
-        table.className = 'table table-zebra w-full';
-        table.innerHTML = `
+        let html = `<table class="w-full text-sm text-left text-gray-500">
             <thead class="text-xs text-gray-700 uppercase bg-gray-50">
                 <tr>
                     <th scope="col" class="px-2 py-3">차수(반)</th>
@@ -970,17 +1039,13 @@
                     <th scope="col" class="px-2 py-3 text-center">5주</th>
                     <th scope="col" class="px-2 py-3 text-right">계</th>
                 </tr>
-            </thead>`;
-        const tbody = document.createElement('tbody');
+            </thead>
+            <tbody>`;
 
         if (sortedSessionWeekly.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="7" class="text-center py-4 text-gray-400">데이터가 없습니다.</td></tr>';
+            html += '<tr><td colspan="7" class="text-center py-4 text-gray-400">데이터가 없습니다.</td></tr>';
         } else {
             sortedSessionWeekly.forEach((item, index) => {
-                const tr = document.createElement('tr');
-                tr.className = 'hover animate-fadeInUp';
-                tr.style.animationDelay = `${index * 50}ms`;
-
                 const weekCells = [1, 2, 3, 4, 5].map(weekNum => {
                     const count = item.weeks[weekNum];
                     return count > 0 
@@ -997,17 +1062,20 @@
                 const timePart = nameParts.slice(1).join('');
                 const shortName = dayPart + timePart;
 
-                tr.innerHTML = `<td class="px-2 py-4 font-bold text-green-700 whitespace-nowrap">${shortName}</td>${weekCells}${totalCell}`;
-                tbody.appendChild(tr);
+                html += `<tr class="bg-white border-b hover:bg-gray-50 animate-fadeInUp" style="animation-delay: ${index * 50}ms">
+                    <td class="px-2 py-4 font-bold text-green-700 whitespace-nowrap">${shortName}</td>
+                    ${weekCells}
+                    ${totalCell}
+                </tr>`;
             });
         }
-        table.appendChild(tbody);
-        container.appendChild(table);
+        html += '</tbody></table>';
+        container.innerHTML = html;
     };
 
     const renderReport_MemberWeekly = (logsForMonth) => {
         const container = document.getElementById('report-member-weekly-attendance');
-        container.innerHTML = '';
+        container.innerHTML = ''; // Clear previous content
 
         const individualWeekly = {};
         logsForMonth.forEach(log => {
@@ -1021,9 +1089,7 @@
 
         const sortedIndiv = Object.values(individualWeekly).sort((a, b) => a.name.localeCompare(b.name));
         
-        const table = document.createElement('table');
-        table.className = 'table table-zebra w-full';
-        table.innerHTML = `
+        let html = `<table class="w-full text-sm text-left text-gray-500">
             <thead class="text-xs text-gray-700 uppercase bg-gray-50">
                 <tr>
                     <th scope="col" class="px-2 py-3">이름</th>
@@ -1034,35 +1100,32 @@
                     <th scope="col" class="px-2 py-3 text-center">5주</th>
                     <th scope="col" class="px-2 py-3 text-right">계</th>
                 </tr>
-            </thead>`;
-        const tbody = document.createElement('tbody');
+            </thead>
+            <tbody>`;
 
         if (sortedIndiv.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="7" class="text-center py-4 text-gray-400">데이터가 없습니다.</td></tr>';
+            html += '<tr><td colspan="7" class="text-center py-4 text-gray-400">데이터가 없습니다.</td></tr>';
         } else {
             sortedIndiv.forEach((item, index) => {
-                const tr = document.createElement('tr');
-                tr.className = 'hover animate-fadeInUp';
-                tr.style.animationDelay = `${index * 50}ms`;
-                tr.innerHTML = `
+                html += `<tr class="bg-white border-b hover:bg-gray-50 animate-fadeInUp" style="animation-delay: ${index * 50}ms">
                     <td class="px-2 py-4 font-bold text-indigo-600 cursor-pointer hover:underline whitespace-nowrap" onclick="openHistoryModal('${item.id}')">${item.name}</td>
                     <td class="px-2 py-4 text-center text-gray-500">${item.weeks[1] || '-'}</td>
                     <td class="px-2 py-4 text-center text-gray-500">${item.weeks[2] || '-'}</td>
                     <td class="px-2 py-4 text-center text-gray-500">${item.weeks[3] || '-'}</td>
                     <td class="px-2 py-4 text-center text-gray-500">${item.weeks[4] || '-'}</td>
                     <td class="px-2 py-4 text-center text-gray-500">${item.weeks[5] || '-'}</td>
-                    <td class="px-2 py-4 text-right font-bold text-blue-600">${item.total}</td>`;
-                tbody.appendChild(tr);
+                    <td class="px-2 py-4 text-right font-bold text-blue-600">${item.total}</td>
+                </tr>`;
             });
         }
-        table.appendChild(tbody);
-        container.appendChild(table);
+        html += '</tbody></table>';
+        container.innerHTML = html;
     };
 
     // --- 신규 리포트 3종 및 헬퍼 함수 ---
     const renderReport_ClassPopularity = (logs) => {
         const container = document.getElementById('report-class-popularity');
-        container.innerHTML = '';
+        container.innerHTML = ''; // Clear previous content
 
         if (!logs || !logs.length) {
             container.innerHTML = '<p class="text-gray-500 text-center py-4">해당 월의 출석 데이터가 없습니다.</p>';
@@ -1077,7 +1140,7 @@
         const sortedClasses = Object.entries(classCounts).sort(([, countA], [, countB]) => countB - countA);
         
         const table = document.createElement('table');
-        table.className = 'table table-zebra w-full';
+        table.className = 'w-full text-sm text-left text-gray-500';
         table.innerHTML = `<thead class="text-xs text-gray-700 uppercase bg-gray-50">
                 <tr><th scope="col" class="px-4 py-3">순위</th><th scope="col" class="px-4 py-3">수업</th><th scope="col" class="px-4 py-3 text-right">총 출석인원</th></tr>
             </thead>`;
@@ -1085,7 +1148,7 @@
 
         sortedClasses.forEach(([sessionName, count], index) => {
             const tr = document.createElement('tr');
-            tr.className = 'hover animate-fadeInUp';
+            tr.className = 'bg-white border-b hover:bg-gray-50 animate-fadeInUp';
             tr.style.animationDelay = `${index * 50}ms`;
             tr.innerHTML = `<td class="px-4 py-4 font-medium text-gray-900">${index + 1}</td><td class="px-4 py-4">${sessionName}</td><td class="px-4 py-4 text-right font-semibold">${count}명</td>`;
             tbody.appendChild(tr);
@@ -1146,11 +1209,11 @@
             container.innerHTML = `<p class="text-gray-500 text-center py-4">최근 ${days}일 동안 미출석한 회원이 없습니다.</p>`;
             return;
         }
-        let html = `<table class="table table-zebra w-full">
+        let html = `<table class="w-full text-sm text-left text-gray-500">
             <thead class="text-xs text-gray-700 uppercase bg-gray-50"><tr><th scope="col" class="px-4 py-3">이름</th><th scope="col" class="px-4 py-3">전화번호</th><th scope="col" class="px-4 py-3">가입일</th></tr></thead><tbody>`;
         inactiveMembers.sort((a, b) => a.name.localeCompare(b.name)).forEach(member => {
             const registeredDate = member.registeredAt && member.registeredAt.toDate ? member.registeredAt.toDate().toLocaleDateString() : '알 수 없음';
-            html += `<tr class="hover"><td class="px-4 py-4 font-medium text-gray-900">${member.name}</td><td class="px-4 py-4">${member.phone || '-'}</td><td class="px-4 py-4">${registeredDate}</td></tr>`;
+            html += `<tr class="bg-white border-b hover:bg-gray-50"><td class="px-4 py-4 font-medium text-gray-900">${member.name}</td><td class="px-4 py-4">${member.phone || '-'}</td><td class="px-4 py-4">${registeredDate}</td></tr>`;
         });
         html += '</tbody></table>';
         container.innerHTML = html;
@@ -1197,6 +1260,9 @@
         const allLogs = window.logs;
         const allMembers = window.members;
         initializeReportTabs();
+        
+        // Let the browser render the tabs before checking overflow
+        setTimeout(checkTabOverflow, 0);
         const monthFilter = document.getElementById('report-month-filter');
         if (!monthFilter.value) {
             monthFilter.value = new Date().toISOString().slice(0, 7);
@@ -1226,9 +1292,9 @@
                         <p class="font-bold text-gray-800">${session.name}</p>
                         <p class="text-sm ${nameClass}">${instructorName}</p>
                     </div>
-                    <div class="card-actions">
-                        <button onclick="editInstructor('${session.code}', '${window.instructors[session.code] || ''}')" class="btn btn-sm btn-outline btn-info">수정</button>
-                        ${instructorName !== '미지정' ? `<button onclick="deleteInstructor('${session.code}')" class="btn btn-sm btn-outline btn-error">삭제</button>` : ''}
+                    <div class="flex gap-2">
+                        <button onclick="editInstructor('${session.code}', '${window.instructors[session.code] || ''}')" class="text-blue-500 text-sm border border-blue-200 px-3 py-1.5 rounded-lg hover:bg-blue-50">수정</button>
+                        ${instructorName !== '미지정' ? `<button onclick="deleteInstructor('${session.code}')" class="text-red-400 text-sm border border-red-200 px-3 py-1.5 rounded-lg hover:bg-red-50">삭제</button>` : ''}
                     </div>
                 </li>
             `;
@@ -1270,10 +1336,11 @@
             const qrDiv = document.createElement('div');
             const targetUrl = `${baseUrl}?session=${s.code}`;
             new QRCode(qrDiv, { text: targetUrl, width: 180, height: 180, colorDark : "#000000", colorLight : "#ffffff", correctLevel : QRCode.CorrectLevel.M });
-            wrapper.appendChild(title); wrapper.appendChild(sub); wrapper.appendChild(qrDiv); container.appendChild(wrapper); 
+            wrapper.appendChild(title); wrapper.appendChild(sub); wrapper.appendChild(qrDiv); container.appendChild(wrapper);
         });
-        document.getElementById('qr-print-modal').showModal();
+        document.getElementById('qr-print-modal').classList.remove('hidden');
     }
+    window.closeQRPrintModal = function() { document.getElementById('qr-print-modal').classList.add('hidden'); }
 
     window.openPaperInputModal = function() {
         const modal = document.getElementById('paper-input-modal');
@@ -1291,7 +1358,7 @@
         }
 
         document.getElementById('paper-text-area').value = '';
-        modal.showModal();
+        modal.classList.remove('hidden');
     }
 
     window.syncPaperInputToNow = function() {
@@ -1306,7 +1373,7 @@
         }
 
         document.getElementById('paper-text-area').value = '';
-        modal.showModal();
+        modal.classList.remove('hidden');
     }
 
     window.syncPaperInputToNow = function() {
@@ -1340,6 +1407,8 @@
             const opt = document.createElement('option'); opt.innerText = "해당 요일엔 수업이 없습니다."; select.appendChild(opt);
         }
     }
+
+    window.closePaperInputModal = function() { document.getElementById('paper-input-modal').classList.add('hidden'); }
 
     window.processPaperInput = async function() {
         const dateStr = document.getElementById('paper-date').value;
@@ -1500,7 +1569,7 @@
 
         // [FIX] Don't populate list here. Just reset the selection.
         document.getElementById('check-user-select').value = '';
-        modal.showModal();
+        modal.classList.remove('hidden');
     }
 
     window.toggleCheckMode = function(mode) {
@@ -1593,8 +1662,8 @@
                 showUndoToast(`🚫 ${member.name}님의 출석이 취소되었습니다.`);
             });
         }
+        closeCheckModal();
         document.getElementById('member-search-input').value = '';
-        document.getElementById('user-check-modal').close();
         renderMemberGrid();
     }
     window.closeCheckModal = function() {
@@ -1622,8 +1691,9 @@
                 list.innerHTML += `<li class="bg-gray-50 p-3 rounded border border-gray-100"><div class="flex justify-between items-center mb-1"><span class="font-bold text-gray-700">${h.date}</span><span class="text-xs bg-indigo-100 text-indigo-700 px-2 py-0.5 rounded">${h.sessionName}</span></div><div class="text-xs text-gray-400 text-right">${h.timestamp}</div></li>`;
             });
         }
-        document.getElementById('history-modal').showModal();
+        document.getElementById('history-modal').classList.remove('hidden');
     }
+    window.closeHistoryModal = function() { document.getElementById('history-modal').classList.add('hidden'); }
 
     // --- [NEW] Session Attendees Modal Logic ---
     window.openSessionAttendeesModal = function(sessionName, week) { // week is 1-5, or null for total
@@ -1654,8 +1724,9 @@
         } else {
             attendees.forEach(name => list.innerHTML += `<li class="bg-gray-50 p-2 rounded">${name}</li>`);
         }
-        document.getElementById('session-attendees-modal').showModal();
+        document.getElementById('session-attendees-modal').classList.remove('hidden');
     }
+    window.closeSessionAttendeesModal = function() { document.getElementById('session-attendees-modal').classList.add('hidden'); }
 
     // --- [NEW] New Members Modal Logic ---
     window.showNewMembersModal = function(year, month) {
@@ -1682,10 +1753,13 @@
                     list.innerHTML += `<li class="bg-gray-50 p-3 rounded flex justify-between items-center"><span class="font-bold text-gray-800">${member.name}</span><span class="text-xs text-gray-500">${regDateStr}</span></li>`;
                 });
         }
-        modal.showModal();
+        modal.classList.remove('hidden');
     }
 
-    // --- 8. Common Functions ---
+    window.closeNewMembersModal = function() {
+        document.getElementById('new-members-modal').classList.add('hidden');
+    }
+
     window.addMember = async function() {
         const name = document.getElementById('new-member-name').value;
         let phone = document.getElementById('new-member-phone').value;
@@ -1706,8 +1780,8 @@
         const list = document.getElementById('member-list');
         document.getElementById('member-count').innerText = `(${members.length}명)`;
         list.innerHTML = '';
-        members.forEach(m => { 
-            list.innerHTML += `<li class="py-4 flex justify-between items-center"><div onclick="openHistoryModal('${m.id}')" class="cursor-pointer flex-1 hover:bg-gray-50 p-2 rounded transition"><p class="font-bold text-lg text-gray-800 flex items-center">${m.name} <i class="fas fa-chevron-right text-gray-300 text-xs ml-2"></i></p><p class="text-sm text-gray-400">${m.phone}</p></div><button onclick="deleteMember('${m.id}')" class="btn btn-sm btn-outline btn-error ml-2">삭제</button></li>`;
+        members.forEach(m => {
+            list.innerHTML += `<li class="py-4 flex justify-between items-center"><div onclick="openHistoryModal('${m.id}')" class="cursor-pointer flex-1 hover:bg-gray-50 p-2 rounded transition"><p class="font-bold text-lg text-gray-800 flex items-center">${m.name} <i class="fas fa-chevron-right text-gray-300 text-xs ml-2"></i></p><p class="text-sm text-gray-400">${m.phone}</p></div><button onclick="deleteMember('${m.id}')" class="text-red-400 text-sm border border-red-200 px-3 py-2 rounded-lg hover:bg-red-50 ml-2">삭제</button></li>`;
         });
     }
     
@@ -1734,7 +1808,7 @@
         const modal = document.getElementById('reset-confirm-modal');
         const input = document.getElementById('reset-confirm-input');
         input.value = '';
-        modal.showModal();
+        modal.classList.remove('hidden');
         input.focus();
     }
 
@@ -1748,8 +1822,12 @@
             alert("모든 데이터가 초기화되었습니다.");
             location.reload(); 
         } else {
-            alert("입력값이 일치하지 않습니다. '초기화'를 정확히 입력해주세요."); 
+            alert("입력값이 일치하지 않습니다. '초기화'를 정확히 입력해주세요.");
         }
+    }
+
+    window.closeResetConfirmModal = function() {
+        document.getElementById('reset-confirm-modal').classList.add('hidden');
     }
 
     // --- [NEW] Password Confirmation Modal Logic ---
@@ -1767,8 +1845,8 @@
             passwordResolve = resolve;
             const modal = document.getElementById('password-confirm-modal');
             const input = document.getElementById('confirm-pw-input');
-            input.value = ''; 
-            modal.showModal();
+            input.value = '';
+            modal.classList.remove('hidden');
             input.focus();
         });
     };
@@ -1781,7 +1859,7 @@
 
         if (pw === storedPw) {
             localStorage.setItem('adminLockout', JSON.stringify({attempts: 0, until: 0}));
-            document.getElementById('password-confirm-modal').close();
+            document.getElementById('password-confirm-modal').classList.add('hidden');
             if (passwordResolve) passwordResolve(true);
         } else {
             lockout.attempts++;
@@ -1790,7 +1868,7 @@
                 lockout.attempts = 0;
                 localStorage.setItem('adminLockout', JSON.stringify(lockout));
                 alert('❌ 비밀번호를 5회 연속 틀렸습니다.\n보안을 위해 1분간 재시도가 제한됩니다.');
-                document.getElementById('password-confirm-modal').close();
+                closePasswordConfirmModal();
             } else {
                 localStorage.setItem('adminLockout', JSON.stringify(lockout));
                 alert(`❌ 비밀번호가 틀렸습니다. (틀린 횟수: ${lockout.attempts}/5)`);
@@ -1798,6 +1876,11 @@
                 input.focus();
             }
         }
+    };
+
+    window.closePasswordConfirmModal = function() {
+        document.getElementById('password-confirm-modal').classList.add('hidden');
+        if (passwordResolve) passwordResolve(false);
     };
 
     // --- 9. Sound Effects ---
@@ -1837,10 +1920,14 @@
         const targetPage = document.getElementById('page-' + pageId);
         if (targetPage) targetPage.classList.add('active');
 
-        document.querySelectorAll('.btm-nav button').forEach(n => n.classList.remove('active'));
+        document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
         if (element) element.classList.add('active'); // element가 null일 경우 방어
         if (pageId === 'reports') showReports();
         if (pageId === 'home') renderInstructorManagement();
+    }
+
+    // --- 11. Password Management ---
+    window.openPasswordChangeModal = function() {
         document.getElementById('current-password').value = '';
         document.getElementById('new-password').value = '';
         document.getElementById('confirm-password').value = '';
@@ -1850,7 +1937,11 @@
         const display = document.getElementById('master-key-display');
         if (display) display.innerText = masterKey || '발급 오류 (새로고침 필요)';
 
-        document.getElementById('password-change-modal').showModal();
+        document.getElementById('password-change-modal').classList.remove('hidden');
+    }
+    
+    window.closePasswordChangeModal = function() {
+        document.getElementById('password-change-modal').classList.add('hidden');
     }
 
     window.changePassword = function() {
@@ -1865,7 +1956,7 @@
 
         localStorage.setItem('adminPassword', newPw);
         alert('비밀번호가 변경되었습니다.');
-        document.getElementById('password-change-modal').close();
+        closePasswordChangeModal();
     }
 
     // --- 10. App Initialization & Login ---
@@ -2115,6 +2206,12 @@
         else showLoginScreen(); // 그 외에는 항상 모드 선택 화면 표시
     })();
 
+    // [NEW] Add resize listener for report tabs
+    window.addEventListener('resize', () => {
+        if (currentMode === 'reports') {
+            checkTabOverflow();
+        }
+    });
 </script>
 </body>
 </html>
