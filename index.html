@@ -257,15 +257,31 @@
         
             <!-- Report Contents -->
             <div id="report-contents" class="mt-6">
-                <!-- 탭 1: 차수별 주간 출석 (기존) -->
-                <div id="report-content-class-weekly" class="report-content-panel space-y-6">
+                <!-- 탭 1: 대시보드 -->
+                <div id="report-content-dashboard" class="report-content-panel space-y-6">
+                    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                        <div class="card lg:col-span-1">
+                            <h3 class="font-bold text-lg mb-2">월간 총 출석 (UV)</h3>
+                            <p id="report-monthly-total" class="text-4xl font-bold text-indigo-600">0명</p>
+                            <p class="text-sm text-gray-500">해당 월에 한 번 이상 출석한 회원 수</p>
+                        </div>
+                        <div class="card lg:col-span-2">
+                            <h3 class="font-bold text-lg mb-2">출석 인원 추이 (최근 6개월)</h3>
+                            <div class="h-48">
+                                <canvas id="attendance-trend-chart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <!-- 탭 2: 차수별 주간 출석 -->
+                <div id="report-content-class-weekly" class="report-content-panel hidden space-y-6">
                     <div class="card">
                         <h3 class="font-bold text-lg mb-4">차수별 주간 출석</h3>
                         <p class="text-sm text-gray-500 mb-4">선택한 월의 각 수업(차수)별 주차 출석 현황입니다. 숫자를 클릭하면 참석자 명단을 볼 수 있습니다.</p>
                         <div id="report-class-weekly-attendance" class="overflow-x-auto"></div>
                     </div>
                 </div>
-                <!-- 탭 2: 개인별 주간 출석 (기존) -->
+                <!-- 탭 3: 개인별 주간 출석 -->
                 <div id="report-content-member-weekly" class="report-content-panel hidden space-y-6">
                     <div class="card">
                         <h3 class="font-bold text-lg mb-4">개인별 주간 출석</h3>
@@ -273,7 +289,7 @@
                         <div id="report-member-weekly-attendance" class="overflow-x-auto"></div>
                     </div>
                 </div>
-                <!-- 탭 3: 출석 순위 (기존) -->
+                <!-- 탭 4: 출석 순위 -->
                 <div id="report-content-member-rank" class="report-content-panel hidden space-y-6">
                     <div class="card">
                         <h3 class="font-bold text-lg mb-4">출석 순위</h3>
@@ -281,7 +297,7 @@
                         <div id="report-member-ranking" class="overflow-x-auto"></div>
                     </div>
                 </div>
-                <!-- 탭 4: 수업 인기도 (신규) -->
+                <!-- 탭 5: 수업 참여 현황 -->
                 <div id="report-content-class-popularity" class="report-content-panel hidden space-y-6">
                     <div class="card">
                         <h3 class="font-bold text-lg mb-4">수업(차수)별 참여 현황</h3>
@@ -289,7 +305,7 @@
                         <div id="report-class-popularity" class="overflow-x-auto"></div>
                     </div>
                 </div>
-                <!-- 탭 5: 신규 회원 (신규) -->
+                <!-- 탭 6: 신규 회원 -->
                 <div id="report-content-new-member-trend" class="report-content-panel hidden space-y-6">
                     <div class="card">
                         <h3 class="font-bold text-lg mb-4">월별 신규 회원 유입 현황</h3>
@@ -300,7 +316,7 @@
                         <p class="text-xs text-orange-500 bg-orange-50 p-2 rounded-md">※ 참고: 시스템 도입 첫 달에는 기존 회원이 모두 신규로 집계될 수 있습니다.</p>
                     </div>
                 </div>
-                <!-- 탭 6: 장기 미출석 (신규) -->
+                <!-- 탭 7: 장기 미출석 -->
                 <div id="report-content-inactive-members" class="report-content-panel hidden space-y-6">
                     <div class="card">
                         <div class="flex flex-col sm:flex-row sm:justify-between sm:items-center mb-4 gap-2">
@@ -319,20 +335,6 @@
                 </div>
             </div>
         
-            <!-- Dashboard Section (기존 대시보드 항목들을 여기에 통합) -->
-            <div id="report-dashboard" class="grid grid-cols-1 lg:grid-cols-3 gap-6 mt-6">
-                <div class="card lg:col-span-1">
-                    <h3 class="font-bold text-lg mb-2">월간 총 출석 (UV)</h3>
-                    <p id="report-monthly-total" class="text-4xl font-bold text-indigo-600">0명</p>
-                    <p class="text-sm text-gray-500">해당 월에 한 번 이상 출석한 회원 수</p>
-                </div>
-                <div class="card lg:col-span-2">
-                    <h3 class="font-bold text-lg mb-2">출석 인원 추이 (최근 6개월)</h3>
-                    <div class="h-48">
-                        <canvas id="attendance-trend-chart"></canvas>
-                    </div>
-                </div>
-            </div>
         </section>
 
         <!-- Navigation Bar -->
@@ -891,6 +893,7 @@
         const reportTabsContainer = document.getElementById('report-tabs');
         const reportContentPanels = document.querySelectorAll('.report-content-panel');
         const reportTabs = [
+            { id: 'dashboard', name: '대시보드' },
             { id: 'class-weekly', name: '차수별 주간' },
             { id: 'member-weekly', name: '개인별 주간' },
             { id: 'member-rank', name: '출석 순위' },
@@ -915,16 +918,6 @@
 
                 reportContentPanels.forEach(panel => panel.classList.add('hidden'));
                 document.getElementById(tabButton.dataset.target).classList.remove('hidden');
-
-                // [NEW] 특정 탭에서 대시보드 숨기기
-                const dashboard = document.getElementById('report-dashboard');
-                if (dashboard) {
-                    if (tab.id === 'inactive-members' || tab.id === 'new-member-trend') {
-                        dashboard.classList.add('hidden');
-                    } else {
-                        dashboard.classList.remove('hidden');
-                    }
-                }
             };
             reportTabsContainer.appendChild(tabButton);
         });
