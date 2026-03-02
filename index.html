@@ -226,9 +226,14 @@
         
             <!-- Report Tabs -->
             <div class="border-b border-gray-200 mt-6">
-                <nav id="report-tabs" class="-mb-px flex space-x-1 md:space-x-4 overflow-x-auto" aria-label="Tabs">
-                    <!-- 탭 버튼은 JavaScript로 동적 생성됩니다. -->
-                </nav>
+                <div class="relative">
+                    <nav id="report-tabs" class="-mb-px flex space-x-1 md:space-x-4 overflow-x-auto" aria-label="Tabs" onscroll="handleTabScroll()">
+                        <!-- 탭 버튼은 JavaScript로 동적 생성됩니다. -->
+                    </nav>
+                    <div id="report-tab-indicator" class="absolute top-0 right-0 h-full w-10 bg-gradient-to-l from-white via-white/80 to-white/0 pointer-events-none flex items-center justify-end pr-1 md:hidden" style="display: none; transition: opacity 0.3s;">
+                        <i class="fas fa-chevron-right text-gray-400"></i>
+                    </div>
+                </div>
             </div>
         
             <!-- Report Contents -->
@@ -295,7 +300,7 @@
             </div>
         
             <!-- Dashboard Section (기존 대시보드 항목들을 여기에 통합) -->
-            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mt-6">
+            <div id="report-dashboard" class="grid grid-cols-1 lg:grid-cols-3 gap-6 mt-6">
                 <div class="card lg:col-span-1">
                     <h3 class="font-bold text-lg mb-2">월간 총 출석 (UV)</h3>
                     <p id="report-monthly-total" class="text-4xl font-bold text-indigo-600">0명</p>
@@ -795,6 +800,31 @@
     // --- 4. Report Logic ---
     let newMembersChartInstance = null;
 
+    // [NEW] 리포트 탭 스크롤 인디케이터 로직
+    window.handleTabScroll = function() {
+        const tabs = document.getElementById('report-tabs');
+        const indicator = document.getElementById('report-tab-indicator');
+        if (!tabs || !indicator) return;
+
+        const maxScrollLeft = tabs.scrollWidth - tabs.clientWidth;
+        // 스크롤이 거의 끝에 도달하면 인디케이터 숨김 (5px 여유)
+        if (tabs.scrollLeft >= maxScrollLeft - 5) {
+            indicator.style.opacity = '0';
+        } else {
+            indicator.style.opacity = '1';
+        }
+    }
+
+    function checkTabOverflow() {
+        const tabs = document.getElementById('report-tabs');
+        const indicator = document.getElementById('report-tab-indicator');
+        if (!tabs || !indicator) return;
+
+        const isOverflowing = tabs.scrollWidth > tabs.clientWidth;
+        indicator.style.display = isOverflowing ? 'flex' : 'none';
+        handleTabScroll(); // 초기 상태 체크
+    }
+
     // 리포트 탭 UI 초기화 및 이벤트 핸들러 설정
     const initializeReportTabs = () => {
         const reportTabsContainer = document.getElementById('report-tabs');
@@ -824,6 +854,16 @@
 
                 reportContentPanels.forEach(panel => panel.classList.add('hidden'));
                 document.getElementById(tabButton.dataset.target).classList.remove('hidden');
+
+                // [NEW] 특정 탭에서 대시보드 숨기기
+                const dashboard = document.getElementById('report-dashboard');
+                if (dashboard) {
+                    if (tab.id === 'inactive-members' || tab.id === 'new-member-trend') {
+                        dashboard.classList.add('hidden');
+                    } else {
+                        dashboard.classList.remove('hidden');
+                    }
+                }
             };
             reportTabsContainer.appendChild(tabButton);
         });
@@ -898,13 +938,13 @@
         let html = `<table class="w-full text-sm text-left text-gray-500">
             <thead class="text-xs text-gray-700 uppercase bg-gray-50">
                 <tr>
-                    <th scope="col" class="px-4 py-3">차수(반)</th>
-                    <th scope="col" class="px-4 py-3 text-center">1주</th>
-                    <th scope="col" class="px-4 py-3 text-center">2주</th>
-                    <th scope="col" class="px-4 py-3 text-center">3주</th>
-                    <th scope="col" class="px-4 py-3 text-center">4주</th>
-                    <th scope="col" class="px-4 py-3 text-center">5주</th>
-                    <th scope="col" class="px-4 py-3 text-right">계</th>
+                    <th scope="col" class="px-2 py-3">차수(반)</th>
+                    <th scope="col" class="px-2 py-3 text-center">1주</th>
+                    <th scope="col" class="px-2 py-3 text-center">2주</th>
+                    <th scope="col" class="px-2 py-3 text-center">3주</th>
+                    <th scope="col" class="px-2 py-3 text-center">4주</th>
+                    <th scope="col" class="px-2 py-3 text-center">5주</th>
+                    <th scope="col" class="px-2 py-3 text-right">계</th>
                 </tr>
             </thead>
             <tbody>`;
@@ -916,20 +956,21 @@
                 const weekCells = [1, 2, 3, 4, 5].map(weekNum => {
                     const count = item.weeks[weekNum];
                     return count > 0 
-                        ? `<td class="px-4 py-4 text-center text-gray-500 cursor-pointer underline" onclick="openSessionAttendeesModal('${item.name}', ${weekNum})">${count}</td>` 
-                        : `<td class="px-4 py-4 text-center text-gray-500">-</td>`;
+                        ? `<td class="px-2 py-4 text-center text-gray-500 cursor-pointer underline" onclick="openSessionAttendeesModal('${item.name}', ${weekNum})">${count}</td>` 
+                        : `<td class="px-2 py-4 text-center text-gray-500">-</td>`;
                 }).join('');
 
                 const totalCell = item.total > 0 
-                    ? `<td class="px-4 py-4 text-right font-bold text-blue-600 cursor-pointer underline" onclick="openSessionAttendeesModal('${item.name}', null)">${item.total}</td>` 
-                    : `<td class="px-4 py-4 text-right font-bold text-blue-600">${item.total}</td>`;
+                    ? `<td class="px-2 py-4 text-right font-bold text-blue-600 cursor-pointer underline" onclick="openSessionAttendeesModal('${item.name}', null)">${item.total}</td>` 
+                    : `<td class="px-2 py-4 text-right font-bold text-blue-600">${item.total}</td>`;
 
                 const nameParts = item.name.split(' ');
-                const dayPart = nameParts[0];
-                const timePart = nameParts.slice(1).join(' ');
+                const dayPart = nameParts[0].charAt(0);
+                const timePart = nameParts.slice(1).join('');
+                const shortName = dayPart + timePart;
 
                 html += `<tr class="bg-white border-b hover:bg-gray-50">
-                    <td class="px-4 py-4"><span class="font-bold text-green-700">${dayPart}</span><span class="block text-xs font-normal text-gray-500">(${timePart})</span></td>
+                    <td class="px-2 py-4 font-bold text-green-700 whitespace-nowrap">${shortName}</td>
                     ${weekCells}
                     ${totalCell}
                 </tr>`;
@@ -1097,6 +1138,7 @@
         const allLogs = window.logs;
         const allMembers = window.members;
         initializeReportTabs();
+        checkTabOverflow();
         const monthFilter = document.getElementById('report-month-filter');
         if (!monthFilter.value) {
             monthFilter.value = new Date().toISOString().slice(0, 7);
@@ -1884,6 +1926,13 @@
         }
         else showLoginScreen(); // 그 외에는 항상 모드 선택 화면 표시
     })();
+
+    // [NEW] Add resize listener for report tabs
+    window.addEventListener('resize', () => {
+        if (currentMode === 'reports') {
+            checkTabOverflow();
+        }
+    });
 </script>
 </body>
 </html>
