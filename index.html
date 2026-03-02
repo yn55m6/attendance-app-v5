@@ -200,6 +200,15 @@
                 </button>
             </div>
             
+            <!-- [NEW] Instructor Management Card -->
+            <div class="card admin-only">
+                <h3 class="font-bold text-xl text-gray-700 mb-3"><i class="fas fa-chalkboard-teacher mr-2"></i>담당 사범 관리</h3>
+                <p class="text-xs text-gray-400 mb-4">* 각 수업(차수)별 담당 사범을 등록/수정/삭제합니다.</p>
+                <ul id="instructor-management-list" class="divide-y divide-gray-100">
+                    <!-- Instructor list will be rendered here by JS -->
+                </ul>
+            </div>
+            
             <div class="text-center text-xs text-gray-400 mt-4">
                 현재 접속 주소:<br>
                 <span id="current-url" class="text-indigo-500 break-all"></span>
@@ -561,7 +570,7 @@
 <script type="module">
     // --- 0. Firebase Setup ---
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-    import { getFirestore, collection, addDoc, deleteDoc, doc, onSnapshot, query, orderBy, writeBatch, getDocs } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+    import { getFirestore, collection, addDoc, deleteDoc, doc, onSnapshot, query, orderBy, writeBatch, getDocs, setDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
     // TODO: Firebase Console에서 발급받은 설정값을 아래에 입력해주세요.
     const firebaseConfig = {
@@ -623,6 +632,7 @@
     // Local state for rendering (synced with Firebase)
     window.members = [];
     window.logs = [];
+    window.instructors = {}; // [NEW]
     let currentScanSession = null;
     let currentMode = ''; // 현재 활성화된 페이지 추적 (home, members, reports)
     let trendChartInstance = null; // Chart instance
@@ -678,6 +688,19 @@
         if (currentMode === 'reports') {
             showReports();
         }
+    });
+
+    // 3. Instructors
+    onSnapshot(collection(db, "instructors"), (snapshot) => {
+        const instructorData = {};
+        snapshot.forEach(doc => {
+            instructorData[doc.id] = doc.data().name;
+        });
+        window.instructors = instructorData;
+        
+        // Update relevant UIs
+        if (currentMode === 'home') { renderInstructorManagement(); }
+        if (sessionStorage.getItem('appMode') === 'member') { syncMemberModeToNow(true); }
     });
 
     // [NEW] Helper function to populate the attendance check dropdown
@@ -1207,6 +1230,52 @@
         renderReport_InactiveMembers(allMembers, allLogs);
         renderMonthDependentReports(allLogs, allMembers, monthFilter.value);
     };
+
+    // --- [NEW] Instructor Management Logic ---
+    window.renderInstructorManagement = function() {
+        const list = document.getElementById('instructor-management-list');
+        if (!list) return;
+
+        list.innerHTML = SESSIONS.map(session => {
+            const instructorName = window.instructors[session.code] || '미지정';
+            const nameClass = instructorName === '미지정' ? 'text-gray-400 italic' : 'text-indigo-600 font-bold';
+
+            return `
+                <li class="py-3 flex justify-between items-center">
+                    <div>
+                        <p class="font-bold text-gray-800">${session.name}</p>
+                        <p class="text-sm ${nameClass}">${instructorName}</p>
+                    </div>
+                    <div class="flex gap-2">
+                        <button onclick="editInstructor('${session.code}', '${window.instructors[session.code] || ''}')" class="text-blue-500 text-sm border border-blue-200 px-3 py-1.5 rounded-lg hover:bg-blue-50">수정</button>
+                        ${instructorName !== '미지정' ? `<button onclick="deleteInstructor('${session.code}')" class="text-red-400 text-sm border border-red-200 px-3 py-1.5 rounded-lg hover:bg-red-50">삭제</button>` : ''}
+                    </div>
+                </li>
+            `;
+        }).join('');
+    }
+
+    window.editInstructor = async function(sessionCode, currentName) {
+        const newName = prompt('담당 사범의 이름을 입력하세요:', currentName);
+        if (newName === null) return; // User cancelled
+        if (newName.trim() === "") {
+            alert('이름을 입력해야 합니다.');
+            return;
+        }
+        try {
+            await setDoc(doc(db, "instructors", sessionCode), { name: newName.trim() });
+            alert('담당 사범 정보가 업데이트되었습니다.');
+        } catch (error) { console.error("Error updating instructor: ", error); alert('업데이트 중 오류가 발생했습니다.'); }
+    }
+
+    window.deleteInstructor = async function(sessionCode) {
+        if (confirm('해당 수업의 담당 사범 지정을 삭제하시겠습니까?')) {
+            try {
+                await deleteDoc(doc(db, "instructors", sessionCode));
+                alert('담당 사범 정보가 삭제되었습니다.');
+            } catch (error) { console.error("Error deleting instructor: ", error); alert('삭제 중 오류가 발생했습니다.'); }
+        }
+    }
 
     // --- 5. QR & Paper Input Logic ---
     window.openQRPrintModal = function() {
@@ -1808,7 +1877,8 @@
 
         document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
         if (element) element.classList.add('active'); // element가 null일 경우 방어
-        if(pageId === 'reports') showReports(); // 새 리포트 함수 호출
+        if (pageId === 'reports') showReports();
+        if (pageId === 'home') renderInstructorManagement();
     }
 
     // --- 11. Password Management ---
@@ -1935,7 +2005,10 @@
 
             if (session && session.day === now.getDay()) {
                 sessionSelect.value = session.code;
-                infoText.innerText = `현재 수업: ${session.name}`;
+                // [NEW] Check for instructor
+                const instructorName = window.instructors[session.code];
+                const instructorText = instructorName ? ` (${instructorName})` : '';
+                infoText.innerText = `현재 수업: ${session.name}${instructorText}`;
                 if (!isAuto) alert(`✅ 현재 시간(${session.name})으로 동기화되었습니다.`);
             } else {
                 const dayName = window.DAYS ? window.DAYS[now.getDay()] : "";
