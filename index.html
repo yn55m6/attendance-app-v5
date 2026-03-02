@@ -832,6 +832,7 @@
     window.members = [];
     window.logs = [];
     window.instructors = {}; // [NEW]
+    let currentActiveReportTabId = 'dashboard'; // [NEW] Track currently active report tab
     let reportDataCache = {}; // For CSV export
     let currentScanSession = null;
     let currentMode = ''; // 현재 활성화된 페이지 추적 (home, members, reports)
@@ -1466,25 +1467,46 @@
         renderReport_ClassPopularity(logsForMonth);
     };
 
-    window.showReports = function() {
+    window.showReports = function(activeTabId = 'dashboard') {
         const allLogs = window.logs;
         const allMembers = window.members;
-        initializeReportTabs();
-        
-        // Let the browser render the tabs before checking overflow
-        setTimeout(checkTabOverflow, 0);
         const monthFilter = document.getElementById('report-month-filter');
         if (!monthFilter.value) {
             monthFilter.value = new Date().toISOString().slice(0, 7);
         }
-        monthFilter.onchange = () => {
-            renderMonthDependentReports(allLogs, allMembers, monthFilter.value);
+
+        // Function to get logs for the currently selected month
+        const getLogsForCurrentMonth = () => {
+            const currentMonth = monthFilter.value;
+            const year = parseInt(currentMonth.split('-')[0]);
+            const monthIndex = parseInt(currentMonth.split('-')[1]) - 1;
+            const startDate = new Date(year, monthIndex, 1);
+            const endDate = new Date(year, monthIndex + 1, 0);
+            return allLogs.filter(log => {
+                const logDate = new Date(log.date);
+                return logDate >= startDate && logDate <= endDate;
+            });
         };
+
+        // Event listener for month filter change
+        monthFilter.onchange = () => {
+            const logsForCurrentMonth = getLogsForCurrentMonth();
+            const currentMonthValue = monthFilter.value;
+
+            // Re-render month-dependent reports if the active tab is one of them
+            if (['dashboard', 'class-weekly', 'member-weekly', 'member-rank', 'class-popularity'].includes(currentActiveReportTabId)) {
+                renderMonthDependentReports(logsForCurrentMonth, allMembers, currentMonthValue);
+            }
+        };
+        
+        // Event listener for inactive period selector
         document.getElementById('inactive-period-selector').onchange = () => renderReport_InactiveMembers(allMembers, allLogs);
-        renderReport_TrendChart(allLogs);
-        renderReport_NewMemberTrend(allMembers);
-        renderReport_InactiveMembers(allMembers, allLogs);
-        renderMonthDependentReports(allLogs, allMembers, monthFilter.value);
+
+        // Initialize tabs and trigger the initial active tab's rendering
+        initializeReportTabs(activeTabId, allLogs, allMembers, getLogsForCurrentMonth, monthFilter);
+        
+        // Let the browser render the tabs before checking overflow
+        setTimeout(checkTabOverflow, 0);
     };
 
     // --- [NEW] CSV Export Logic ---
