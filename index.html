@@ -915,13 +915,21 @@
             sortedSessionWeekly.forEach(item => {
                 const weekCells = [1, 2, 3, 4, 5].map(weekNum => {
                     const count = item.weeks[weekNum];
-                    return count > 0 ? `<td class="text-center text-gray-500 cursor-pointer underline" onclick="openSessionAttendeesModal('${item.name}', ${weekNum})">${count}</td>` : `<td class="text-center text-gray-500">-</td>`;
+                    return count > 0 
+                        ? `<td class="px-4 py-4 text-center text-gray-500 cursor-pointer underline" onclick="openSessionAttendeesModal('${item.name}', ${weekNum})">${count}</td>` 
+                        : `<td class="px-4 py-4 text-center text-gray-500">-</td>`;
                 }).join('');
 
-                const totalCell = item.total > 0 ? `<td class="text-right font-bold text-blue-600 cursor-pointer underline" onclick="openSessionAttendeesModal('${item.name}', null)">${item.total}</td>` : `<td class="text-right font-bold text-blue-600">${item.total}</td>`;
+                const totalCell = item.total > 0 
+                    ? `<td class="px-4 py-4 text-right font-bold text-blue-600 cursor-pointer underline" onclick="openSessionAttendeesModal('${item.name}', null)">${item.total}</td>` 
+                    : `<td class="px-4 py-4 text-right font-bold text-blue-600">${item.total}</td>`;
+
+                const nameParts = item.name.split(' ');
+                const dayPart = nameParts[0];
+                const timePart = nameParts.slice(1).join(' ');
 
                 html += `<tr class="bg-white border-b hover:bg-gray-50">
-                    <td class="px-4 py-4 font-bold text-green-700">${item.name}</td>
+                    <td class="px-4 py-4"><span class="font-bold text-green-700">${dayPart}</span><span class="block text-xs font-normal text-gray-500">(${timePart})</span></td>
                     ${weekCells}
                     ${totalCell}
                 </tr>`;
