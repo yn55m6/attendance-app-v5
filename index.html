@@ -218,79 +218,94 @@
 
         <!-- Page 3: Reports (Tables & Chart) -->
         <section id="page-reports" class="page">
-            <div class="bg-white p-4 sticky top-14 z-30 shadow-sm mb-4 -mx-5 px-5 border-b">
-                <label class="text-sm font-bold text-gray-500 block mb-2">조회 월 선택</label>
-                <input type="month" id="report-month" class="w-full p-3 border rounded bg-gray-50 font-bold text-gray-700 text-lg" onchange="renderReports()">
+            <!-- Month Filter -->
+            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                <h2 class="text-2xl font-bold text-gray-800">리포트 및 통계</h2>
+                <input type="month" id="report-month-filter" class="w-full sm:w-auto p-3 border rounded bg-gray-50 font-bold text-gray-700 text-lg">
             </div>
-
-            <!-- Report 0: 월간 총 출석 인원 & 그래프 (NEW) -->
-            <div class="card bg-white border border-gray-200">
-                <div class="flex justify-between items-end mb-4">
-                    <div>
-                        <h2 class="font-bold text-xl text-gray-800">📊 월간 총 출석</h2>
-                        <p class="text-xs text-gray-400">중복 제외, 실제 출석 회원 수</p>
+        
+            <!-- Report Tabs -->
+            <div class="border-b border-gray-200 mt-6">
+                <nav id="report-tabs" class="-mb-px flex space-x-1 md:space-x-4 overflow-x-auto" aria-label="Tabs">
+                    <!-- 탭 버튼은 JavaScript로 동적 생성됩니다. -->
+                </nav>
+            </div>
+        
+            <!-- Report Contents -->
+            <div id="report-contents" class="mt-6">
+                <!-- 탭 1: 차수별 주간 출석 (기존) -->
+                <div id="report-content-class-weekly" class="report-content-panel space-y-6">
+                    <div class="card">
+                        <h3 class="font-bold text-lg mb-4">차수별 주간 출석</h3>
+                        <p class="text-sm text-gray-500 mb-4">선택한 월의 각 수업(차수)별 주차 출석 현황입니다. 숫자를 클릭하면 참석자 명단을 볼 수 있습니다.</p>
+                        <div id="report-class-weekly-attendance" class="overflow-x-auto"></div>
                     </div>
-                    <span id="report-total-unique" class="text-4xl font-bold text-indigo-600">0명</span>
                 </div>
-                
-                <!-- 6개월 추이 그래프 -->
-                <div class="h-48 w-full">
-                    <canvas id="trendChart"></canvas>
+                <!-- 탭 2: 개인별 주간 출석 (기존) -->
+                <div id="report-content-member-weekly" class="report-content-panel hidden space-y-6">
+                    <div class="card">
+                        <h3 class="font-bold text-lg mb-4">개인별 주간 출석</h3>
+                        <p class="text-sm text-gray-500 mb-4">선택한 월의 회원별 주차 출석 현황입니다.</p>
+                        <div id="report-member-weekly-attendance" class="overflow-x-auto"></div>
+                    </div>
                 </div>
-                <p class="text-center text-xs text-gray-400 mt-2">최근 6개월 출석 추이</p>
+                <!-- 탭 3: 출석 순위 (기존) -->
+                <div id="report-content-member-rank" class="report-content-panel hidden space-y-6">
+                    <div class="card">
+                        <h3 class="font-bold text-lg mb-4">출석 순위</h3>
+                        <p class="text-sm text-gray-500 mb-4">선택한 월의 회원별 총 출석 횟수 순위입니다.</p>
+                        <div id="report-member-ranking" class="overflow-x-auto"></div>
+                    </div>
+                </div>
+                <!-- 탭 4: 수업 인기도 (신규) -->
+                <div id="report-content-class-popularity" class="report-content-panel hidden space-y-6">
+                    <div class="card">
+                        <h3 class="font-bold text-lg mb-4">수업(차수)별 인기도 분석</h3>
+                        <p class="text-sm text-gray-500 mb-4">선택한 월에 가장 많은 인원이 참여한 수업 순위입니다.</p>
+                        <div id="report-class-popularity" class="overflow-x-auto"></div>
+                    </div>
+                </div>
+                <!-- 탭 5: 신규 회원 (신규) -->
+                <div id="report-content-new-member-trend" class="report-content-panel hidden space-y-6">
+                    <div class="card">
+                        <h3 class="font-bold text-lg mb-4">월별 신규 회원 유입 현황</h3>
+                        <p class="text-sm text-gray-500 mb-4">최근 6개월간 새로 가입한 회원 수 추이입니다.</p>
+                        <div class="h-72">
+                            <canvas id="new-members-chart"></canvas>
+                        </div>
+                    </div>
+                </div>
+                <!-- 탭 6: 장기 미출석 (신규) -->
+                <div id="report-content-inactive-members" class="report-content-panel hidden space-y-6">
+                    <div class="card">
+                        <div class="flex flex-col sm:flex-row sm:justify-between sm:items-center mb-4 gap-2">
+                            <div>
+                                <h3 class="font-bold text-lg">장기 미출석 회원</h3>
+                                <p class="text-sm text-gray-500">설정한 기간 동안 출석 기록이 없는 회원 목록입니다.</p>
+                            </div>
+                            <select id="inactive-period-selector" class="p-2 border rounded text-sm self-start sm:self-center">
+                                <option value="30">최근 30일</option>
+                                <option value="60" selected>최근 60일</option>
+                                <option value="90">최근 90일</option>
+                            </select>
+                        </div>
+                        <div id="report-inactive-members-list" class="overflow-x-auto"></div>
+                    </div>
+                </div>
             </div>
-
-            <!-- NEW: 차수별 주간 출석 현황 -->
-            <div class="card">
-                <h2 class="font-bold text-xl mb-2 text-green-700">📅 차수별 주간 출석</h2>
-                <div class="overflow-x-auto">
-                    <table class="report-table" style="min-width: 320px;">
-                        <thead>
-                            <tr>
-                                <th>차수(반)</th>
-                                <th class="text-center">1주</th>
-                                <th class="text-center">2주</th>
-                                <th class="text-center">3주</th>
-                                <th class="text-center">4주</th>
-                                <th class="text-center">5주</th>
-                                <th class="text-right">계</th>
-                            </tr>
-                        </thead>
-                        <tbody id="report-session-weekly-body"></tbody>
-                    </table>
+        
+            <!-- Dashboard Section (기존 대시보드 항목들을 여기에 통합) -->
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mt-6">
+                <div class="card lg:col-span-1">
+                    <h3 class="font-bold text-lg mb-2">월간 총 출석 (UV)</h3>
+                    <p id="report-monthly-total" class="text-4xl font-bold text-indigo-600">0명</p>
+                    <p class="text-sm text-gray-500">해당 월에 한 번 이상 출석한 회원 수</p>
                 </div>
-            </div>
-
-            <!-- Report 3: 월별 개인별 주차별 횟수 -->
-            <div class="card">
-                <h2 class="font-bold text-xl mb-2 text-blue-700">👤 개인별 주간 출석</h2>
-                <p class="text-xs text-gray-400 mb-2">* 이름을 클릭하면 상세 날짜를 볼 수 있습니다.</p>
-                <div class="overflow-x-auto">
-                    <table class="report-table" style="min-width: 320px;">
-                        <thead>
-                            <tr>
-                                <th>이름</th>
-                                <th class="text-center">1주</th>
-                                <th class="text-center">2주</th>
-                                <th class="text-center">3주</th>
-                                <th class="text-center">4주</th>
-                                <th class="text-center">5주</th>
-                                <th class="text-right">계</th>
-                            </tr>
-                        </thead>
-                        <tbody id="report-weekly-body"></tbody>
-                    </table>
-                </div>
-            </div>
-
-            <!-- Report 1: 월별 회원별 출석횟수 -->
-            <div class="card">
-                <h2 class="font-bold text-xl mb-2 text-indigo-700">🏆 회원별 출석 순위</h2>
-                <div class="overflow-x-auto">
-                    <table class="report-table">
-                        <thead><tr><th>순위</th><th>이름</th><th>전화번호</th><th class="text-right">횟수</th></tr></thead>
-                        <tbody id="report-member-body"></tbody>
-                    </table>
+                <div class="card lg:col-span-2">
+                    <h3 class="font-bold text-lg mb-2">출석 인원 추이 (최근 6개월)</h3>
+                    <div class="h-48">
+                        <canvas id="attendance-trend-chart"></canvas>
+                    </div>
                 </div>
             </div>
         </section>
@@ -1415,7 +1430,7 @@
 
     // --- [NEW] Session Attendees Modal Logic ---
     window.openSessionAttendeesModal = function(sessionName, week) { // week is 1-5, or null for total
-        const selectedMonth = document.getElementById('report-month').value;
+        const selectedMonth = document.getElementById('report-month-filter').value;
         
         let sessionLogs = logs.filter(log => 
             log.date.startsWith(selectedMonth) && log.sessionName === sessionName
