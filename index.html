@@ -214,6 +214,20 @@
                 <button onclick="openPasswordChangeModal()" class="w-full mt-4 py-3 bg-gray-100 text-gray-600 rounded-lg text-base font-bold hover:bg-gray-200 border border-gray-200">
                     <i class="fas fa-key mr-2"></i>관리자 비밀번호 변경
                 </button>
+                <!-- [NEW] Backup/Restore buttons -->
+                <div class="mt-4 pt-4 border-t border-gray-100">
+                    <h4 class="text-sm font-bold text-gray-500 mb-2">데이터 관리</h4>
+                    <div class="grid grid-cols-2 gap-2">
+                        <button onclick="exportData()" class="w-full py-3 bg-blue-50 text-blue-700 rounded-lg text-base font-bold hover:bg-blue-100 border border-blue-100 flex items-center justify-center">
+                            <i class="fas fa-download mr-2"></i>백업
+                        </button>
+                        <label for="import-file-input" class="w-full py-3 bg-orange-50 text-orange-700 rounded-lg text-base font-bold hover:bg-orange-100 border border-orange-100 cursor-pointer text-center flex items-center justify-center">
+                            <i class="fas fa-upload mr-2"></i>복구
+                        </label>
+                        <input type="file" id="import-file-input" class="hidden" accept=".json" onchange="importData(event)">
+                    </div>
+                    <p class="text-xs text-gray-400 mt-2">* 모든 데이터를 JSON 파일로 저장하거나, 파일에서 복원합니다. 복원 시 현재 데이터는 모두 삭제됩니다.</p>
+                </div>
             </div>
             
             <!-- [NEW] Instructor Management Card -->
@@ -631,13 +645,25 @@
 
         const getStore = (storeName, mode) => db.transaction(storeName, mode).objectStore(storeName);
 
+        const bulkPut = (storeName, items) => {
+            return new Promise((resolve, reject) => {
+                if (!db) return reject("DB not initialized");
+                const transaction = db.transaction(storeName, 'readwrite');
+                const store = transaction.objectStore(storeName);
+                items.forEach(item => store.put(item));
+                transaction.oncomplete = resolve;
+                transaction.onerror = (event) => reject('Bulk put transaction error: ' + event.target.error);
+            });
+        };
+
         return {
             initDB,
             getAll: (storeName) => promisifyRequest(getStore(storeName, 'readonly').getAll()),
             add: (storeName, item) => promisifyRequest(getStore(storeName, 'readwrite').add(item)),
             put: (storeName, item) => promisifyRequest(getStore(storeName, 'readwrite').put(item)),
             deleteItem: (storeName, key) => promisifyRequest(getStore(storeName, 'readwrite').delete(key)),
-            clear: (storeName) => promisifyRequest(getStore(storeName, 'readwrite').clear())
+            clear: (storeName) => promisifyRequest(getStore(storeName, 'readwrite').clear()),
+            bulkPut
         };
     })();
 </script>
@@ -1885,6 +1911,80 @@
 
     window.closeResetConfirmModal = function() {
         document.getElementById('reset-confirm-modal').classList.add('hidden');
+    }
+
+    // --- 8. Data Backup & Restore ---
+    window.exportData = async function() {
+        if (!confirm('현재 데이터베이스의 모든 내용을 JSON 파일로 백업하시겠습니까?')) return;
+
+        try {
+            const members = await dbHelper.getAll('members');
+            const logs = await dbHelper.getAll('logs');
+            const instructors = await dbHelper.getAll('instructors');
+
+            const backupData = {
+                meta: {
+                    appName: "몸펴기생활운동 연신내 출석부",
+                    version: "1.5",
+                    exportedAt: new Date().toISOString(),
+                },
+                data: { members, logs, instructors }
+            };
+
+            const jsonString = JSON.stringify(backupData, null, 2);
+            const blob = new Blob([jsonString], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+
+            const a = document.createElement('a');
+            const today = new Date().toISOString().slice(0, 10);
+            a.href = url;
+            a.download = `attendance-backup-${today}.json`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+
+            alert('✅ 데이터 백업 파일이 다운로드되었습니다.');
+
+        } catch (error) {
+            console.error('Data export failed:', error);
+            alert('❌ 데이터 백업에 실패했습니다. 콘솔을 확인해주세요.');
+        }
+    }
+
+    window.importData = async function(event) {
+        const file = event.target.files[0];
+        if (!file) return;
+
+        if (!confirm('⚠️ 경고: 선택한 파일로 데이터를 복구합니다.\n현재 저장된 모든 데이터는 삭제됩니다. 계속하시겠습니까?')) {
+            event.target.value = ''; // Reset file input
+            return;
+        }
+        
+        const isAuthorized = await requestPassword();
+        if (!isAuthorized) {
+            event.target.value = ''; // Reset file input
+            return;
+        }
+
+        const reader = new FileReader();
+        reader.onload = async (e) => {
+            try {
+                const backupData = JSON.parse(e.target.result);
+                if (!backupData.data || !backupData.data.members || !backupData.data.logs || !backupData.data.instructors) throw new Error('유효하지 않은 백업 파일 형식입니다.');
+                const { members, logs, instructors } = backupData.data;
+                await Promise.all([dbHelper.clear('members'), dbHelper.clear('logs'), dbHelper.clear('instructors')]);
+                await Promise.all([dbHelper.bulkPut('members', members), dbHelper.bulkPut('logs', logs), dbHelper.bulkPut('instructors', instructors)]);
+                alert('✅ 데이터 복구가 완료되었습니다. 앱을 새로고침합니다.');
+                location.reload();
+            } catch (error) {
+                console.error('Data import failed:', error);
+                alert(`❌ 데이터 복구에 실패했습니다.\n오류: ${error.message}`);
+            } finally {
+                event.target.value = ''; // Reset file input
+            }
+        };
+        reader.readAsText(file);
     }
 
     // --- [NEW] Password Confirmation Modal Logic ---
