@@ -1077,7 +1077,7 @@
     }
 
     // 리포트 탭 UI 초기화 및 이벤트 핸들러 설정
-    const initializeReportTabs = () => {
+    const initializeReportTabs = (activeTabId = 'dashboard') => {
         const reportTabsContainer = document.getElementById('report-tabs');
         const reportContentPanels = document.querySelectorAll('.report-content-panel');
         const reportTabs = [
@@ -1091,8 +1091,8 @@
         ];
 
         reportTabsContainer.innerHTML = '';
-        reportTabs.forEach((tab, index) => {
-            const isActive = index === 0;
+        reportTabs.forEach((tab) => {
+            const isActive = tab.id === activeTabId;
             const tabButton = document.createElement('button');
             tabButton.dataset.target = `report-content-${tab.id}`;
             tabButton.className = `whitespace-nowrap py-2 px-3 font-medium text-sm rounded-md ${isActive ? 'bg-theme-100 text-theme-700' : 'text-gray-500 hover:text-gray-700 hover:bg-gray-100'}`;
@@ -1109,6 +1109,11 @@
             };
             reportTabsContainer.appendChild(tabButton);
         });
+
+        // 탭 초기화 후, 올바른 콘텐츠 패널을 표시
+        reportContentPanels.forEach(panel => panel.classList.add('hidden'));
+        const activePanel = document.getElementById(`report-content-${activeTabId}`);
+        if (activePanel) activePanel.classList.remove('hidden');
     };
 
     // --- 기존 리포트 로직을 새 구조에 맞게 재구성 ---
@@ -2303,7 +2308,9 @@
         localStorage.setItem('appTheme', themeName);
         document.querySelector('meta[name="theme-color"]').setAttribute('content', THEMES[themeName]['600']);
         if (currentMode === 'reports') {
-            showReports();
+            const activeTab = document.querySelector('#report-tabs button.bg-theme-100');
+            const activeTabId = activeTab ? activeTab.dataset.target.replace('report-content-', '') : 'dashboard';
+            showReports(activeTabId);
         }
         closeThemeModal();
     }
@@ -2398,8 +2405,14 @@
         const targetPage = document.getElementById('page-' + pageId);
         if (targetPage) targetPage.classList.add('active');
 
-        document.querySelectorAll('.nav-item').forEach(n => { n.classList.remove('active'); n.querySelector('span').classList.remove('font-bold'); });
-        if (element) element.classList.add('active'); // element가 null일 경우 방어
+        document.querySelectorAll('.nav-item').forEach(n => {
+            n.classList.remove('active');
+            n.querySelector('span').classList.remove('font-bold');
+        });
+        if (element) {
+            element.classList.add('active');
+            element.querySelector('span').classList.add('font-bold');
+        }
         if (pageId === 'reports') showReports();
         if (pageId === 'home') renderInstructorManagement();
     }
