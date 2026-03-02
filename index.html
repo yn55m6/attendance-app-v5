@@ -1007,6 +1007,8 @@
 
     const renderReport_ClassWeekly = (logsForMonth) => {
         const container = document.getElementById('report-class-weekly-attendance');
+        container.innerHTML = ''; // Clear previous content
+
         const sessionWeeklyCounts = {};
         logsForMonth.forEach(log => {
             const week = getWeekOfMonth(log.date);
@@ -1027,6 +1029,9 @@
         });
 
         let html = `<table class="w-full text-sm text-left text-gray-500">
+        const table = document.createElement('table');
+        table.className = 'w-full text-sm text-left text-gray-500';
+        table.innerHTML = `
             <thead class="text-xs text-gray-700 uppercase bg-gray-50">
                 <tr>
                     <th scope="col" class="px-2 py-3">차수(반)</th>
@@ -1039,11 +1044,19 @@
                 </tr>
             </thead>
             <tbody>`;
+            </thead>`;
+        const tbody = document.createElement('tbody');
 
         if (sortedSessionWeekly.length === 0) {
             html += '<tr><td colspan="7" class="text-center py-4 text-gray-400">데이터가 없습니다.</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="7" class="text-center py-4 text-gray-400">데이터가 없습니다.</td></tr>';
         } else {
             sortedSessionWeekly.forEach(item => {
+            sortedSessionWeekly.forEach((item, index) => {
+                const tr = document.createElement('tr');
+                tr.className = 'bg-white border-b hover:bg-gray-50 animate-fadeInUp';
+                tr.style.animationDelay = `${index * 50}ms`;
+
                 const weekCells = [1, 2, 3, 4, 5].map(weekNum => {
                     const count = item.weeks[weekNum];
                     return count > 0 
@@ -1065,14 +1078,20 @@
                     ${weekCells}
                     ${totalCell}
                 </tr>`;
+                tr.innerHTML = `<td class="px-2 py-4 font-bold text-green-700 whitespace-nowrap">${shortName}</td>${weekCells}${totalCell}`;
+                tbody.appendChild(tr);
             });
         }
         html += '</tbody></table>';
         container.innerHTML = html;
+        table.appendChild(tbody);
+        container.appendChild(table);
     };
 
     const renderReport_MemberWeekly = (logsForMonth) => {
         const container = document.getElementById('report-member-weekly-attendance');
+        container.innerHTML = ''; // Clear previous content
+
         const individualWeekly = {};
         logsForMonth.forEach(log => {
             const week = getWeekOfMonth(log.date);
@@ -1086,6 +1105,9 @@
         const sortedIndiv = Object.values(individualWeekly).sort((a, b) => a.name.localeCompare(b.name));
         
         let html = `<table class="w-full text-sm text-left text-gray-500">
+        const table = document.createElement('table');
+        table.className = 'w-full text-sm text-left text-gray-500';
+        table.innerHTML = `
             <thead class="text-xs text-gray-700 uppercase bg-gray-50">
                 <tr>
                     <th scope="col" class="px-2 py-3">이름</th>
@@ -1098,12 +1120,20 @@
                 </tr>
             </thead>
             <tbody>`;
+            </thead>`;
+        const tbody = document.createElement('tbody');
 
         if (sortedIndiv.length === 0) {
             html += '<tr><td colspan="7" class="text-center py-4 text-gray-400">데이터가 없습니다.</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="7" class="text-center py-4 text-gray-400">데이터가 없습니다.</td></tr>';
         } else {
             sortedIndiv.forEach(item => {
                 html += `<tr class="bg-white border-b hover:bg-gray-50">
+            sortedIndiv.forEach((item, index) => {
+                const tr = document.createElement('tr');
+                tr.className = 'bg-white border-b hover:bg-gray-50 animate-fadeInUp';
+                tr.style.animationDelay = `${index * 50}ms`;
+                tr.innerHTML = `
                     <td class="px-2 py-4 font-bold text-indigo-600 cursor-pointer hover:underline whitespace-nowrap" onclick="openHistoryModal('${item.id}')">${item.name}</td>
                     <td class="px-2 py-4 text-center text-gray-500">${item.weeks[1] || '-'}</td>
                     <td class="px-2 py-4 text-center text-gray-500">${item.weeks[2] || '-'}</td>
@@ -1112,10 +1142,14 @@
                     <td class="px-2 py-4 text-center text-gray-500">${item.weeks[5] || '-'}</td>
                     <td class="px-2 py-4 text-right font-bold text-blue-600">${item.total}</td>
                 </tr>`;
+                    <td class="px-2 py-4 text-right font-bold text-blue-600">${item.total}</td>`;
+                tbody.appendChild(tr);
             });
         }
         html += '</tbody></table>';
         container.innerHTML = html;
+        table.appendChild(tbody);
+        container.appendChild(table);
     };
 
     // --- 신규 리포트 3종 및 헬퍼 함수 ---
