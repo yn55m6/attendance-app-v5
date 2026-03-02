@@ -26,33 +26,30 @@
 
     <style>
         /* 메쉬 그라데이션 배경 */
-        body { 
-            font-family: 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif; 
-            background: radial-gradient(at 0% 0%, rgba(99, 102, 241, 0.15) 0px, transparent 50%), 
-                        radial-gradient(at 100% 0%, rgba(168, 85, 247, 0.15) 0px, transparent 50%),
-                        radial-gradient(at 100% 100%, rgba(236, 72, 153, 0.15) 0px, transparent 50%),
-                        radial-gradient(at 0% 100%, rgba(59, 130, 246, 0.15) 0px, transparent 50%);
-            background-attachment: fixed;
+        /* [SENIOR FRIENDLY] 고대비 및 가독성 향상 스타일 */
+        body {
+            font-family: 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif;
+            background-color: #f3f4f6; /* bg-gray-100 */
+            font-size: 16px; /* 기본 폰트 크기 상향 */
         }
-        .app-container { max-width: 1024px; margin: 0 auto; background: rgba(255, 255, 255, 0.7); backdrop-filter: blur(10px); min-height: 100vh; position: relative; padding-bottom: 80px; box-shadow: 0 0 40px rgba(0,0,0,0.05); }
+        .app-container { max-width: 1024px; margin: 0 auto; background: white; min-height: 100vh; position: relative; padding-bottom: 80px; box-shadow: 0 0 20px rgba(0,0,0,0.1); }
         
-        /* 글래스모피즘 카드 스타일 */
-        .card { background: rgba(255, 255, 255, 0.8); backdrop-filter: blur(5px); border-radius: 20px; padding: 20px; box-shadow: 0 8px 32px rgba(31, 38, 135, 0.07); margin-bottom: 20px; border: 1px solid rgba(255, 255, 255, 0.3); transition: all 0.3s ease; }
-        .card:hover { transform: translateY(-2px); box-shadow: 0 12px 40px rgba(31, 38, 135, 0.12); }
+        /* [SENIOR FRIENDLY] 카드 스타일 */
+        .card { background: white; border-radius: 16px; padding: 24px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1); margin-bottom: 20px; border: 1px solid #e5e7eb; }
 
-        .btn-primary { background: linear-gradient(135deg, #6366f1, #4f46e5); color: white; padding: 12px; border-radius: 12px; width: 100%; font-weight: bold; text-align: center; cursor: pointer; transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1); box-shadow: 0 4px 12px rgba(79, 70, 229, 0.3); }
+        .btn-primary { background: linear-gradient(135deg, #6366f1, #4f46e5); color: white; padding: 16px; border-radius: 12px; width: 100%; font-weight: bold; text-align: center; cursor: pointer; transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1); box-shadow: 0 4px 12px rgba(79, 70, 229, 0.3); font-size: 1.125rem; }
         .btn-primary:active { transform: scale(0.98); }
         .btn-primary:hover { box-shadow: 0 6px 20px rgba(79, 70, 229, 0.4); }
 
         /* 리포트 테이블 스타일 */
-        .report-table { width: 100%; border-collapse: collapse; font-size: 0.8rem; }
+        .report-table { width: 100%; border-collapse: collapse; font-size: 1rem; } /* 폰트 크기 확대 */
         .report-table th { background: #f9fafb; padding: 8px; border-bottom: 2px solid #e5e7eb; text-align: left; font-weight: bold; color: #374151; white-space: nowrap; }
         .report-table td { padding: 8px; border-bottom: 1px solid #f3f4f6; color: #4b5563; }
         .report-table tr:last-child td { border-bottom: none; }
 
         /* 네비게이션 바 */
-        .nav-bar { position: fixed; bottom: 0; width: 100%; max-width: 1024px; background: rgba(255, 255, 255, 0.8); backdrop-filter: blur(15px); border-top: 1px solid rgba(229, 231, 235, 0.5); display: flex; justify-content: space-around; padding: 12px 0; z-index: 50; }
-        .nav-item { display: flex; flex-direction: column; align-items: center; color: #9ca3af; font-size: 0.75rem; cursor: pointer; transition: all 0.2s; }
+        .nav-bar { position: fixed; bottom: 0; width: 100%; max-width: 1024px; background: white; border-top: 1px solid #e5e7eb; display: flex; justify-content: space-around; padding: 12px 0; z-index: 50; }
+        .nav-item { display: flex; flex-direction: column; align-items: center; color: #9ca3af; font-size: 0.875rem; cursor: pointer; transition: all 0.2s; } /* 폰트 크기 확대 */
         .nav-item.active { color: #4f46e5; transform: translateY(-2px); }
         
         /* 페이지 전환 애니메이션 */
@@ -81,19 +78,19 @@
 
 <div class="app-container">
     <!-- Mode Selection & Login Section -->
-    <section id="start-screen" class="absolute inset-0 bg-white/50 z-50 flex flex-col justify-center items-center p-6" aria-labelledby="mode-selection-title">
+    <section id="start-screen" class="absolute inset-0 bg-gray-100 z-50 flex flex-col justify-center items-center p-6" aria-labelledby="mode-selection-title">
         <div id="mode-selection" class="w-full max-w-md text-center">
-            <h1 id="mode-selection-title" class="text-3xl font-bold text-indigo-600 mb-8">몸펴기생활운동<br>연신내 출석부</h1>
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <button onclick="enterMemberMode()" class="p-8 bg-white/80 backdrop-blur border-2 border-indigo-500 rounded-3xl shadow-xl hover:scale-105 transition-all duration-300 group">
+            <h1 id="mode-selection-title" class="text-4xl font-bold text-indigo-600 mb-10">몸펴기생활운동<br>연신내 출석부</h1>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                <button onclick="enterMemberMode()" class="p-10 bg-white border-2 border-indigo-500 rounded-3xl shadow-lg hover:bg-indigo-50 transition-all duration-300 group">
                     <i class="fas fa-user-check text-4xl text-indigo-500 mb-3" aria-hidden="true"></i>
-                    <p class="text-2xl font-bold text-gray-800">회원 출석하기</p>
-                    <p class="text-sm text-gray-500 mt-1">비밀번호 없이 입장</p>
+                    <p class="text-3xl font-bold text-gray-800">회원 출석하기</p>
+                    <p class="text-base text-gray-500 mt-2">비밀번호 없이 입장</p>
                 </button>
-                <button onclick="showAdminLogin()" class="p-8 bg-gray-900 text-white rounded-3xl shadow-xl hover:scale-105 transition-all duration-300">
+                <button onclick="showAdminLogin()" class="p-10 bg-gray-800 text-white rounded-3xl shadow-lg hover:bg-gray-700 transition-all duration-300">
                     <i class="fas fa-user-shield text-4xl mb-3" aria-hidden="true"></i>
-                    <p class="text-2xl font-bold">관리자 전용</p>
-                    <p class="text-sm text-gray-400 mt-1">비밀번호 입력 후 입장</p>
+                    <p class="text-3xl font-bold">관리자 전용</p>
+                    <p class="text-base text-gray-400 mt-2">비밀번호 입력 후 입장</p>
                 </button>
             </div>
         </div>
@@ -103,17 +100,17 @@
                 <i class="fas fa-arrow-left mr-2" aria-hidden="true"></i>뒤로가기
             </button>
             <i class="fas fa-lock text-4xl text-gray-400 mb-4" aria-hidden="true"></i>
-            <h2 class="text-2xl font-bold text-gray-800 mb-2">관리자 로그인</h2>
-            <p class="text-sm text-gray-500 mb-6">관리자 권한이 필요합니다.</p>
+            <h2 class="text-3xl font-bold text-gray-800 mb-2">관리자 로그인</h2>
+            <p class="text-base text-gray-500 mb-6">관리자 권한이 필요합니다.</p>
             <div id="login-input-wrapper">
-                <input type="password" id="admin-password" class="w-full p-3 text-center text-lg border-2 rounded-lg mb-4" placeholder="••••••••" onkeyup="if(event.key==='Enter') handleLogin()" autocomplete="current-password">
+                <input type="password" id="admin-password" class="w-full p-4 text-center text-xl border-2 rounded-lg mb-4" placeholder="••••••••" onkeyup="if(event.key==='Enter') handleLogin()" autocomplete="current-password">
             </div>
             <div id="recovery-input-wrapper" class="hidden">
-                <input type="text" id="recovery-master-key" class="w-full p-3 text-center text-lg border-2 border-orange-300 rounded-lg mb-4" placeholder="복구 코드 입력">
+                <input type="text" id="recovery-master-key" class="w-full p-4 text-center text-xl border-2 border-orange-300 rounded-lg mb-4" placeholder="복구 코드 입력">
                 <p class="text-xs text-orange-600 mb-4">마스터 복구 코드를 입력하면 비밀번호가 '1234'로 초기화됩니다.</p>
             </div>
 
-            <label class="flex items-center justify-center text-xs text-gray-500 mb-6 cursor-pointer">
+            <label class="flex items-center justify-center text-sm text-gray-500 mb-6 cursor-pointer">
                 <input type="checkbox" onchange="window.togglePasswordVisibility(this)" class="mr-2">
                 비밀번호 표시
             </label>
@@ -126,47 +123,47 @@
     <!-- Main App Wrapper -->
     <main id="app-main-content" class="hidden">
         <!-- Header -->
-        <header class="bg-indigo-600/90 backdrop-blur-md text-white p-4 sticky top-0 z-40 shadow-lg flex justify-between items-center no-print">
-            <h1 class="text-lg font-bold"><i class="fas fa-check-circle mr-2" aria-hidden="true"></i>연신내 출석부</h1>
+        <header class="bg-indigo-600 text-white p-4 sticky top-0 z-40 shadow-md flex justify-between items-center no-print">
+            <h1 class="text-xl font-bold"><i class="fas fa-check-circle mr-2" aria-hidden="true"></i>연신내 출석부</h1>
             <div class="flex gap-2">
                 <button id="btn-exit-member-mode" onclick="exitMemberMode()" class="hidden text-base bg-red-600 px-6 py-2.5 rounded-xl hover:bg-red-700 font-bold shadow-md">출석 종료</button>
-                <button onclick="resetData()" class="admin-only text-xs bg-red-600 px-2 py-1 rounded hover:bg-red-700">초기화</button>
+                <button onclick="resetData()" class="admin-only text-sm bg-red-600 px-4 py-2 rounded-lg hover:bg-red-700">초기화</button>
                 <button id="btn-exit-admin-mode" onclick="exitMemberMode()" class="admin-only text-base bg-gray-500 px-6 py-2.5 rounded-xl hover:bg-gray-600 font-bold shadow-md">뒤로가기</button>
             </div>
         </header>
 
         <!-- Page: Member Attendance (New) -->
         <section id="page-member-attendance" class="page">
-            <div class="card text-center py-8">
-                <h2 class="text-3xl font-bold text-gray-800 mb-2">반갑습니다! 👋</h2>
-                <p id="current-session-info" class="text-indigo-600 font-bold text-lg mb-4">현재 진행 중인 수업을 찾는 중...</p>
+            <div class="card text-center py-10">
+                <h2 class="text-4xl font-bold text-gray-800 mb-2">반갑습니다! 👋</h2>
+                <p id="current-session-info" class="text-indigo-600 font-bold text-xl mb-6">현재 진행 중인 수업을 찾는 중...</p>
 
                 <!-- [NEW] Date & Session Selection for Member Mode -->
-                <div class="grid grid-cols-2 gap-2 mb-6 max-w-md mx-auto px-2">
+                <div class="grid grid-cols-2 gap-4 mb-8 max-w-md mx-auto px-2">
                     <div class="text-left">
-                        <label for="member-mode-date" class="block text-[10px] font-bold text-gray-400 mb-1 uppercase">출석 날짜</label>
-                        <input type="date" id="member-mode-date" class="w-full p-3 border-2 border-gray-100 rounded-xl bg-gray-50 text-sm font-bold text-gray-700 focus:border-indigo-300 outline-none" onchange="updateMemberModeSessionOptions()">
+                        <label for="member-mode-date" class="block text-sm font-bold text-gray-500 mb-2">출석 날짜</label>
+                        <input type="date" id="member-mode-date" class="w-full p-4 border-2 border-gray-200 rounded-xl bg-gray-50 text-base font-bold text-gray-700 focus:border-indigo-300 outline-none" onchange="updateMemberModeSessionOptions()">
                     </div>
                     <div class="text-left">
-                        <label for="member-mode-session" class="block text-[10px] font-bold text-gray-400 mb-1 uppercase">수업(차수) 선택</label>
-                        <div class="flex gap-1">
-                            <select id="member-mode-session" class="flex-1 p-3 border-2 border-gray-100 rounded-xl bg-gray-50 text-sm font-bold text-gray-700 focus:border-indigo-300 outline-none"></select>
-                            <button id="btn-sync-member" onclick="syncMemberModeToNow()" class="px-3 bg-white border-2 border-gray-100 rounded-xl text-indigo-500 hover:bg-indigo-50 transition shadow-sm" title="현재 시간으로 수업 갱신">
+                        <label for="member-mode-session" class="block text-sm font-bold text-gray-500 mb-2">수업(차수) 선택</label>
+                        <div class="flex gap-2">
+                            <select id="member-mode-session" class="flex-1 p-4 border-2 border-gray-200 rounded-xl bg-gray-50 text-base font-bold text-gray-700 focus:border-indigo-300 outline-none"></select>
+                            <button id="btn-sync-member" onclick="syncMemberModeToNow()" class="p-4 bg-white border-2 border-gray-200 rounded-xl text-indigo-500 hover:bg-indigo-50 transition shadow-sm" title="현재 시간으로 수업 갱신">
                                 <i class="fas fa-sync-alt" id="icon-sync-member"></i>
                             </button>
                         </div>
                     </div>
                 </div>
                 
-                <div class="relative mb-6">
+                <div class="relative mb-8">
                     <label for="member-search-input" class="sr-only">회원 이름 검색</label>
                     <input type="text" id="member-search-input" oninput="renderMemberGrid(this.value)" 
                            placeholder="이름 또는 초성 검색 (예: ㄱㄷㅎ)" 
-                           class="w-full p-4 text-xl border-2 border-indigo-100 rounded-2xl focus:border-indigo-500 outline-none shadow-inner bg-white/50">
-                    <i class="fas fa-search absolute right-4 top-5 text-gray-300 text-xl" aria-hidden="true"></i>
+                           class="w-full p-5 text-2xl border-2 border-indigo-200 rounded-2xl focus:border-indigo-500 outline-none shadow-inner bg-white">
+                    <i class="fas fa-search absolute right-5 top-6 text-gray-300 text-2xl" aria-hidden="true"></i>
                 </div>
 
-                <div id="member-grid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3 max-h-[50vh] overflow-y-auto p-2">
+                <div id="member-grid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 max-h-[50vh] overflow-y-auto p-2">
                     <!-- Member buttons will be rendered here -->
                 </div>
             </div>
@@ -175,15 +172,15 @@
         <!-- Page 1: Home (QR & Tools) -->
         <section id="page-home" class="page">
             <div class="card">
-                <h2 class="text-gray-800 font-bold text-lg mb-2"><i class="fas fa-qrcode mr-2" aria-hidden="true"></i>QR 코드 관리</h2>
-                <p class="text-sm text-gray-500 mb-4">강의실 부착용 QR 코드를 인쇄하세요.</p>
-                <button onclick="openQRPrintModal()" class="w-full py-3 bg-gray-800 text-white rounded-lg font-bold hover:bg-gray-700">
+                <h2 class="text-gray-800 font-bold text-xl mb-2"><i class="fas fa-qrcode mr-2" aria-hidden="true"></i>QR 코드 관리</h2>
+                <p class="text-base text-gray-500 mb-4">강의실 부착용 QR 코드를 인쇄하세요.</p>
+                <button onclick="openQRPrintModal()" class="w-full py-4 bg-gray-800 text-white rounded-lg font-bold hover:bg-gray-700 text-lg">
                     <i class="fas fa-print mr-2"></i>QR 코드 목록 보기
                 </button>
             </div>
 
             <div class="card">
-                <h3 class="font-bold text-gray-700 mb-3"><i class="fas fa-tools mr-2" aria-hidden="true"></i>관리자 도구</h3>
+                <h3 class="font-bold text-xl text-gray-700 mb-3"><i class="fas fa-tools mr-2" aria-hidden="true"></i>관리자 도구</h3>
                 <button onclick="openPaperInputModal()" class="btn-primary mb-2 bg-gradient-to-r from-green-500 to-emerald-600">
                     <i class="fas fa-edit mr-2"></i>종이 명부 입력 (텍스트)
                 </button>
@@ -191,7 +188,7 @@
                     * 이름만 입력하면 자동 가입/출석 처리됩니다.<br>
                     * 동명이인은 <strong>이름 번호뒷자리</strong> (예: 김철수 1234)
                 </p>
-                <button onclick="openPasswordChangeModal()" class="w-full mt-3 py-2 bg-gray-100 text-gray-600 rounded-lg text-sm font-bold hover:bg-gray-200 border border-gray-200">
+                <button onclick="openPasswordChangeModal()" class="w-full mt-4 py-3 bg-gray-100 text-gray-600 rounded-lg text-base font-bold hover:bg-gray-200 border border-gray-200">
                     <i class="fas fa-key mr-2"></i>관리자 비밀번호 변경
                 </button>
             </div>
@@ -205,15 +202,15 @@
         <!-- Page 2: Members -->
         <section id="page-members" class="page">
             <div class="card">
-                <h2 class="font-bold text-lg mb-4">회원 등록</h2>
-                <div class="flex gap-2 mb-2">
-                    <input type="text" id="new-member-name" placeholder="이름 (필수)" class="flex-1 p-2 border rounded bg-gray-50">
-                    <input type="tel" id="new-member-phone" placeholder="뒷번호 (생략가능)" class="w-1/3 p-2 border rounded bg-gray-50 text-sm">
+                <h2 class="font-bold text-xl mb-4">회원 등록</h2>
+                <div class="flex gap-3 mb-3">
+                    <input type="text" id="new-member-name" placeholder="이름 (필수)" class="flex-1 p-3 border rounded bg-gray-50 text-lg">
+                    <input type="tel" id="new-member-phone" placeholder="뒷번호 (생략가능)" class="w-1/3 p-3 border rounded bg-gray-50 text-lg">
                 </div>
-                <button onclick="addMember()" class="btn-primary text-sm">등록하기</button>
+                <button onclick="addMember()" class="btn-primary">등록하기</button>
             </div>
             <div class="card">
-                <h2 class="font-bold text-lg mb-2">회원 목록 <span id="member-count" class="text-sm text-indigo-600 font-normal"></span></h2>
+                <h2 class="font-bold text-xl mb-2">회원 목록 <span id="member-count" class="text-base text-indigo-600 font-normal"></span></h2>
                 <p class="text-xs text-gray-400 mb-2">* 이름을 클릭하면 상세 이력을 볼 수 있습니다.</p>
                 <ul id="member-list" class="divide-y divide-gray-100"></ul>
             </div>
@@ -222,15 +219,15 @@
         <!-- Page 3: Reports (Tables & Chart) -->
         <section id="page-reports" class="page">
             <div class="bg-white p-4 sticky top-14 z-30 shadow-sm mb-4 -mx-5 px-5 border-b">
-                <label class="text-xs font-bold text-gray-500 block mb-1">조회 월 선택</label>
-                <input type="month" id="report-month" class="w-full p-2 border rounded bg-gray-50 font-bold text-gray-700" onchange="renderReports()">
+                <label class="text-sm font-bold text-gray-500 block mb-2">조회 월 선택</label>
+                <input type="month" id="report-month" class="w-full p-3 border rounded bg-gray-50 font-bold text-gray-700 text-lg" onchange="renderReports()">
             </div>
 
             <!-- Report 0: 월간 총 출석 인원 & 그래프 (NEW) -->
             <div class="card bg-white border border-gray-200">
                 <div class="flex justify-between items-end mb-4">
                     <div>
-                        <h2 class="font-bold text-lg text-gray-800">📊 월간 총 출석</h2>
+                        <h2 class="font-bold text-xl text-gray-800">📊 월간 총 출석</h2>
                         <p class="text-xs text-gray-400">중복 제외, 실제 출석 회원 수</p>
                     </div>
                     <span id="report-total-unique" class="text-4xl font-bold text-indigo-600">0명</span>
@@ -245,7 +242,7 @@
 
             <!-- NEW: 차수별 주간 출석 현황 -->
             <div class="card">
-                <h2 class="font-bold text-lg mb-2 text-green-700">📅 차수별 주간 출석</h2>
+                <h2 class="font-bold text-xl mb-2 text-green-700">📅 차수별 주간 출석</h2>
                 <div class="overflow-x-auto">
                     <table class="report-table" style="min-width: 320px;">
                         <thead>
@@ -266,7 +263,7 @@
 
             <!-- Report 3: 월별 개인별 주차별 횟수 -->
             <div class="card">
-                <h2 class="font-bold text-lg mb-2 text-blue-700">👤 개인별 주간 출석</h2>
+                <h2 class="font-bold text-xl mb-2 text-blue-700">👤 개인별 주간 출석</h2>
                 <p class="text-xs text-gray-400 mb-2">* 이름을 클릭하면 상세 날짜를 볼 수 있습니다.</p>
                 <div class="overflow-x-auto">
                     <table class="report-table" style="min-width: 320px;">
@@ -288,7 +285,7 @@
 
             <!-- Report 1: 월별 회원별 출석횟수 -->
             <div class="card">
-                <h2 class="font-bold text-lg mb-2 text-indigo-700">🏆 회원별 출석 순위</h2>
+                <h2 class="font-bold text-xl mb-2 text-indigo-700">🏆 회원별 출석 순위</h2>
                 <div class="overflow-x-auto">
                     <table class="report-table">
                         <thead><tr><th>순위</th><th>이름</th><th>전화번호</th><th class="text-right">횟수</th></tr></thead>
@@ -335,28 +332,28 @@
     <div class="bg-white w-full max-w-md rounded-xl p-6 relative">
         <button onclick="closePaperInputModal()" class="absolute top-4 right-4 text-gray-400"><i class="fas fa-times"></i></button>
         
-        <h3 class="text-xl font-bold mb-2 text-green-700"><i class="fas fa-edit mr-2"></i>종이 명부 입력</h3>
+        <h3 class="text-2xl font-bold mb-4 text-green-700"><i class="fas fa-edit mr-2"></i>종이 명부 입력</h3>
         
         <div class="mb-3">
-            <label class="block text-xs font-bold text-gray-500 mb-1">1. 날짜 선택</label>
-            <input type="date" id="paper-date" class="w-full p-2 border rounded bg-gray-50 font-bold text-gray-700" onchange="updateSessionOptions()">
+            <label class="block text-sm font-bold text-gray-500 mb-2">1. 날짜 선택</label>
+            <input type="date" id="paper-date" class="w-full p-3 border rounded bg-gray-50 font-bold text-gray-700 text-lg" onchange="updateSessionOptions()">
         </div>
 
         <div class="mb-3">
-            <label class="block text-xs font-bold text-gray-500 mb-1">2. 수업(차수) 선택</label>
+            <label class="block text-sm font-bold text-gray-500 mb-2">2. 수업(차수) 선택</label>
             <div class="flex gap-2">
-                <select id="paper-session-select" class="flex-1 p-2 border rounded bg-gray-50 text-sm font-bold">
+                <select id="paper-session-select" class="flex-1 p-3 border rounded bg-gray-50 text-base font-bold">
                     <!-- JS로 옵션 채움 -->
                 </select>
-                <button onclick="syncPaperInputToNow()" class="px-3 bg-gray-100 text-indigo-600 rounded-lg hover:bg-gray-200 transition" title="현재 시간으로 맞춤">
+                <button onclick="syncPaperInputToNow()" class="px-4 bg-gray-100 text-indigo-600 rounded-lg hover:bg-gray-200 transition" title="현재 시간으로 맞춤">
                     <i class="fas fa-sync-alt"></i>
                 </button>
             </div>
         </div>
 
         <div class="mb-4">
-            <label class="block text-xs font-bold text-gray-500 mb-1">3. 명단 입력 (이름만 입력 가능)</label>
-            <textarea id="paper-text-area" class="w-full h-32 p-3 border rounded bg-gray-50 text-sm font-mono" placeholder="김철수&#13;&#10;이영희&#13;&#10;박민수 5678"></textarea>
+            <label class="block text-sm font-bold text-gray-500 mb-2">3. 명단 입력 (이름만 입력 가능)</label>
+            <textarea id="paper-text-area" class="w-full h-40 p-3 border rounded bg-gray-50 text-base font-mono" placeholder="김철수&#13;&#10;이영희&#13;&#10;박민수 5678"></textarea>
             <p class="text-xs text-indigo-500 mt-1">* 없는 회원은 자동 가입됩니다.</p>
         </div>
         
@@ -369,18 +366,18 @@
 
 <!-- Modal: User Attendance Check (QR Scan Result) -->
 <div id="user-check-modal" class="fixed inset-0 bg-black bg-opacity-90 z-50 hidden flex flex-col justify-center items-center p-6 no-print">
-    <div class="bg-white w-full max-w-sm rounded-xl p-6 text-center">
-        <h3 class="text-2xl font-bold mb-4 text-indigo-600">출석 체크</h3>
+    <div class="bg-white w-full max-w-md rounded-xl p-8 text-center">
+        <h3 class="text-3xl font-bold mb-6 text-indigo-600">출석 체크</h3>
         
         <!-- Date & Session Adjustment -->
         <div class="grid grid-cols-2 gap-2 mb-4">
             <div class="text-left">
-                <label class="block text-[10px] font-bold text-gray-400 mb-1">출석 날짜</label>
-                <input type="date" id="check-date" class="w-full p-2 border rounded bg-gray-50 text-sm font-bold text-gray-700" onchange="updateCheckSessionOptions()">
+                <label class="block text-sm font-bold text-gray-500 mb-2">출석 날짜</label>
+                <input type="date" id="check-date" class="w-full p-3 border rounded bg-gray-50 text-base font-bold text-gray-700" onchange="updateCheckSessionOptions()">
             </div>
             <div class="text-left">
-                <label class="block text-[10px] font-bold text-gray-400 mb-1">수업(차수) 선택</label>
-                <select id="check-session-select" class="w-full p-2 border rounded bg-gray-50 text-sm font-bold text-gray-700"></select>
+                <label class="block text-sm font-bold text-gray-500 mb-2">수업(차수) 선택</label>
+                <select id="check-session-select" class="w-full p-3 border rounded bg-gray-50 text-base font-bold text-gray-700"></select>
             </div>
         </div>
 
@@ -389,14 +386,14 @@
             <input type="text" id="check-manual-name" placeholder="이름 입력" class="w-full p-4 border-2 border-indigo-200 rounded-xl mb-3 bg-white text-2xl font-bold text-center placeholder-gray-300 focus:border-indigo-500 outline-none h-16">
             <input type="tel" id="check-manual-phone" placeholder="전화번호 뒷자리 (선택)" class="w-full p-4 border rounded-xl mb-4 bg-gray-50 text-xl text-center h-14">
             
-            <div onclick="toggleCheckMode('existing')" class="w-full py-3 bg-gray-100 text-gray-600 rounded-xl font-bold cursor-pointer hover:bg-gray-200 mb-4 text-base border border-gray-200">
+            <div onclick="toggleCheckMode('existing')" class="w-full py-4 bg-gray-100 text-gray-600 rounded-xl font-bold cursor-pointer hover:bg-gray-200 mb-4 text-lg border border-gray-200">
                 🔍 전체 명단에서 선택하기
             </div>
         </div>
 
         <!-- Existing Member Select (Hidden by default) -->
         <div id="check-existing-wrapper" class="hidden">
-            <select id="check-user-select" class="w-full p-4 border-2 border-indigo-100 rounded-xl mb-4 bg-white text-xl font-bold text-gray-800 shadow-sm focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 outline-none h-16">
+            <select id="check-user-select" class="w-full p-4 border-2 border-indigo-100 rounded-xl mb-4 bg-white text-2xl font-bold text-gray-800 shadow-sm focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 outline-none h-20">
                 <option value="">⬇️ 여기를 눌러 이름 선택</option>
             </select>
             <div onclick="toggleCheckMode('manual')" class="w-full py-4 bg-indigo-50 text-indigo-700 rounded-xl font-bold cursor-pointer hover:bg-indigo-100 mb-4 text-lg border border-indigo-100 shadow-sm flex items-center justify-center">
@@ -404,7 +401,7 @@
             </div>
         </div>
 
-        <button onclick="confirmAttendance()" class="btn-primary mb-2 text-xl py-4 shadow-lg">✅ 출석 확인</button>
+        <button onclick="confirmAttendance()" class="btn-primary mb-2 text-2xl py-5 shadow-lg">✅ 출석 확인</button>
         <button onclick="closeCheckModal()" class="text-gray-500 text-base mt-4 underline p-2">취소</button>
     </div>
 </div>
@@ -414,16 +411,16 @@
     <div class="bg-white w-full max-w-sm rounded-xl p-6 relative max-h-[80vh] flex flex-col">
         <button onclick="closeHistoryModal()" class="absolute top-4 right-4 text-gray-400"><i class="fas fa-times"></i></button>
         
-        <h3 class="text-xl font-bold mb-1 text-indigo-700" id="history-member-name">회원 이름</h3>
+        <h3 class="text-2xl font-bold mb-1 text-indigo-700" id="history-member-name">회원 이름</h3>
         <p class="text-xs text-gray-500 mb-4">상세 출석 이력 (최신순)</p>
         
         <div class="overflow-y-auto flex-1 border-t border-gray-100 pt-2">
-            <ul id="history-list" class="text-sm space-y-3">
+            <ul id="history-list" class="text-base space-y-3">
                 <!-- History items will go here -->
             </ul>
         </div>
         
-        <button onclick="closeHistoryModal()" class="mt-4 w-full py-2 bg-gray-100 text-gray-600 rounded text-sm font-bold">닫기</button>
+        <button onclick="closeHistoryModal()" class="mt-4 w-full py-3 bg-gray-100 text-gray-600 rounded text-base font-bold">닫기</button>
     </div>
 </div>
 
@@ -506,6 +503,12 @@
     </div>
 </div>
 
+<!-- [NEW] Undo Toast Notification -->
+<div id="undo-toast" class="fixed bottom-24 left-1/2 -translate-x-1/2 bg-gray-800 text-white px-6 py-4 rounded-full shadow-lg flex items-center gap-4 z-[100] hidden transition-all duration-300">
+    <span id="undo-toast-message"></span>
+    <button id="undo-toast-button" class="font-bold text-yellow-400 hover:text-yellow-300 underline">실행 취소</button>
+</div>
+
 <script type="module">
     // --- 0. Firebase Setup ---
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
@@ -573,6 +576,41 @@
     window.logs = [];
     let currentScanSession = null;
     let trendChartInstance = null; // Chart instance
+    let undoTimer = null; // [NEW] Timer for the undo toast
+
+    // [NEW] Function to show the undo toast
+    function showUndoToast(message, onUndoCallback) {
+        const toast = document.getElementById('undo-toast');
+        const messageSpan = document.getElementById('undo-toast-message');
+        const undoButton = document.getElementById('undo-toast-button');
+
+        if (!toast || !messageSpan || !undoButton) return;
+
+        // Clear any existing timer
+        if (undoTimer) clearTimeout(undoTimer);
+
+        messageSpan.innerText = message;
+        
+        if (onUndoCallback) {
+            undoButton.style.display = 'block';
+            // The undo action
+            undoButton.onclick = () => {
+                onUndoCallback();
+                toast.classList.add('hidden');
+                clearTimeout(undoTimer);
+            };
+        } else {
+            undoButton.style.display = 'none';
+        }
+
+        // Show the toast
+        toast.classList.remove('hidden');
+
+        // Hide it after 5 seconds
+        undoTimer = setTimeout(() => {
+            toast.classList.add('hidden');
+        }, 5000); // 5 seconds
+    }
 
     // Real-time Listeners
     // 1. Members
@@ -629,9 +667,9 @@
         );
 
         grid.innerHTML = filtered.map(m => `
-            <button onclick="handleMemberGridClick('${m.id}')" 
-                    class="p-4 bg-white border-2 border-indigo-100 rounded-xl shadow-sm active:bg-indigo-50 active:scale-95 transition flex flex-col items-center justify-center min-h-[100px]">
-                <span class="text-xl font-bold text-gray-800">${m.name}</span>
+            <button onclick="handleMemberGridClick('${m.id}')"
+                    class="p-4 bg-white border-2 border-gray-200 rounded-2xl shadow-sm active:bg-indigo-50 active:scale-95 transition flex flex-col items-center justify-center min-h-[120px]">
+                <span class="text-2xl font-bold text-gray-800">${m.name}</span>
                 <span class="text-xs text-gray-400 mt-1">${m.phone === '0000' ? '' : m.phone}</span>
             </button>
         `).join('');
@@ -1197,22 +1235,29 @@
 
         const alreadyChecked = logs.some(log => log.memberId === member.id && log.date === dateStr && log.sessionCode === session.code);
         
-        if(alreadyChecked) alert('⚠️ 이미 출석 처리되었습니다.');
-        else {
-            await addDoc(collection(db, "logs"), {
+        if(alreadyChecked) {
+            showUndoToast('⚠️ 이미 출석 처리되었습니다.');
+        } else {
+            const newLogData = {
                 memberId: member.id, 
                 memberName: member.name, 
                 date: dateStr, 
                 sessionCode: session.code, 
                 sessionName: session.name, 
                 timestamp: new Date().toLocaleString()
-            });
+            };
+            const docRef = await addDoc(collection(db, "logs"), newLogData);
+            
             playSound();
             let message = `✅ ${member.name}님 출석 완료!`;
             if (isNewMember) {
-                message += ' (신규 회원으로 등록되었습니다)';
+                message += ' (신규 등록)';
             }
-            alert(message);
+            
+            showUndoToast(message, async () => {
+                await deleteDoc(doc(db, "logs", docRef.id));
+                showUndoToast(`🚫 ${member.name}님의 출석이 취소되었습니다.`);
+            });
         }
         closeCheckModal();
         document.getElementById('member-search-input').value = '';
@@ -1302,7 +1347,7 @@
         document.getElementById('member-count').innerText = `(${members.length}명)`;
         list.innerHTML = '';
         members.forEach(m => {
-            list.innerHTML += `<li class="py-3 flex justify-between items-center"><div onclick="openHistoryModal('${m.id}')" class="cursor-pointer flex-1 hover:bg-gray-50 p-1 rounded transition"><p class="font-bold text-gray-800 flex items-center">${m.name} <i class="fas fa-chevron-right text-gray-300 text-xs ml-2"></i></p><p class="text-xs text-gray-400">${m.phone}</p></div><button onclick="deleteMember('${m.id}')" class="text-red-400 text-xs border border-red-200 px-2 py-1 rounded hover:bg-red-50 ml-2">삭제</button></li>`;
+            list.innerHTML += `<li class="py-4 flex justify-between items-center"><div onclick="openHistoryModal('${m.id}')" class="cursor-pointer flex-1 hover:bg-gray-50 p-2 rounded transition"><p class="font-bold text-lg text-gray-800 flex items-center">${m.name} <i class="fas fa-chevron-right text-gray-300 text-xs ml-2"></i></p><p class="text-sm text-gray-400">${m.phone}</p></div><button onclick="deleteMember('${m.id}')" class="text-red-400 text-sm border border-red-200 px-3 py-2 rounded-lg hover:bg-red-50 ml-2">삭제</button></li>`;
         });
     }
     
