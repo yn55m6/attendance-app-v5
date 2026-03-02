@@ -1209,14 +1209,22 @@
             container.innerHTML = `<p class="text-gray-500 text-center py-4">최근 ${days}일 동안 미출석한 회원이 없습니다.</p>`;
             return;
         }
-        let html = `<table class="w-full text-sm text-left text-gray-500">
-            <thead class="text-xs text-gray-700 uppercase bg-gray-50"><tr><th scope="col" class="px-4 py-3">이름</th><th scope="col" class="px-4 py-3">전화번호</th><th scope="col" class="px-4 py-3">가입일</th></tr></thead><tbody>`;
-        inactiveMembers.sort((a, b) => a.name.localeCompare(b.name)).forEach(member => {
+        container.innerHTML = '';
+        const table = document.createElement('table');
+        table.className = 'w-full text-sm text-left text-gray-500';
+        table.innerHTML = `<thead class="text-xs text-gray-700 uppercase bg-gray-50"><tr><th scope="col" class="px-4 py-3">이름</th><th scope="col" class="px-4 py-3">전화번호</th><th scope="col" class="px-4 py-3">가입일</th></tr></thead>`;
+        const tbody = document.createElement('tbody');
+
+        inactiveMembers.sort((a, b) => a.name.localeCompare(b.name)).forEach((member, index) => {
             const registeredDate = member.registeredAt && member.registeredAt.toDate ? member.registeredAt.toDate().toLocaleDateString() : '알 수 없음';
-            html += `<tr class="bg-white border-b hover:bg-gray-50"><td class="px-4 py-4 font-medium text-gray-900">${member.name}</td><td class="px-4 py-4">${member.phone || '-'}</td><td class="px-4 py-4">${registeredDate}</td></tr>`;
+            const tr = document.createElement('tr');
+            tr.className = 'bg-white border-b hover:bg-gray-50 animate-fadeInUp';
+            tr.style.animationDelay = `${index * 50}ms`;
+            tr.innerHTML = `<td class="px-4 py-4 font-medium text-gray-900">${member.name}</td><td class="px-4 py-4">${member.phone || '-'}</td><td class="px-4 py-4">${registeredDate}</td>`;
+            tbody.appendChild(tr);
         });
-        html += '</tbody></table>';
-        container.innerHTML = html;
+        table.appendChild(tbody);
+        container.appendChild(table);
     };
 
     const renderReport_TrendChart = (allLogs) => {
@@ -1748,9 +1756,13 @@
         } else {
             newMembersInMonth
                 .sort((a, b) => a.name.localeCompare(b.name))
-                .forEach(member => {
+                .forEach((member, index) => {
                     const regDateStr = member.registeredAt.toDate().toLocaleDateString();
-                    list.innerHTML += `<li class="bg-gray-50 p-3 rounded flex justify-between items-center"><span class="font-bold text-gray-800">${member.name}</span><span class="text-xs text-gray-500">${regDateStr}</span></li>`;
+                    const li = document.createElement('li');
+                    li.className = 'bg-gray-50 p-3 rounded flex justify-between items-center animate-fadeInUp';
+                    li.style.animationDelay = `${index * 50}ms`;
+                    li.innerHTML = `<span class="font-bold text-gray-800">${member.name}</span><span class="text-xs text-gray-500">${regDateStr}</span>`;
+                    list.appendChild(li);
                 });
         }
         modal.classList.remove('hidden');
