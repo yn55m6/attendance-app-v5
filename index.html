@@ -740,6 +740,26 @@
     </div>
 </div>
 
+<!-- [NEW] Custom Prompt Modal -->
+<div id="custom-prompt-modal" class="fixed inset-0 bg-black bg-opacity-90 z-[110] hidden flex flex-col justify-center items-center p-6 no-print">
+    <div class="bg-white w-full max-w-sm rounded-2xl p-6 text-center shadow-2xl transform transition-all scale-100">
+        <div class="w-16 h-16 bg-indigo-100 text-indigo-600 rounded-full flex items-center justify-center mx-auto mb-4">
+            <i class="fas fa-keyboard text-3xl"></i>
+        </div>
+        <h3 class="text-xl font-bold text-gray-800 mb-2" id="custom-prompt-title">입력</h3>
+        <p class="text-gray-600 mb-6 whitespace-pre-line leading-relaxed" id="custom-prompt-message">내용</p>
+        <input type="text" id="custom-prompt-input" class="w-full p-4 text-center text-lg border-2 border-gray-200 rounded-xl mb-6 focus:border-indigo-500 outline-none" onkeyup="if(event.key==='Enter') submitCustomPrompt()">
+        <div class="flex gap-3">
+            <button onclick="closeCustomPrompt(null)" class="flex-1 py-3.5 bg-gray-100 text-gray-600 rounded-xl font-bold text-lg hover:bg-gray-200 transition-colors">
+                취소
+            </button>
+            <button onclick="submitCustomPrompt()" class="flex-1 py-3.5 bg-indigo-600 text-white rounded-xl font-bold text-lg hover:bg-indigo-700 transition-colors shadow-lg">
+                확인
+            </button>
+        </div>
+    </div>
+</div>
+
 <script>
     // =================================================================================
     // IndexedDB Helper (데이터베이스 관리 로직)
@@ -894,6 +914,8 @@
 
     // --- [NEW] Custom Modal Helpers ---
     let confirmCallback = null;
+    let confirmPromiseResolve = null; // For async/await usage
+    let promptPromiseResolve = null; // For async/await usage
 
     window.showAlert = function(title, message) {
         document.getElementById('custom-alert-title').innerText = title;
@@ -912,12 +934,50 @@
         document.getElementById('custom-confirm-modal').classList.remove('hidden');
     }
 
+    window.requestConfirm = function(title, message) {
+        return new Promise((resolve) => {
+            document.getElementById('custom-confirm-title').innerText = title;
+            document.getElementById('custom-confirm-message').innerText = message;
+            confirmPromiseResolve = resolve;
+            document.getElementById('custom-confirm-modal').classList.remove('hidden');
+        });
+    }
+
     window.closeCustomConfirm = function(result) {
         document.getElementById('custom-confirm-modal').classList.add('hidden');
         if (result && confirmCallback) {
             confirmCallback();
         }
+        if (confirmPromiseResolve) {
+            confirmPromiseResolve(result);
+            confirmPromiseResolve = null;
+        }
         confirmCallback = null;
+    }
+
+    window.requestPrompt = function(title, message, placeholder = "", isPassword = false) {
+        return new Promise((resolve) => {
+            document.getElementById('custom-prompt-title').innerText = title;
+            document.getElementById('custom-prompt-message').innerText = message;
+            const input = document.getElementById('custom-prompt-input');
+            input.value = '';
+            input.placeholder = placeholder;
+            input.type = isPassword ? 'password' : 'text';
+            promptPromiseResolve = resolve;
+            document.getElementById('custom-prompt-modal').classList.remove('hidden');
+            input.focus();
+        });
+    }
+
+    window.closeCustomPrompt = function(value) {
+        document.getElementById('custom-prompt-modal').classList.add('hidden');
+        if (promptPromiseResolve) promptPromiseResolve(value);
+        promptPromiseResolve = null;
+    }
+
+    window.submitCustomPrompt = function() {
+        const value = document.getElementById('custom-prompt-input').value;
+        closeCustomPrompt(value);
     }
 
     // [NEW] Function to show the undo toast
@@ -2354,15 +2414,16 @@
 
     // --- 8. Data Backup & Restore ---
     window.exportData = async function() {
-        const password = prompt("백업 파일을 암호화할 비밀번호를 입력하세요.\n이 비밀번호를 잊으면 복구할 수 없습니다.", "");
-        if (!password) {
-            alert("비밀번호가 입력되지 않아 백업이 취소되었습니다.");
-            return;
-        }
-        const confirmPassword = prompt("비밀번호를 다시 한번 입력해주세요.", "");
+        const password = await requestPrompt("백업 암호화", "백업 파일을 암호화할 비밀번호를 입력하세요.\n이 비밀번호를 잊으면 복구할 수 없습니다.", "비밀번호 입력", true);
+        
+        if (password === null) return; // Cancelled
+        if (!password) return showAlert("알림", "비밀번호가 입력되지 않아 백업이 취소되었습니다.");
+
+        const confirmPassword = await requestPrompt("비밀번호 확인", "비밀번호를 다시 한번 입력해주세요.", "비밀번호 확인", true);
+        if (confirmPassword === null) return; // Cancelled
+
         if (password !== confirmPassword) {
-            alert("비밀번호가 일치하지 않아 백업이 취소되었습니다.");
-            return;
+            return showAlert("오류", "비밀번호가 일치하지 않아 백업이 취소되었습니다.");
         }
 
         try {
@@ -2394,11 +2455,11 @@
             document.body.removeChild(a);
             URL.revokeObjectURL(url);
 
-            alert('✅ 암호화된 데이터 백업 파일이 다운로드되었습니다.');
+            showAlert('완료', '✅ 암호화된 데이터 백업 파일이 다운로드되었습니다.');
 
         } catch (error) {
             console.error('Data export failed:', error);
-            alert(`❌ 데이터 백업에 실패했습니다: ${error.message}`);
+            showAlert('오류', `❌ 데이터 백업에 실패했습니다: ${error.message}`);
         }
     }
 
@@ -2415,14 +2476,15 @@
                 let members, logs, instructors;
 
                 if (backupData.encryptedData) {
-                    const password = prompt("암호화된 백업 파일입니다. 복호화할 비밀번호를 입력하세요.", "");
+                    const password = await requestPrompt("복호화", "암호화된 백업 파일입니다.\n복호화할 비밀번호를 입력하세요.", "비밀번호 입력", true);
+                    if (password === null) throw new Error("복구가 취소되었습니다.");
                     if (!password) throw new Error("비밀번호가 입력되지 않아 복구가 취소되었습니다.");
                     const decryptedString = await cryptoHelper.decrypt(password, backupData.encryptedData);
                     const restoredData = JSON.parse(decryptedString);
                     ({ members, logs, instructors } = restoredData);
-                    if (!confirm('⚠️ 경고: 데이터가 성공적으로 복호화되었습니다.\n현재 저장된 모든 데이터를 삭제하고 이 데이터로 복원하시겠습니까?')) throw new Error("사용자가 복원을 취소했습니다.");
+                    if (!await requestConfirm('복구 확인', '⚠️ 경고: 데이터가 성공적으로 복호화되었습니다.\n현재 저장된 모든 데이터를 삭제하고 이 데이터로 복원하시겠습니까?')) throw new Error("사용자가 복원을 취소했습니다.");
                 } else if (backupData.data) {
-                    if (!confirm('⚠️ 경고: 암호화되지 않은 백업 파일입니다.\n현재 저장된 모든 데이터를 삭제하고 이 데이터로 복원하시겠습니까?')) throw new Error("사용자가 복원을 취소했습니다.");
+                    if (!await requestConfirm('복구 확인', '⚠️ 경고: 암호화되지 않은 백업 파일입니다.\n현재 저장된 모든 데이터를 삭제하고 이 데이터로 복원하시겠습니까?')) throw new Error("사용자가 복원을 취소했습니다.");
                     const isAuthorized = await requestPassword();
                     if (!isAuthorized) throw new Error("관리자 인증에 실패하여 복원이 취소되었습니다.");
                     ({ members, logs, instructors } = backupData.data);
@@ -2434,11 +2496,11 @@
 
                 await Promise.all([dbHelper.clear('members'), dbHelper.clear('logs'), dbHelper.clear('instructors')]);
                 await Promise.all([dbHelper.bulkPut('members', members), dbHelper.bulkPut('logs', logs), dbHelper.bulkPut('instructors', instructors)]);
-                alert('✅ 데이터 복구가 완료되었습니다. 앱을 새로고침합니다.');
+                showAlert('완료', '✅ 데이터 복구가 완료되었습니다. 앱을 새로고침합니다.');
                 location.reload();
             } catch (error) {
                 console.error('Data import failed:', error);
-                alert(`❌ 데이터 복구에 실패했습니다.\n오류: ${error.message}. 비밀번호가 틀렸거나 파일이 손상되었을 수 있습니다.`);
+                showAlert('오류', `❌ 데이터 복구에 실패했습니다.\n오류: ${error.message}.\n비밀번호가 틀렸거나 파일이 손상되었을 수 있습니다.`);
             } finally {
                 event.target.value = ''; // Reset file input
             }
@@ -2447,42 +2509,42 @@
     }
 
     // --- [NEW] Data Repair Logic ---
-    window.repairMemberData = async function() {
-        if (!confirm("가입일 정보가 없는 회원의 가입일을\n최초 출석 기록 기준으로 복구하시겠습니까?")) return;
+    window.repairMemberData = function() {
+        showConfirm("데이터 보정", "가입일 정보가 없는 회원의 가입일을\n최초 출석 기록 기준으로 복구하시겠습니까?", async () => {
+            let updatedCount = 0;
+            const updates = [];
 
-        let updatedCount = 0;
-        const updates = [];
-
-        for (let member of window.members) {
-            if (!member.registeredAt) {
-                // Find first log
-                const memberLogs = window.logs.filter(l => String(l.memberId) === String(member.id));
-                if (memberLogs.length > 0) {
-                    // Sort by date ascending
-                    memberLogs.sort((a, b) => a.date.localeCompare(b.date));
-                    const firstLog = memberLogs[0];
-                    
-                    // Construct a date object from YYYY-MM-DD
-                    const [y, m, d] = firstLog.date.split('-').map(Number);
-                    const regDate = new Date(y, m - 1, d);
-                    
-                    member.registeredAt = regDate.toISOString();
-                    updates.push(dbHelper.put('members', member));
-                    updatedCount++;
+            for (let member of window.members) {
+                if (!member.registeredAt) {
+                    // Find first log
+                    const memberLogs = window.logs.filter(l => String(l.memberId) === String(member.id));
+                    if (memberLogs.length > 0) {
+                        // Sort by date ascending
+                        memberLogs.sort((a, b) => a.date.localeCompare(b.date));
+                        const firstLog = memberLogs[0];
+                        
+                        // Construct a date object from YYYY-MM-DD
+                        const [y, m, d] = firstLog.date.split('-').map(Number);
+                        const regDate = new Date(y, m - 1, d);
+                        
+                        member.registeredAt = regDate.toISOString();
+                        updates.push(dbHelper.put('members', member));
+                        updatedCount++;
+                    }
                 }
             }
-        }
 
-        if (updatedCount > 0) {
-            await Promise.all(updates);
-            alert(`✅ ${updatedCount}명의 회원 가입일 정보를 복구했습니다.`);
-            // Refresh UI if in reports mode
-            if (currentMode === 'reports') {
-                showReports(currentActiveReportTabId);
+            if (updatedCount > 0) {
+                await Promise.all(updates);
+                showAlert("완료", `✅ ${updatedCount}명의 회원 가입일 정보를 복구했습니다.`);
+                // Refresh UI if in reports mode
+                if (currentMode === 'reports') {
+                    showReports(currentActiveReportTabId);
+                }
+            } else {
+                showAlert("알림", "보정할 데이터가 없습니다. (모든 회원이 가입일 정보를 가지고 있거나, 출석 기록이 없습니다.)");
             }
-        } else {
-            alert("보정할 데이터가 없습니다. (모든 회원이 가입일 정보를 가지고 있거나, 출석 기록이 없습니다.)");
-        }
+        });
     }
 
     // --- Data Management Modal ---
