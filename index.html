@@ -1745,7 +1745,11 @@
         const availableSessions = SESSIONS.filter(s => s.day === day);
         if(availableSessions.length > 0) {
             availableSessions.forEach(s => {
-                const opt = document.createElement('option'); opt.value = s.code; opt.innerText = s.name; select.appendChild(opt);
+                const opt = document.createElement('option'); 
+                opt.value = s.code; 
+                const instructor = window.instructors[s.code];
+                opt.innerText = s.name + (instructor ? ` (${instructor} 사범)` : ''); 
+                select.appendChild(opt);
             });
         } else {
             const opt = document.createElement('option'); opt.innerText = "해당 요일엔 수업이 없습니다."; select.appendChild(opt);
