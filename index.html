@@ -1000,10 +1000,12 @@
 
     // --- 3. Helper Functions ---
     window.getWeekOfMonth = function(dateStr) {
-        const d = new Date(dateStr);
-        const date = d.getDate();
-        const firstDayOfMonth = new Date(d.getFullYear(), d.getMonth(), 1).getDay();
-        return Math.ceil((date + firstDayOfMonth) / 7);
+        // [FIX] Parse date string as local time to avoid timezone shifts
+        const [y, m, d] = dateStr.split('-').map(Number);
+        const date = new Date(y, m - 1, d);
+        const dayOfMonth = date.getDate();
+        const firstDayOfMonth = new Date(y, m - 1, 1).getDay();
+        return Math.ceil((dayOfMonth + firstDayOfMonth) / 7);
     }
 
     window.getCurrentSession = function() {
@@ -1468,12 +1470,23 @@
         renderReport_ClassPopularity(logsForMonth);
     };
 
-    window.showReports = function(activeTabId = 'dashboard') {
+    window.showReports = async function(activeTabId = 'dashboard') {
+        // [FIX] Safety check: Reload data if empty
+        if (window.logs.length === 0) {
+            try {
+                window.logs = await dbHelper.getAll('logs');
+                window.members = await dbHelper.getAll('members');
+            } catch (e) { console.error("Failed to reload data:", e); }
+        }
+
         const allLogs = window.logs;
         const allMembers = window.members;
         const monthFilter = document.getElementById('report-month-filter');
         if (!monthFilter.value) {
-            monthFilter.value = new Date().toISOString().slice(0, 7);
+            const now = new Date();
+            const yyyy = now.getFullYear();
+            const mm = String(now.getMonth() + 1).padStart(2, '0');
+            monthFilter.value = `${yyyy}-${mm}`; // [FIX] Use local time for default month
         }
 
         // Function to get logs for the currently selected month
@@ -2743,7 +2756,7 @@
                 }
             }
             alert(`✅ 테스트 데이터 생성이 완료되었습니다.\n총 ${generatedLogs.size}개의 출석 기록이 추가되었습니다.`);
-            location.reload();
+            // [FIX] Removed location.reload() to preserve memory state and avoid re-initialization issues
         } catch (error) {
             console.error("Test data generation failed:", error);
             alert("❌ 데이터 생성 중 오류가 발생했습니다. 콘솔을 확인해주세요.");
