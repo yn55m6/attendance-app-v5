@@ -2751,22 +2751,19 @@
 
         function initCtx() {
             if (!audioCtx) {
-                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-            } catch (e) {
-                console.error("Web Audio API is not supported in this browser.");
-                return;
+                try {
+                    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                } catch (e) {
+                    console.error("Web Audio API is not supported in this browser.");
+                    return;
+                }
             }
-            if (audioCtx.state === 'suspended') {
+            if (audioCtx && audioCtx.state === 'suspended') {
                 audioCtx.resume();
             }
             return audioCtx;
         }
-        
-        const oscillator = audioCtx.createOscillator();
-        const gainNode = audioCtx.createGain();
 
-        oscillator.connect(gainNode);
-        gainNode.connect(audioCtx.destination);
         function playTone(freq, startTime, duration, type = 'sine', vol = 0.5) {
             const osc = audioCtx.createOscillator();
             const gain = audioCtx.createGain();
@@ -2783,9 +2780,6 @@
             
             osc.stop(startTime + duration);
         }
-
-        oscillator.type = 'sine'; // A clean, pleasant tone
-        oscillator.frequency.setValueAtTime(1046.50, audioCtx.currentTime); // C6 Note for a "ding"
         const sounds = {
             'dingdong': () => { // 딩~동 (익숙한 초인종 소리)
                 const ctx = initCtx();
@@ -2807,9 +2801,6 @@
             }
         };
 
-        gainNode.gain.setValueAtTime(0, audioCtx.currentTime);
-        gainNode.gain.linearRampToValueAtTime(0.5, audioCtx.currentTime + 0.05); // Quick fade-in to prevent click
-        gainNode.gain.exponentialRampToValueAtTime(0.00001, audioCtx.currentTime + 0.3); // Fade-out
         return {
             play: (type) => {
                 const soundType = type || selectedSound;
@@ -2823,8 +2814,6 @@
         };
     })();
 
-        oscillator.start(audioCtx.currentTime);
-        oscillator.stop(audioCtx.currentTime + 0.3);
     // Global wrapper for compatibility
     window.playSound = () => SoundManager.play();
     window.SoundManager = SoundManager; // Expose for HTML onclick
