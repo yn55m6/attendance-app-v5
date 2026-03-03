@@ -372,7 +372,7 @@
                     <div class="card">
                         <h3 class="font-bold text-lg mb-4">개인별 주간 출석</h3>
                         <p class="text-sm text-gray-500 mb-4">선택한 월의 회원별 주차 출석 현황입니다.</p>
-                        <div id="report-member-weekly-attendance" class="overflow-x-auto"></div>
+                        <div id="report-member-weekly-attendance" class="overflow-x-auto max-h-[65vh] overflow-y-auto relative"></div>
                     </div>
                 </div>
                 <!-- 탭 4: 출석 순위 -->
@@ -380,7 +380,7 @@
                     <div class="card">
                         <h3 class="font-bold text-lg mb-4">출석 순위</h3>
                         <p class="text-sm text-gray-500 mb-4">선택한 월의 회원별 총 출석 횟수 순위입니다.</p>
-                        <div id="report-member-ranking" class="overflow-x-auto"></div>
+                        <div id="report-member-ranking" class="overflow-x-auto max-h-[65vh] overflow-y-auto relative"></div>
                     </div>
                 </div>
                 <!-- 탭 5: 수업 참여 현황 -->
@@ -388,7 +388,7 @@
                     <div class="card">
                         <h3 class="font-bold text-lg mb-4">수업(차수)별 참여 현황</h3>
                         <p class="text-sm text-gray-500 mb-4">선택한 월에 참여 인원이 많은 수업 순위입니다.</p>
-                        <div id="report-class-popularity" class="overflow-x-auto"></div>
+                        <div id="report-class-popularity" class="overflow-x-auto max-h-[65vh] overflow-y-auto relative"></div>
                     </div>
                 </div>
                 <!-- 탭 6: 신규 회원 -->
@@ -1247,7 +1247,7 @@
         
         const table = document.createElement('table');
         table.className = 'w-full text-sm text-left text-gray-500';
-        table.innerHTML = `<thead class="text-xs text-gray-700 uppercase bg-gray-50">
+        table.innerHTML = `<thead class="text-xs text-gray-700 uppercase bg-gray-50 sticky top-0 z-10 shadow-sm">
                 <tr>
                     <th scope="col" class="px-4 py-3">순위</th>
                     <th scope="col" class="px-4 py-3">이름</th>
@@ -1383,7 +1383,7 @@
         reportDataCache.memberWeekly = sortedIndiv;
         
         let html = `<table class="w-full text-sm text-left text-gray-500">
-            <thead class="text-xs text-gray-700 uppercase bg-gray-50">
+            <thead class="text-xs text-gray-700 uppercase bg-gray-50 sticky top-0 z-10 shadow-sm">
                 <tr>
                     <th scope="col" class="px-2 py-3">이름</th>
                     <th scope="col" class="px-2 py-3 text-center">1주</th>
@@ -1435,7 +1435,7 @@
         
         const table = document.createElement('table');
         table.className = 'w-full text-sm text-left text-gray-500';
-        table.innerHTML = `<thead class="text-xs text-gray-700 uppercase bg-gray-50">
+        table.innerHTML = `<thead class="text-xs text-gray-700 uppercase bg-gray-50 sticky top-0 z-10 shadow-sm">
                 <tr><th scope="col" class="px-4 py-3">순위</th><th scope="col" class="px-4 py-3">수업</th><th scope="col" class="px-4 py-3 text-right">총 출석인원</th></tr>
             </thead>`;
         const tbody = document.createElement('tbody');
