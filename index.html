@@ -951,6 +951,10 @@
     window.handleMemberGridClick = function(memberId) {
         const dateStr = document.getElementById('member-mode-date').value;
         const sessionCode = document.getElementById('member-mode-session').value;
+        
+        if (!dateStr) return alert("출석 날짜가 설정되지 않았습니다. 날짜를 선택해주세요.");
+        if (!sessionCode) return alert("수업(차수)이 선택되지 않았습니다.");
+
         const member = members.find(m => m.id === memberId);
         const session = SESSIONS.find(s => s.code === sessionCode);
 
@@ -1673,21 +1677,6 @@
             select.value = current.code;
         } else if (select.options.length > 0) {
             select.selectedIndex = 0;
-        }
-
-        document.getElementById('paper-text-area').value = '';
-        modal.classList.remove('hidden');
-    }
-
-    window.syncPaperInputToNow = function() {
-        const todayStr = getTodayStr();
-        document.getElementById('paper-date').value = todayStr;
-        updateSessionOptions();
-        
-        const current = getCurrentSession();
-        const select = document.getElementById('paper-session-select');
-        if (current && select) {
-            select.value = current.code;
         }
 
         document.getElementById('paper-text-area').value = '';
@@ -2756,7 +2745,13 @@
                 }
             }
             alert(`✅ 테스트 데이터 생성이 완료되었습니다.\n총 ${generatedLogs.size}개의 출석 기록이 추가되었습니다.`);
-            // [FIX] Removed location.reload() to preserve memory state and avoid re-initialization issues
+            // [FIX] Reload data from DB to reflect changes in reports immediately
+            try {
+                window.logs = await dbHelper.getAll('logs');
+                window.members = await dbHelper.getAll('members');
+                // Sort logs by ID desc (newest first)
+                window.logs.sort((a, b) => b.id - a.id);
+            } catch (e) { console.error("Failed to reload data:", e); }
         } catch (error) {
             console.error("Test data generation failed:", error);
             alert("❌ 데이터 생성 중 오류가 발생했습니다. 콘솔을 확인해주세요.");
