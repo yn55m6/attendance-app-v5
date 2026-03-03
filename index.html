@@ -140,6 +140,15 @@
 </head>
 <body>
 
+<!-- [NEW] Global Error Handler (For Debugging) -->
+<script>
+    window.onerror = function(msg, url, line, col, error) {
+        // 스크립트 오류 발생 시 사용자에게 알림
+        alert("⚠️ 시스템 오류 발생:\n" + msg + "\n(라인: " + line + ")");
+        return false;
+    };
+</script>
+
 <div class="app-container">
     <!-- Mode Selection & Login Section -->
     <section id="start-screen" class="absolute inset-0 bg-gray-100 z-50 flex flex-col justify-center items-center p-6" aria-labelledby="mode-selection-title">
@@ -858,12 +867,18 @@
     // --- 1. Configuration ---
     // [CHANGED] Use localStorage for password persistence. Default is '1234'.
     const initAdminPw = () => {
-        const pw = localStorage.getItem('adminPassword');
-        if (!pw || pw.trim() === "" || pw === 'undefined' || pw === 'null') {
-            localStorage.setItem('adminPassword', '1234');
+        try {
+            const pw = localStorage.getItem('adminPassword');
+            if (!pw || pw.trim() === "" || pw === 'undefined' || pw === 'null') {
+                localStorage.setItem('adminPassword', '1234');
+            }
+            // [FIX] Reset lockout state on init to prevent stuck login
+            localStorage.removeItem('adminLockout');
+        } catch (e) {
+            console.error("Storage access error:", e);
         }
     };
-    initAdminPw();
+    try { initAdminPw(); } catch(e) { console.error(e); }
     
     // Register ChartDataLabels plugin globally
     Chart.register(ChartDataLabels);
@@ -2967,21 +2982,25 @@
     };
 
     window.handleLogin = function() {
-        const passwordField = document.getElementById('admin-password');
-        const password = passwordField.value.trim();
-        
-        if (!password) return; 
+        try {
+            const passwordField = document.getElementById('admin-password');
+            const password = passwordField.value.trim();
+            
+            if (!password) return; 
 
-        const storedPw = (localStorage.getItem('adminPassword') || '1234').trim();
+            const storedPw = (localStorage.getItem('adminPassword') || '1234').trim();
 
-        if (password === storedPw) {
-            sessionStorage.setItem('isAdminLoggedIn', 'true');
-            sessionStorage.setItem('appMode', 'admin');
-            showApp();
-        } else {
-            alert('비밀번호가 틀렸습니다.');
-            passwordField.value = '';
-            passwordField.focus();
+            if (password === storedPw) {
+                sessionStorage.setItem('isAdminLoggedIn', 'true');
+                sessionStorage.setItem('appMode', 'admin');
+                showApp();
+            } else {
+                alert('비밀번호가 틀렸습니다.');
+                passwordField.value = '';
+                passwordField.focus();
+            }
+        } catch (e) {
+            alert("로그인 처리 중 오류가 발생했습니다.\n" + e.message);
         }
     }
 
