@@ -770,17 +770,24 @@
 <script>
     // --- 0. Firebase Setup (REMOVED) ---
     const THEMES = {
-        indigo: { name: '기본', '600': '#4f46e5' },
-        blue: { name: '파랑', '600': '#2563eb' },
-        green: { name: '초록', '600': '#16a34a' },
-        red: { name: '빨강', '600': '#dc2626' },
-        orange: { name: '주황', '600': '#ea580c' },
+        indigo: { name: '기본', '600': '#4f46e5', rgb: '79, 70, 229' },
+        blue: { name: '파랑', '600': '#2563eb', rgb: '37, 99, 235' },
+        green: { name: '초록', '600': '#16a34a', rgb: '22, 163, 74' },
+        red: { name: '빨강', '600': '#dc2626', rgb: '220, 38, 38' },
+        orange: { name: '주황', '600': '#ea580c', rgb: '234, 88, 12' },
     };
 
     // Helper to get theme color for JS (e.g., charts)
     function getThemeColor(shade, opacity = 1) {
-        const rgb = getComputedStyle(document.body).getPropertyValue(`--theme-${shade}-rgb`).trim();
-        if (!rgb) return `rgba(79, 70, 229, ${opacity})`; // Fallback to default indigo
+        // [FIX] CSS 변수 대신 JS 객체에서 직접 색상 값을 가져옵니다.
+        // 이는 CSS 로딩 지연이나 파싱 오류로 인한 '흰색 그래프' 문제를 원천 차단합니다.
+        const currentThemeName = document.body.dataset.theme || 'indigo';
+        const theme = THEMES[currentThemeName] || THEMES['indigo'];
+        
+        // shade 인자는 현재 무시하고 메인 색상(600)을 기준으로 처리합니다.
+        // 필요하다면 THEMES 객체에 더 많은 shade를 추가할 수 있습니다.
+        const rgb = theme.rgb || '79, 70, 229';
+        
         return `rgba(${rgb}, ${opacity})`;
     }
 
