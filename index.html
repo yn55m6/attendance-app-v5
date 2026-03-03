@@ -730,6 +730,39 @@
     </div>
 </div>
 
+<!-- [NEW] Custom Alert Modal -->
+<div id="custom-alert-modal" class="fixed inset-0 bg-black bg-opacity-90 z-[110] hidden flex flex-col justify-center items-center p-6 no-print">
+    <div class="bg-white w-full max-w-sm rounded-2xl p-6 text-center shadow-2xl transform transition-all scale-100">
+        <div class="w-16 h-16 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center mx-auto mb-4">
+            <i class="fas fa-info-circle text-3xl"></i>
+        </div>
+        <h3 class="text-xl font-bold text-gray-800 mb-2" id="custom-alert-title">알림</h3>
+        <p class="text-gray-600 mb-6 whitespace-pre-line leading-relaxed" id="custom-alert-message">내용</p>
+        <button onclick="closeCustomAlert()" class="w-full py-3.5 bg-blue-600 text-white rounded-xl font-bold text-lg hover:bg-blue-700 transition-colors shadow-lg">
+            확인
+        </button>
+    </div>
+</div>
+
+<!-- [NEW] Custom Confirm Modal -->
+<div id="custom-confirm-modal" class="fixed inset-0 bg-black bg-opacity-90 z-[110] hidden flex flex-col justify-center items-center p-6 no-print">
+    <div class="bg-white w-full max-w-sm rounded-2xl p-6 text-center shadow-2xl transform transition-all scale-100">
+        <div class="w-16 h-16 bg-indigo-100 text-indigo-600 rounded-full flex items-center justify-center mx-auto mb-4">
+            <i class="fas fa-question-circle text-3xl"></i>
+        </div>
+        <h3 class="text-xl font-bold text-gray-800 mb-2" id="custom-confirm-title">확인</h3>
+        <p class="text-gray-600 mb-6 whitespace-pre-line leading-relaxed" id="custom-confirm-message">내용</p>
+        <div class="flex gap-3">
+            <button onclick="closeCustomConfirm(false)" class="flex-1 py-3.5 bg-gray-100 text-gray-600 rounded-xl font-bold text-lg hover:bg-gray-200 transition-colors">
+                취소
+            </button>
+            <button onclick="closeCustomConfirm(true)" class="flex-1 py-3.5 bg-indigo-600 text-white rounded-xl font-bold text-lg hover:bg-indigo-700 transition-colors shadow-lg">
+                확인
+            </button>
+        </div>
+    </div>
+</div>
+
 <script>
     // =================================================================================
     // IndexedDB Helper (데이터베이스 관리 로직)
@@ -877,6 +910,34 @@
     let trendChartInstance = null; // Chart instance
     let undoTimer = null; // [NEW] Timer for the undo toast
 
+    // --- [NEW] Custom Modal Helpers ---
+    let confirmCallback = null;
+
+    window.showAlert = function(title, message) {
+        document.getElementById('custom-alert-title').innerText = title;
+        document.getElementById('custom-alert-message').innerText = message;
+        document.getElementById('custom-alert-modal').classList.remove('hidden');
+    }
+
+    window.closeCustomAlert = function() {
+        document.getElementById('custom-alert-modal').classList.add('hidden');
+    }
+
+    window.showConfirm = function(title, message, callback) {
+        document.getElementById('custom-confirm-title').innerText = title;
+        document.getElementById('custom-confirm-message').innerText = message;
+        confirmCallback = callback;
+        document.getElementById('custom-confirm-modal').classList.remove('hidden');
+    }
+
+    window.closeCustomConfirm = function(result) {
+        document.getElementById('custom-confirm-modal').classList.add('hidden');
+        if (result && confirmCallback) {
+            confirmCallback();
+        }
+        confirmCallback = null;
+    }
+
     // [NEW] Function to show the undo toast
     function showUndoToast(message, onUndoCallback) {
         const toast = document.getElementById('undo-toast');
@@ -984,20 +1045,20 @@
         const dateStr = document.getElementById('member-mode-date').value;
         const sessionCode = document.getElementById('member-mode-session').value;
         
-        if (!dateStr) return alert("출석 날짜가 설정되지 않았습니다. 날짜를 선택해주세요.");
-        if (!sessionCode) return alert("수업(차수)이 선택되지 않았습니다.");
+        if (!dateStr) return showAlert("알림", "출석 날짜가 설정되지 않았습니다. 날짜를 선택해주세요.");
+        if (!sessionCode) return showAlert("알림", "수업(차수)이 선택되지 않았습니다.");
 
         // [FIX] Use String comparison for ID matching
         const member = members.find(m => String(m.id) === String(memberId));
         const session = SESSIONS.find(s => s.code === sessionCode);
 
         if (!session || sessionCode === "수업 없음") {
-            return alert("선택된 날짜에 진행되는 수업이 없습니다. 날짜를 확인해주세요.");
+            return showAlert("알림", "선택된 날짜에 진행되는 수업이 없습니다. 날짜를 확인해주세요.");
         }
 
-        if (confirm(`[${session.name}]\n${member.name}님, 출석하시겠습니까?`)) {
+        showConfirm("출석 확인", `[${session.name}]\n${member.name}님, 출석하시겠습니까?`, () => {
             confirmAttendanceWithId(memberId, false, dateStr, sessionCode);
-        }
+        });
     }
 
     window.handleNewMemberGridClick = async function(name) {
@@ -1006,33 +1067,39 @@
         const session = SESSIONS.find(s => s.code === sessionCode);
 
         if (!session || sessionCode === "수업 없음") {
-            return alert("선택된 날짜에 진행되는 수업이 없습니다. 날짜를 확인해주세요.");
+            return showAlert("알림", "선택된 날짜에 진행되는 수업이 없습니다. 날짜를 확인해주세요.");
         }
 
-        if (confirm(`'${name}' 님은 명단에 없습니다.\n새 회원으로 등록하고 출석 처리할까요?`)) {
+        showConfirm("신규 등록", `'${name}' 님은 명단에 없습니다.\n새 회원으로 등록하고 출석 처리할까요?`, async () => {
             try {
                 const existingMembers = members.filter(m => m.name === name);
                 if (existingMembers.length > 0) {
-                    if (!confirm(`이미 같은 이름의 회원(${name})이 ${existingMembers.length}명 존재합니다.\n동명이인으로 새로 등록하시겠습니까?`)) {
-                        return; // User cancelled
-                    }
+                    // 중복 확인을 위한 추가 모달 처리
+                    showConfirm("동명이인 확인", `이미 같은 이름의 회원(${name})이 ${existingMembers.length}명 존재합니다.\n동명이인으로 새로 등록하시겠습니까?`, async () => {
+                        await proceedNewMember(name, dateStr, sessionCode);
+                    });
+                    return;
                 }
-
-                // Create new member
-                const newMemberData = { name, phone: "0000", registeredAt: new Date().toISOString() };
-                const newId = await dbHelper.add('members', newMemberData);
-                newMemberData.id = newId;
-                window.members.push(newMemberData);
-                window.members.sort((a, b) => a.name.localeCompare(b.name));
-                
-                // Immediately check in
-                await confirmAttendanceWithId(newId, true, dateStr, sessionCode);
+                await proceedNewMember(name, dateStr, sessionCode);
 
             } catch (e) {
                 console.error("신규 회원 등록 및 출석 처리 실패:", e);
-                alert("처리 중 오류가 발생했습니다.");
+                showAlert("오류", "처리 중 오류가 발생했습니다.");
             }
-        }
+        });
+    }
+
+    // [NEW] Helper to proceed with new member creation
+    async function proceedNewMember(name, dateStr, sessionCode) {
+        // Create new member
+        const newMemberData = { name, phone: "0000", registeredAt: new Date().toISOString() };
+        const newId = await dbHelper.add('members', newMemberData);
+        newMemberData.id = newId;
+        window.members.push(newMemberData);
+        window.members.sort((a, b) => a.name.localeCompare(b.name));
+        
+        // Immediately check in
+        await confirmAttendanceWithId(newId, true, dateStr, sessionCode);
     }
 
     // --- 3. Helper Functions ---
@@ -1745,7 +1812,7 @@
         const newName = document.getElementById('instructor-edit-name').value.trim();
         
         if (newName === "") {
-            alert('이름을 입력해야 합니다.');
+            showAlert('알림', '이름을 입력해야 합니다.');
             return;
         }
         try {
@@ -1753,11 +1820,11 @@
             await dbHelper.put('instructors', instructorData);
             window.instructors[sessionCode] = newName;
             renderInstructorManagement();
-            alert('담당 사범 정보가 업데이트되었습니다.');
+            showAlert('완료', '담당 사범 정보가 업데이트되었습니다.');
             closeInstructorEditModal();
         } catch (error) { 
             console.error("Error updating instructor: ", error); 
-            alert('업데이트 중 오류가 발생했습니다.'); 
+            showAlert('오류', '업데이트 중 오류가 발생했습니다.'); 
         }
     }
 
@@ -1857,9 +1924,9 @@
         const sessionCode = document.getElementById('paper-session-select').value;
         const text = document.getElementById('paper-text-area').value;
         
-        if(!dateStr) return alert('날짜를 선택해주세요.');
-        if(!sessionCode || sessionCode.startsWith("해당")) return alert('유효한 수업(차수)을 선택해주세요.');
-        if(!text.trim()) return alert('이름을 입력해주세요.');
+        if(!dateStr) return showAlert('알림', '날짜를 선택해주세요.');
+        if(!sessionCode || sessionCode.startsWith("해당")) return showAlert('알림', '유효한 수업(차수)을 선택해주세요.');
+        if(!text.trim()) return showAlert('알림', '이름을 입력해주세요.');
 
         const session = SESSIONS.find(s => s.code === sessionCode);
         const lines = text.split(/[\n,]+/).map(n => n.trim()).filter(n => n.length > 0);
@@ -1939,9 +2006,9 @@
             const namesStr = successNames.join(', ');
             const instructorName = window.instructors[session.code];
             const sessionDisplayName = session.name + (instructorName ? ` (${instructorName} 사범)` : '');
-            alert(`✅ 등록 완료\n일자: ${dateStr}\n차수: ${sessionDisplayName}\n성함: ${namesStr}\n\n(총 ${successCount}명 처리 / 중복 제외: ${duplicateCount}명 / 신규 가입: ${newMemberCount}명)`);
+            showAlert('일괄 처리 완료', `✅ 등록 완료\n일자: ${dateStr}\n차수: ${sessionDisplayName}\n성함: ${namesStr}\n\n(총 ${successCount}명 처리 / 중복 제외: ${duplicateCount}명 / 신규 가입: ${newMemberCount}명)`);
         } else {
-            alert(`처리할 새로운 명단이 없습니다.\n(중복 제외: ${duplicateCount}명)`);
+            showAlert('알림', `처리할 새로운 명단이 없습니다.\n(중복 제외: ${duplicateCount}명)`);
         }
         
         // 입력창 초기화 (화면은 닫지 않음)
@@ -2248,13 +2315,13 @@
     window.addMember = async function() {
         const name = document.getElementById('new-member-name').value;
         let phone = document.getElementById('new-member-phone').value;
-        if (!name) return alert('이름을 입력해주세요.');
+        if (!name) return showAlert('알림', '이름을 입력해주세요.');
         if (!phone) phone = "0000";
 
         // [NEW] Duplicate Check
         const isDuplicate = members.some(m => m.name === name && m.phone === phone);
         if (isDuplicate) {
-            return alert(`⚠️ 이미 등록된 회원입니다.\n(이름: ${name}, 번호: ${phone})`);
+            return showAlert('중복 등록', `⚠️ 이미 등록된 회원입니다.\n(이름: ${name}, 번호: ${phone})`);
         }
         
         const newMember = { name, phone, registeredAt: new Date().toISOString() };
@@ -2264,7 +2331,7 @@
         window.members.sort((a, b) => a.name.localeCompare(b.name));
 
         document.getElementById('new-member-name').value = ''; document.getElementById('new-member-phone').value = '';
-        alert('회원이 등록되었습니다.');
+        showAlert('완료', '회원이 등록되었습니다.');
         renderMembers();
         updateCheckUserSelect();
         renderMemberGrid();
@@ -2715,12 +2782,12 @@
         const confirmPw = document.getElementById('confirm-password').value.trim();
         const storedPw = (localStorage.getItem('adminPassword') || '1234').trim();
 
-        if (currentPw !== storedPw) return alert('현재 비밀번호가 일치하지 않습니다.');
-        if (newPw.length < 4) return alert('새 비밀번호는 4자 이상이어야 합니다.');
-        if (newPw !== confirmPw) return alert('새 비밀번호 확인이 일치하지 않습니다.');
+        if (currentPw !== storedPw) return showAlert('오류', '현재 비밀번호가 일치하지 않습니다.');
+        if (newPw.length < 4) return showAlert('오류', '새 비밀번호는 4자 이상이어야 합니다.');
+        if (newPw !== confirmPw) return showAlert('오류', '새 비밀번호 확인이 일치하지 않습니다.');
 
         localStorage.setItem('adminPassword', newPw);
-        alert('비밀번호가 변경되었습니다.');
+        showAlert('완료', '비밀번호가 변경되었습니다.');
         closePasswordChangeModal();
     }
 
