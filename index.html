@@ -1523,10 +1523,17 @@
         const tbody = document.createElement('tbody');
 
         sortedClasses.forEach(([sessionName, count], index) => {
+            // [NEW] Add Instructor Name & Crown for 1st place
+            const session = SESSIONS.find(s => s.name === sessionName);
+            const instructor = session ? window.instructors[session.code] : null;
+            const instructorText = instructor ? ` <span class="text-xs text-gray-400 font-normal">(${instructor} 사범)</span>` : '';
+            
+            const rankDisplay = index === 0 ? `<span class="text-yellow-500 mr-1"><i class="fas fa-crown"></i></span>1` : index + 1;
+
             const tr = document.createElement('tr');
             tr.className = 'bg-white border-b hover:bg-gray-50 animate-fadeInUp';
             tr.style.animationDelay = `${index * 50}ms`;
-            tr.innerHTML = `<td class="px-4 py-4 font-medium text-gray-900">${index + 1}</td><td class="px-4 py-4">${sessionName}</td><td class="px-4 py-4 text-right font-semibold">${count}명</td>`;
+            tr.innerHTML = `<td class="px-4 py-4 font-medium text-gray-900">${rankDisplay}</td><td class="px-4 py-4 font-bold text-gray-800">${sessionName}${instructorText}</td><td class="px-4 py-4 text-right font-semibold">${count}명</td>`;
             tbody.appendChild(tr);
         });
         
