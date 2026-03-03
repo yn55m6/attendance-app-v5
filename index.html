@@ -695,6 +695,14 @@
                 </label>
                 <input type="file" id="import-file-input" class="hidden" accept=".json" onchange="importData(event)">
             </div>
+            
+            <div class="p-4 bg-gray-50 rounded-lg border border-gray-200">
+                <h4 class="font-bold text-gray-700">데이터 보정</h4>
+                <p class="text-sm text-gray-600 my-2">가입일 정보가 없는 회원을 찾아, 최초 출석일을 가입일로 설정합니다.</p>
+                <button onclick="repairMemberData()" class="w-full py-3 bg-gray-600 text-white rounded-lg text-base font-bold hover:bg-gray-700 flex items-center justify-center">
+                    <i class="fas fa-wrench mr-2"></i>가입일 데이터 복구
+                </button>
+            </div>
         </div>
     </div>
 </div>
@@ -1387,6 +1395,7 @@
             const count = members.filter(member => {
                 if (!member.registeredAt) return false;
                 const regDate = new Date(member.registeredAt);
+                if (isNaN(regDate.getTime())) return false; // [FIX] Check for invalid date
                 return regDate.getFullYear() === year && regDate.getMonth() === month;
             }).length;
             data.push(count);
@@ -2387,6 +2396,45 @@
             }
         };
         reader.readAsText(file);
+    }
+
+    // --- [NEW] Data Repair Logic ---
+    window.repairMemberData = async function() {
+        if (!confirm("가입일 정보가 없는 회원의 가입일을\n최초 출석 기록 기준으로 복구하시겠습니까?")) return;
+
+        let updatedCount = 0;
+        const updates = [];
+
+        for (let member of window.members) {
+            if (!member.registeredAt) {
+                // Find first log
+                const memberLogs = window.logs.filter(l => String(l.memberId) === String(member.id));
+                if (memberLogs.length > 0) {
+                    // Sort by date ascending
+                    memberLogs.sort((a, b) => a.date.localeCompare(b.date));
+                    const firstLog = memberLogs[0];
+                    
+                    // Construct a date object from YYYY-MM-DD
+                    const [y, m, d] = firstLog.date.split('-').map(Number);
+                    const regDate = new Date(y, m - 1, d);
+                    
+                    member.registeredAt = regDate.toISOString();
+                    updates.push(dbHelper.put('members', member));
+                    updatedCount++;
+                }
+            }
+        }
+
+        if (updatedCount > 0) {
+            await Promise.all(updates);
+            alert(`✅ ${updatedCount}명의 회원 가입일 정보를 복구했습니다.`);
+            // Refresh UI if in reports mode
+            if (currentMode === 'reports') {
+                showReports(currentActiveReportTabId);
+            }
+        } else {
+            alert("보정할 데이터가 없습니다. (모든 회원이 가입일 정보를 가지고 있거나, 출석 기록이 없습니다.)");
+        }
     }
 
     // --- Data Management Modal ---
