@@ -1,10 +1,9 @@
-const CACHE_NAME = 'attendance-app-cache-v25'; // 버전을 업데이트하여 캐시를 갱신할 수 있습니다.
+const CACHE_NAME = 'attendance-app-cache-v26'; // 버전을 업데이트하여 캐시를 갱신할 수 있습니다.
 const urlsToCache = [
     './',
     './index.html',
     './app-icon.png',
     'https://cdn.tailwindcss.com',
-    'https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js',
     'https://cdn.jsdelivr.net/npm/chart.js',
     'https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.0.0',
     'https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css',

@@ -20,8 +20,6 @@
 
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- QRCode.js -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
     <!-- Chart.js (그래프용) -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <!-- Chart.js DataLabels Plugin -->
@@ -230,7 +228,7 @@
                     <div class="text-left">
                         <label for="member-mode-session" class="block text-xs sm:text-sm font-bold text-gray-500 mb-2">수업(차수) 선택</label>
                         <div class="flex gap-2">
-                            <select id="member-mode-session" class="flex-1 p-3 sm:p-4 border-2 border-gray-200 rounded-xl bg-gray-50 text-sm sm:text-base font-bold text-gray-700 focus:border-theme-300 outline-none" onchange="renderMemberModeQR()"></select>
+                            <select id="member-mode-session" class="flex-1 p-3 sm:p-4 border-2 border-gray-200 rounded-xl bg-gray-50 text-sm sm:text-base font-bold text-gray-700 focus:border-theme-300 outline-none"></select>
                             <button id="btn-sync-member" onclick="syncMemberModeToNow()" class="p-3 sm:p-4 bg-white border-2 border-gray-200 rounded-xl text-theme-500 hover:bg-theme-50 transition shadow-sm" title="현재 시간으로 수업 갱신">
                                 <i class="fas fa-sync-alt" id="icon-sync-member"></i>
                             </button>
@@ -238,11 +236,6 @@
                     </div>
                 </div>
                 
-                <!-- [NEW] QR Code Display Area -->
-                <div id="member-mode-qr" class="flex flex-col items-center justify-center mb-8 hidden">
-                    <!-- QR code will be rendered here -->
-                </div>
-
                 <div class="relative mb-8">
                     <label for="member-search-input" class="sr-only">회원 이름 검색</label>
                     <input type="text" id="member-search-input" oninput="renderMemberGrid(this.value)" 
@@ -259,14 +252,6 @@
 
         <!-- Page 1: Home (QR & Tools) -->
         <section id="page-home" class="page">
-            <div class="card">
-                <h2 class="text-gray-800 font-bold text-xl mb-2"><i class="fas fa-qrcode mr-2" aria-hidden="true"></i>QR 코드 관리</h2>
-                <p class="text-base text-gray-500 mb-4">강의실 부착용 QR 코드를 인쇄하세요.</p>
-                <button onclick="openQRPrintModal()" class="w-full py-4 bg-gray-800 text-white rounded-lg font-bold hover:bg-gray-700 text-lg">
-                    <i class="fas fa-print mr-2"></i>QR 코드 목록 보기
-                </button>
-            </div>
-
             <div class="card">
                 <h3 class="font-bold text-xl text-gray-700 mb-3"><i class="fas fa-tools mr-2" aria-hidden="true"></i>관리자 도구</h3>
                 <button onclick="openPaperInputModal()" class="btn-primary mb-2 bg-gradient-to-r from-green-500 to-emerald-600">
@@ -447,23 +432,6 @@
     </main>
 </div>
 
-<!-- Modal: QR Print View -->
-<div id="qr-print-modal" class="fixed inset-0 bg-white z-50 hidden overflow-y-auto">
-    <div class="p-6 max-w-2xl mx-auto" id="print-area">
-        <div class="flex justify-between items-center mb-6 no-print">
-            <h2 class="text-2xl font-bold">인쇄용 QR 코드</h2>
-            <button onclick="closeQRPrintModal()" class="text-gray-500 text-lg"><i class="fas fa-times"></i></button>
-        </div>
-        <div class="no-print mb-4 text-center">
-            <button onclick="window.print()" class="bg-blue-600 text-white px-6 py-2 rounded-lg font-bold shadow hover:bg-blue-700">
-                <i class="fas fa-print mr-2"></i>인쇄하기
-            </button>
-            <p class="text-xs text-red-500 mt-2">※ 주의: 이 QR 코드는 현재 웹사이트 주소 기반입니다.<br>서버 주소가 바뀌면 다시 출력해야 합니다.</p>
-        </div>
-        <div id="static-qr-list" class="grid grid-cols-1 md:grid-cols-2 gap-8 text-center"></div>
-    </div>
-</div>
-
 <!-- Modal: Paper Input (Text Area) -->
 <div id="paper-input-modal" class="fixed inset-0 bg-black bg-opacity-90 z-50 hidden flex flex-col justify-center items-center p-6 no-print">
     <div class="bg-white w-full max-w-md rounded-xl p-6 relative max-h-[90vh] overflow-y-auto">
@@ -501,7 +469,7 @@
     </div>
 </div>
 
-<!-- Modal: User Attendance Check (QR Scan Result) -->
+<!-- Modal: User Attendance Check -->
 <div id="user-check-modal" class="fixed inset-0 bg-black bg-opacity-90 z-50 hidden flex flex-col justify-center items-center p-6 no-print">
     <div class="bg-white w-full max-w-md rounded-xl p-6 sm:p-8 text-center max-h-[90vh] overflow-y-auto">
         <h3 class="text-2xl sm:text-3xl font-bold mb-6 text-theme-600">출석 체크</h3>
@@ -920,7 +888,6 @@
     window.instructors = {}; // [NEW]
     let currentActiveReportTabId = 'dashboard'; // [NEW] Track currently active report tab
     let reportDataCache = {}; // For CSV export
-    let currentScanSession = null;
     let currentMode = ''; // 현재 활성화된 페이지 추적 (home, members, reports)
     let trendChartInstance = null; // Chart instance
     let undoTimer = null; // [NEW] Timer for the undo toast
@@ -1134,40 +1101,6 @@
         return SESSIONS.find(s => s.day === day && hour >= s.start && hour < s.end);
     }
 
-    // [NEW] Render QR for Member Mode
-    window.renderMemberModeQR = function() {
-        const sessionCode = document.getElementById('member-mode-session').value;
-        const container = document.getElementById('member-mode-qr');
-        if (!container) return;
-        
-        container.innerHTML = ''; // Clear previous
-        
-        if (!sessionCode || sessionCode === "수업 없음") {
-            container.classList.add('hidden');
-            return;
-        }
-        
-        container.classList.remove('hidden');
-        const baseUrl = window.location.href.split('?')[0];
-        const targetUrl = `${baseUrl}?session=${sessionCode}`;
-        
-        // Create QR
-        new QRCode(container, {
-            text: targetUrl,
-            width: 150,
-            height: 150,
-            colorDark : "#000000",
-            colorLight : "#ffffff",
-            correctLevel : QRCode.CorrectLevel.M
-        });
-        
-        // Add label
-        const label = document.createElement('p');
-        label.className = "text-xs text-gray-400 mt-2";
-        label.innerText = "입장용 QR 코드";
-        container.appendChild(label);
-    }
-
     window.updateMemberModeSessionOptions = function() {
         const dateStr = document.getElementById('member-mode-date').value;
         const dayDisplay = document.getElementById('member-mode-day');
@@ -1194,7 +1127,6 @@
         if(availableSessions.length === 0) {
             const opt = document.createElement('option'); opt.innerText = "수업 없음"; select.appendChild(opt);
         }
-        renderMemberModeQR();
     }
 
     // --- [NEW] Animation Helper ---
@@ -1861,25 +1793,6 @@
         }
     }
 
-    // --- 5. QR & Paper Input Logic ---
-    window.openQRPrintModal = function() {
-        const container = document.getElementById('static-qr-list');
-        container.innerHTML = '';
-        const baseUrl = window.location.href.split('?')[0];
-        SESSIONS.forEach(s => {
-            const wrapper = document.createElement('div');
-            wrapper.className = "border-2 border-dashed border-gray-300 p-6 rounded-xl flex flex-col items-center page-break-inside-avoid";
-            const title = document.createElement('h3'); title.className = "text-xl font-bold mb-1"; title.innerText = s.name;
-            const sub = document.createElement('p'); sub.className = "text-gray-500 mb-4"; sub.innerText = `${s.start}:00 ~ ${s.end}:00`;
-            const qrDiv = document.createElement('div');
-            const targetUrl = `${baseUrl}?session=${s.code}`;
-            new QRCode(qrDiv, { text: targetUrl, width: 180, height: 180, colorDark : "#000000", colorLight : "#ffffff", correctLevel : QRCode.CorrectLevel.M });
-            wrapper.appendChild(title); wrapper.appendChild(sub); wrapper.appendChild(qrDiv); container.appendChild(wrapper);
-        });
-        document.getElementById('qr-print-modal').classList.remove('hidden');
-    }
-    window.closeQRPrintModal = function() { document.getElementById('qr-print-modal').classList.add('hidden'); }
-
     window.openPaperInputModal = function() {
         const modal = document.getElementById('paper-input-modal');
         const todayStr = getTodayStr();
@@ -2061,74 +1974,6 @@
         } else {
             const opt = document.createElement('option'); opt.innerText = "해당 요일엔 수업이 없습니다."; select.appendChild(opt);
         }
-    }
-
-    // --- 6. Attendance Logic (Scan) ---
-    window.checkUrlForScan = function(silent = false) {
-        const params = new URLSearchParams(window.location.search);
-        const sessionCode = params.get('session');
-        
-        // Clear session from URL immediately to prevent loops
-        if (sessionCode) {
-            history.replaceState({}, document.title, window.location.pathname);
-        }
-
-        if (sessionCode) {
-            const session = SESSIONS.find(s => s.code === sessionCode);
-            if (session) {
-                const now = new Date();
-                const isWrongDay = now.getDay() !== session.day;
-                const isWrongTime = now.getHours() < session.start || now.getHours() >= session.end;
-                
-                if (!silent && (isWrongDay || isWrongTime)) {
-                    const msg = isWrongDay ? `오늘은 ${DAYS[now.getDay()]}요일입니다.` : `현재 진행 중인 수업 시간이 아닙니다.`;
-                    if(!confirm(`⚠️ QR 정보와 현재 시간이 다릅니다.\n(${session.name})\n\n그래도 출석을 진행하시겠습니까?`)) {
-                        if (sessionStorage.getItem('isAdminLoggedIn') !== 'true') showLoginScreen();
-                        return;
-                    }
-                }
-                handleScan(session);
-            } else {
-                if (!silent) alert("유효하지 않은 QR 코드입니다.");
-                if (sessionStorage.getItem('isAdminLoggedIn') !== 'true') showLoginScreen();
-            }
-        }
-    }
-    window.handleScan = function(session, silent = false) {
-        const now = new Date();
-        const isWrongDay = now.getDay() !== session.day;
-        const isWrongTime = now.getHours() < session.start || now.getHours() >= session.end;
-
-        // Clear session from URL immediately to prevent loops
-        history.replaceState({}, document.title, window.location.pathname);
-
-        if (isWrongDay || isWrongTime) {
-            if (!silent) {
-                const msg = isWrongDay ? `오늘은 ${DAYS[now.getDay()]}요일입니다.` : `현재 진행 중인 수업이 없습니다.`;
-                alert(`❌ 출석 실패\n${msg}`);
-            }
-            return;
-        }
-        currentScanSession = session;
-        const modal = document.getElementById('user-check-modal');
-        
-        // [FIX] Initialize Date and Session for the modal
-        const todayStr = getTodayStr();
-        document.getElementById('check-date').value = todayStr;
-        updateCheckSessionOptions();
-        const sessionSelect = document.getElementById('check-session-select');
-        if (sessionSelect) {
-            sessionSelect.value = session.code;
-        }
-        
-        // Reset UI
-        toggleCheckMode('manual'); // Set manual input as default
-        document.getElementById('check-manual-name').value = '';
-        document.getElementById('check-manual-phone').value = '';
-
-        // [FIX] Don't populate list here. Just reset the selection.
-        document.getElementById('check-user-select').value = '';
-        modal.classList.remove('hidden');
     }
 
     window.toggleCheckMode = function(mode) {
@@ -2852,7 +2697,6 @@
         if (document.getElementById('current-url')) {
             document.getElementById('current-url').innerText = window.location.href.split('?')[0];
         }
-        checkUrlForScan();
     }
 
     // --- 회원 모드 날짜/수업 동기화 함수 (완전 해결 버전) ---
@@ -2890,7 +2734,6 @@
                 if (!isAuto) alert("ℹ️ 현재 진행 중인 수업이 없어 날짜만 오늘로 설정되었습니다.");
             }
 
-            renderMemberModeQR();
             // 아이콘 회전 중지
             if (!isAuto && syncIcon) setTimeout(() => syncIcon.classList.remove('fa-spin'), 500);
         }, 50); // DOM 업데이트를 위한 최소한의 지연
@@ -3049,17 +2892,8 @@
                 return acc;
             }, {});
 
-            // 데이터 로드 후 앱의 나머지 부분 초기화
-            const urlParams = new URLSearchParams(window.location.search);
-            const isScanning = urlParams.has('session');
-            
-            if (isScanning) {
-                sessionStorage.setItem('appMode', 'member');
-                showApp();
-            } else {
-                // QR 스캔이 아닌 모든 경우에는 초기 모드 선택 화면을 보여줍니다.
-                showLoginScreen();
-            }
+            // 초기 모드 선택 화면 표시
+            showLoginScreen();
             // DOM이 준비된 후 UI 렌더링
             renderMembers();
             updateCheckUserSelect();
