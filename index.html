@@ -418,6 +418,24 @@
                         <div id="report-inactive-members-list" class="overflow-x-auto"></div>
                     </div>
                 </div>
+                <!-- 탭 8: 혼잡도 분석 -->
+                <div id="report-content-congestion" class="report-content-panel hidden space-y-6">
+                    <div class="card">
+                        <h3 class="font-bold text-lg mb-4">요일/시간대별 혼잡도</h3>
+                        <p class="text-sm text-gray-500 mb-4">선택한 월의 요일 및 시간대별 출석 분포입니다.</p>
+                        <div class="h-80">
+                            <canvas id="congestion-chart"></canvas>
+                        </div>
+                    </div>
+                </div>
+                <!-- 탭 9: 연말 결산 -->
+                <div id="report-content-yearly-summary" class="report-content-panel hidden space-y-6">
+                    <div class="card">
+                        <h3 class="font-bold text-lg mb-4"><i class="fas fa-trophy text-yellow-500 mr-2"></i>연말 결산 리포트</h3>
+                        <p class="text-sm text-gray-500 mb-6">올해 1월 1일부터 현재까지의 누적 데이터 요약입니다.</p>
+                        <div id="yearly-summary-content" class="space-y-6"></div>
+                    </div>
+                </div>
             </div>
         
         </section>
@@ -918,6 +936,7 @@
     let reportDataCache = {}; // For CSV export
     let currentMode = ''; // 현재 활성화된 페이지 추적 (home, members, reports)
     let trendChartInstance = null; // Chart instance
+    let congestionChartInstance = null; // [NEW] Congestion Chart instance
     let undoTimer = null; // [NEW] Timer for the undo toast
 
     // --- [NEW] Custom Modal Helpers ---
@@ -1264,6 +1283,8 @@
             { id: 'class-popularity', name: '수업 참여' },
             { id: 'new-member-trend', name: '신규 회원' },
             { id: 'inactive-members', name: '장기 미출석' },
+            { id: 'congestion', name: '혼잡도 분석' },
+            { id: 'yearly-summary', name: '연말 결산' },
         ];
 
         reportTabsContainer.innerHTML = '';
@@ -1304,6 +1325,12 @@
                         break;
                     case 'inactive-members':
                         renderReport_InactiveMembers(window.members, window.logs);
+                        break;
+                    case 'congestion':
+                        renderReport_Congestion(logsForCurrentMonth);
+                        break;
+                    case 'yearly-summary':
+                        renderReport_YearlySummary(window.logs, window.members);
                         break;
                 }
             };
@@ -1553,7 +1580,7 @@
         const currentYear = today.getFullYear();
         const currentMonth = today.getMonth(); // 0-indexed
 
-        for (let i = 5; i >= 0; i--) {
+        for (let i = 11; i >= 0; i--) { // [FIX] Changed from 5 to 11 for 12 months
             let targetMonth = currentMonth - i;
             let targetYear = currentYear;
             while (targetMonth < 0) {
@@ -1575,7 +1602,7 @@
         if (newMembersChartInstance) newMembersChartInstance.destroy();
         newMembersChartInstance = new Chart(ctx, {
             type: 'bar',
-            data: { labels, datasets: [{ label: '신규 회원 수', data, backgroundColor: getThemeColor('600', 0.6), borderColor: getThemeColor('600', 1), borderWidth: 1, borderRadius: 4 }] },
+            data: { labels, datasets: [{ label: '신규 회원', data, backgroundColor: getThemeColor('600', 0.6), borderColor: getThemeColor('600', 1), borderWidth: 1, borderRadius: 4 }] },
             options: {
                 // [FIX] Simplified animation to prevent visibility issues
                 animation: {
@@ -1645,6 +1672,128 @@
         container.appendChild(table);
     };
 
+    // [NEW] Congestion Analysis Report
+    const renderReport_Congestion = (logs) => {
+        const ctx = document.getElementById('congestion-chart').getContext('2d');
+        
+        // Initialize data structure: 0=Sun (unused), 1=Mon ... 6=Sat
+        const daysData = {
+            AM: [0, 0, 0, 0, 0, 0, 0],
+            PM: [0, 0, 0, 0, 0, 0, 0],
+            EVE: [0, 0, 0, 0, 0, 0, 0]
+        };
+
+        logs.forEach(log => {
+            const date = new Date(log.date);
+            const day = date.getDay(); // 0-6
+            if (day === 0) return; // Skip Sunday
+
+            // Determine time slot from session code (e.g., D1_AM, D2_EVE)
+            let timeSlot = 'PM'; // Default
+            if (log.sessionCode.includes('_AM')) timeSlot = 'AM';
+            else if (log.sessionCode.includes('_EVE')) timeSlot = 'EVE';
+            else if (log.sessionCode.includes('_PM')) timeSlot = 'PM';
+
+            daysData[timeSlot][day]++;
+        });
+
+        // Prepare datasets
+        const labels = ['월', '화', '수', '목', '금', '토'];
+        const datasets = [
+            { label: '오전반', data: daysData.AM.slice(1), backgroundColor: 'rgba(255, 159, 64, 0.7)', stack: 'Stack 0' },
+            { label: '오후반', data: daysData.PM.slice(1), backgroundColor: 'rgba(54, 162, 235, 0.7)', stack: 'Stack 0' },
+            { label: '저녁반', data: daysData.EVE.slice(1), backgroundColor: 'rgba(75, 192, 192, 0.7)', stack: 'Stack 0' }
+        ];
+
+        if (congestionChartInstance) congestionChartInstance.destroy();
+        congestionChartInstance = new Chart(ctx, {
+            type: 'bar',
+            data: { labels, datasets },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    x: { stacked: true },
+                    y: { stacked: true, beginAtZero: true }
+                },
+                plugins: {
+                    datalabels: {
+                        color: 'white',
+                        font: { weight: 'bold' },
+                        formatter: (value) => value > 0 ? value : ''
+                    }
+                }
+            }
+        });
+    };
+
+    // [NEW] Yearly Summary Report
+    const renderReport_YearlySummary = (allLogs, allMembers) => {
+        const container = document.getElementById('yearly-summary-content');
+        const currentYear = new Date().getFullYear();
+        
+        // Filter logs for current year
+        const yearlyLogs = allLogs.filter(log => log.date.startsWith(String(currentYear)));
+        
+        if (yearlyLogs.length === 0) {
+            container.innerHTML = `<p class="text-center text-gray-500 py-10">${currentYear}년 데이터가 아직 없습니다.</p>`;
+            return;
+        }
+
+        // 1. Total Attendance
+        const totalAttendance = yearlyLogs.length;
+        
+        // 2. Busiest Month
+        const monthCounts = {};
+        yearlyLogs.forEach(log => {
+            const month = log.date.substring(0, 7); // YYYY-MM
+            monthCounts[month] = (monthCounts[month] || 0) + 1;
+        });
+        const busiestMonth = Object.entries(monthCounts).sort((a, b) => b[1] - a[1])[0];
+        const busiestMonthStr = busiestMonth ? `${parseInt(busiestMonth[0].split('-')[1])}월 (${busiestMonth[1]}명)` : '-';
+
+        // 3. Top Members (Attendance King)
+        const memberCounts = {};
+        yearlyLogs.forEach(log => {
+            memberCounts[log.memberId] = (memberCounts[log.memberId] || 0) + 1;
+        });
+        const topMembers = Object.entries(memberCounts)
+            .sort((a, b) => b[1] - a[1])
+            .slice(0, 5)
+            .map(([id, count]) => {
+                // [FIX] Use String comparison
+                const m = allMembers.find(mem => String(mem.id) === String(id));
+                return { name: m ? m.name : '알수없음', count };
+            });
+
+        let topMembersHtml = '<ul class="space-y-2">';
+        topMembers.forEach((m, idx) => {
+            const icon = idx === 0 ? '👑' : idx === 1 ? '🥈' : idx === 2 ? '🥉' : '👏';
+            topMembersHtml += `<li class="flex justify-between items-center bg-gray-50 p-2 rounded">
+                <span class="font-bold text-gray-700">${icon} ${m.name}</span>
+                <span class="text-indigo-600 font-bold">${m.count}회</span>
+            </li>`;
+        });
+        topMembersHtml += '</ul>';
+
+        container.innerHTML = `
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div class="bg-blue-50 p-4 rounded-xl border border-blue-100">
+                    <h4 class="text-blue-800 font-bold mb-1">올해 총 출석</h4>
+                    <p class="text-3xl font-bold text-blue-600">${totalAttendance.toLocaleString()}건</p>
+                </div>
+                <div class="bg-orange-50 p-4 rounded-xl border border-orange-100">
+                    <h4 class="text-orange-800 font-bold mb-1">가장 붐빈 달</h4>
+                    <p class="text-3xl font-bold text-orange-600">${busiestMonthStr}</p>
+                </div>
+            </div>
+            <div class="border-t pt-4">
+                <h4 class="font-bold text-lg mb-3 text-gray-800">🏆 올해의 개근상 후보 (Top 5)</h4>
+                ${topMembersHtml}
+            </div>
+        `;
+    };
+
     const renderReport_TrendChart = (allLogs) => {
         const ctx = document.getElementById('attendance-trend-chart').getContext('2d');
         const labels = []; const data = [];
@@ -1674,6 +1823,8 @@
         renderReport_MemberWeekly(logsForMonth);
         renderReport_MemberRank(logsForMonth);
         renderReport_ClassPopularity(logsForMonth);
+        // Congestion report depends on the selected month
+        renderReport_Congestion(logsForMonth);
     };
 
     window.showReports = async function(activeTabId = 'dashboard') {
@@ -1705,7 +1856,7 @@
             const logsForCurrentMonth = getLogsForCurrentMonth();
 
             // Re-render month-dependent reports if the active tab is one of them
-            if (['dashboard', 'class-weekly', 'member-weekly', 'member-rank', 'class-popularity'].includes(currentActiveReportTabId)) {
+            if (['dashboard', 'class-weekly', 'member-weekly', 'member-rank', 'class-popularity', 'congestion'].includes(currentActiveReportTabId)) {
                 renderMonthDependentReports(logsForCurrentMonth);
             }
         };
@@ -1781,6 +1932,11 @@
                 rows = (reportDataCache.inactiveMembers || []).map(item => [item.name, item.phone, new Date(item.registeredAt).toLocaleDateString()]);
                 fileName = `report-inactive-members-last-${period}-days.csv`;
                 break;
+            case 'report-content-congestion':
+                alert('혼잡도 분석 차트는 이미지로 캡처하여 사용해주세요.'); return;
+            case 'report-content-yearly-summary':
+                // Simple export for yearly summary could be added, but for now alert
+                alert('연말 결산 데이터는 화면에서 확인해주세요.'); return;
             default:
                 alert('현재 탭의 데이터는 CSV로 내보낼 수 없습니다.'); return;
         }
