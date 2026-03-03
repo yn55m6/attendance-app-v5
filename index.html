@@ -1355,11 +1355,14 @@
             tbody.innerHTML = '<tr><td colspan="4" class="text-center py-4 text-gray-400">데이터가 없습니다.</td></tr>';
         } else {
             sortedMembers.forEach((item, index) => {
+                // [NEW] Add Crown for 1st place
+                const rankDisplay = index === 0 ? `<span class="text-yellow-500 mr-1"><i class="fas fa-crown"></i></span>1` : index + 1;
+
                 const tr = document.createElement('tr');
                 tr.className = 'bg-white border-b hover:bg-gray-50 animate-fadeInUp';
                 tr.style.animationDelay = `${index * 50}ms`; // 순차적 애니메이션 딜레이
                 tr.innerHTML = `
-                    <td class="px-4 py-4 font-medium text-gray-900">${index + 1}</td>
+                    <td class="px-4 py-4 font-medium text-gray-900">${rankDisplay}</td>
                     <td class="px-4 py-4 font-bold text-gray-800">${item.name}</td>
                     <td class="px-4 py-4 text-xs text-gray-400">${item.phone || '-'}</td>
                     <td class="px-4 py-4 text-right font-bold text-theme-600">${item.count}회</td>`;
