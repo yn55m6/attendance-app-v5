@@ -1458,15 +1458,9 @@
     };
 
     // --- 리포트 렌더링 통합 함수 ---
-    const renderMonthDependentReports = (allLogs, allMembers, month) => {
-        const year = parseInt(month.split('-')[0]);
-        const monthIndex = parseInt(month.split('-')[1]) - 1;
-        const startDate = new Date(year, monthIndex, 1);
-        const endDate = new Date(year, monthIndex + 1, 0);
-        const logsForMonth = allLogs.filter(log => {
-            const logDate = new Date(log.date);
-            return logDate >= startDate && logDate <= endDate;
-        });
+    const renderMonthDependentReports = (logsForMonth, allMembers) => {
+        // [FIX] Removed redundant and buggy date filtering. 
+        // Now accepts pre-filtered logs directly.
         renderReport_MonthlyTotal(logsForMonth);
         renderReport_ClassWeekly(logsForMonth);
         renderReport_MemberWeekly(logsForMonth);
@@ -1485,24 +1479,17 @@
         // Function to get logs for the currently selected month
         const getLogsForCurrentMonth = () => {
             const currentMonth = monthFilter.value;
-            const year = parseInt(currentMonth.split('-')[0]);
-            const monthIndex = parseInt(currentMonth.split('-')[1]) - 1;
-            const startDate = new Date(year, monthIndex, 1);
-            const endDate = new Date(year, monthIndex + 1, 0);
-            return allLogs.filter(log => {
-                const logDate = new Date(log.date);
-                return logDate >= startDate && logDate <= endDate;
-            });
+            // [FIX] Use string comparison for robust date filtering (avoids timezone issues)
+            return allLogs.filter(log => log.date && log.date.startsWith(currentMonth));
         };
 
         // Event listener for month filter change
         monthFilter.onchange = () => {
             const logsForCurrentMonth = getLogsForCurrentMonth();
-            const currentMonthValue = monthFilter.value;
 
             // Re-render month-dependent reports if the active tab is one of them
             if (['dashboard', 'class-weekly', 'member-weekly', 'member-rank', 'class-popularity'].includes(currentActiveReportTabId)) {
-                renderMonthDependentReports(logsForCurrentMonth, allMembers, currentMonthValue);
+                renderMonthDependentReports(logsForCurrentMonth, allMembers);
             }
         };
         
