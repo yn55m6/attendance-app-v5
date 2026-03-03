@@ -714,6 +714,22 @@
     </div>
 </div>
 
+<!-- [NEW] Modal: Instructor Edit -->
+<div id="instructor-edit-modal" class="fixed inset-0 bg-black bg-opacity-90 z-50 hidden flex flex-col justify-center items-center p-6 no-print">
+    <div class="bg-white w-full max-w-xs rounded-xl p-6 relative">
+        <button onclick="closeInstructorEditModal()" class="absolute top-4 right-4 text-gray-400"><i class="fas fa-times"></i></button>
+        <h3 class="text-lg sm:text-xl font-bold mb-4 text-gray-800" id="instructor-edit-title">담당 사범 수정</h3>
+        
+        <div class="mb-4">
+            <label class="block text-sm font-bold text-gray-500 mb-2">담당 사범 이름</label>
+            <input type="text" id="instructor-edit-name" placeholder="이름 입력" class="w-full p-3 border rounded bg-gray-50 text-lg" onkeyup="if(event.key==='Enter') saveInstructorEdit()">
+            <input type="hidden" id="instructor-edit-code">
+        </div>
+        
+        <button onclick="saveInstructorEdit()" class="btn-primary">저장하기</button>
+    </div>
+</div>
+
 <script>
     // =================================================================================
     // IndexedDB Helper (데이터베이스 관리 로직)
@@ -1708,20 +1724,41 @@
         }).join('');
     }
 
-    window.editInstructor = async function(sessionCode, currentName) {
-        const newName = prompt('담당 사범의 이름을 입력하세요:', currentName);
-        if (newName === null) return; // User cancelled
-        if (newName.trim() === "") {
+    window.editInstructor = function(sessionCode, currentName) {
+        const session = SESSIONS.find(s => s.code === sessionCode);
+        const sessionName = session ? session.name : '담당 사범 수정';
+        
+        document.getElementById('instructor-edit-title').innerText = sessionName;
+        document.getElementById('instructor-edit-name').value = currentName;
+        document.getElementById('instructor-edit-code').value = sessionCode;
+        
+        document.getElementById('instructor-edit-modal').classList.remove('hidden');
+        document.getElementById('instructor-edit-name').focus();
+    }
+
+    window.closeInstructorEditModal = function() {
+        document.getElementById('instructor-edit-modal').classList.add('hidden');
+    }
+
+    window.saveInstructorEdit = async function() {
+        const sessionCode = document.getElementById('instructor-edit-code').value;
+        const newName = document.getElementById('instructor-edit-name').value.trim();
+        
+        if (newName === "") {
             alert('이름을 입력해야 합니다.');
             return;
         }
         try {
             const instructorData = { sessionCode, name: newName.trim() };
             await dbHelper.put('instructors', instructorData);
-            window.instructors[sessionCode] = newName.trim();
+            window.instructors[sessionCode] = newName;
             renderInstructorManagement();
             alert('담당 사범 정보가 업데이트되었습니다.');
-        } catch (error) { console.error("Error updating instructor: ", error); alert('업데이트 중 오류가 발생했습니다.'); }
+            closeInstructorEditModal();
+        } catch (error) { 
+            console.error("Error updating instructor: ", error); 
+            alert('업데이트 중 오류가 발생했습니다.'); 
+        }
     }
 
     window.deleteInstructor = async function(sessionCode) {
