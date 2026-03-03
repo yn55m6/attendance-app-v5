@@ -1389,16 +1389,28 @@
     const renderReport_NewMemberTrend = (members) => {
         const ctx = document.getElementById('new-members-chart').getContext('2d');
         const labels = []; const data = []; const monthData = [];
+        
+        // [FIX] Use robust date calculation (math instead of Date object manipulation)
+        const today = new Date();
+        const currentYear = today.getFullYear();
+        const currentMonth = today.getMonth(); // 0-indexed
+
         for (let i = 5; i >= 0; i--) {
-            const d = new Date(); d.setDate(1); d.setMonth(d.getMonth() - i);
-            const year = d.getFullYear(); const month = d.getMonth();
-            labels.push(`${month + 1}월`);
-            monthData.push({ year, month });
+            let targetMonth = currentMonth - i;
+            let targetYear = currentYear;
+            while (targetMonth < 0) {
+                targetMonth += 12;
+                targetYear -= 1;
+            }
+
+            labels.push(`${targetMonth + 1}월`);
+            monthData.push({ year: targetYear, month: targetMonth });
+            
             const count = members.filter(member => {
                 if (!member.registeredAt) return false;
                 const regDate = new Date(member.registeredAt);
                 if (isNaN(regDate.getTime())) return false; // [FIX] Check for invalid date
-                return regDate.getFullYear() === year && regDate.getMonth() === month;
+                return regDate.getFullYear() === targetYear && regDate.getMonth() === targetMonth;
             }).length;
             data.push(count);
         }
@@ -1407,17 +1419,10 @@
             type: 'bar',
             data: { labels, datasets: [{ label: '신규 회원 수', data, backgroundColor: getThemeColor('600', 0.6), borderColor: getThemeColor('600', 1), borderWidth: 1, borderRadius: 4 }] },
             options: {
-                animation: { // [NEW] Animation for smooth appearance
-                    duration: 1500, // 1.5 seconds
-                    easing: 'easeOutQuart', // Smooth easing function
-                    from: (ctx) => { // Animate from 0 on the y-axis
-                        if (ctx.type === 'data') {
-                            if (ctx.mode === 'default' && !ctx.dropped) {
-                                ctx.dropped = true;
-                                return { y: 0 };
-                            }
-                        }
-                    }
+                // [FIX] Simplified animation to prevent visibility issues
+                animation: {
+                    duration: 1000,
+                    easing: 'easeOutQuart'
                 },
                 scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } }, 
                 responsive: true, 
@@ -1515,7 +1520,7 @@
 
     window.showReports = async function(activeTabId = 'dashboard') {
         // [FIX] Safety check: Reload data if empty
-        if (window.logs.length === 0) {
+        if (window.logs.length === 0 || window.members.length === 0) {
             try {
                 window.logs = await dbHelper.getAll('logs');
                 window.members = await dbHelper.getAll('members');
