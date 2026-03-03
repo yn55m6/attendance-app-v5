@@ -1046,8 +1046,10 @@
         availableSessions.forEach(s => {
             const opt = document.createElement('option');
             opt.value = s.code;
+            const instructor = window.instructors[s.code];
             const nameParts = s.name.split(' ');
-            opt.innerText = nameParts.length > 1 ? nameParts[1] : s.name; // "월요일 저녁반" -> "저녁반"
+            const sessionName = nameParts.length > 1 ? nameParts[1] : s.name; // "월요일 저녁반" -> "저녁반"
+            opt.innerText = sessionName + (instructor ? ` (${instructor} 사범)` : '');
             select.appendChild(opt);
         });
         if(availableSessions.length === 0) {
@@ -1843,7 +1845,9 @@
         if (successCount > 0) {
             playSound();
             const namesStr = successNames.join(', ');
-            alert(`✅ 등록 완료\n일자: ${dateStr}\n차수: ${session.name}\n성함: ${namesStr}\n\n(총 ${successCount}명 처리 / 중복 제외: ${duplicateCount}명 / 신규 가입: ${newMemberCount}명)`);
+            const instructorName = window.instructors[session.code];
+            const sessionDisplayName = session.name + (instructorName ? ` (${instructorName} 사범)` : '');
+            alert(`✅ 등록 완료\n일자: ${dateStr}\n차수: ${sessionDisplayName}\n성함: ${namesStr}\n\n(총 ${successCount}명 처리 / 중복 제외: ${duplicateCount}명 / 신규 가입: ${newMemberCount}명)`);
         } else {
             alert(`처리할 새로운 명단이 없습니다.\n(중복 제외: ${duplicateCount}명)`);
         }
