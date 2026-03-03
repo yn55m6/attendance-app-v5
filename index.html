@@ -1596,7 +1596,7 @@
                         anchor: 'end', // Position label at the end of the bar
                         align: 'end', // Align label to the end of the bar
                         offset: 4, // Offset from the bar
-                        formatter: (value) => value > 0 ? value : '' // Only show positive values
+                        formatter: (value) => value > 0 ? value + '명 🎉' : '' // Only show positive values
                     }
                 },
                 onHover: (event, chartElement) => {
