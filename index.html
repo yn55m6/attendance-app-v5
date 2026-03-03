@@ -1103,7 +1103,7 @@
     }
 
     // 리포트 탭 UI 초기화 및 이벤트 핸들러 설정
-    const initializeReportTabs = (activeTabId = 'dashboard') => {
+    const initializeReportTabs = (activeTabId = 'dashboard', getLogsForCurrentMonth) => {
         const reportTabsContainer = document.getElementById('report-tabs');
         const reportContentPanels = document.querySelectorAll('.report-content-panel');
         const reportTabs = [
@@ -1118,28 +1118,53 @@
 
         reportTabsContainer.innerHTML = '';
         reportTabs.forEach((tab) => {
-            const isActive = tab.id === activeTabId;
             const tabButton = document.createElement('button');
             tabButton.dataset.target = `report-content-${tab.id}`;
-            tabButton.className = `whitespace-nowrap py-2 px-3 font-medium text-sm rounded-md ${isActive ? 'bg-theme-100 text-theme-700' : 'text-gray-500 hover:text-gray-700 hover:bg-gray-100'}`;
+            // 초기 상태는 비활성 스타일 (클릭 시 활성화됨)
+            tabButton.className = 'whitespace-nowrap py-2 px-3 font-medium text-sm rounded-md text-gray-500 hover:text-gray-700 hover:bg-gray-100';
             tabButton.textContent = tab.name;
             
             tabButton.onclick = () => {
+                // 1. 탭 스타일 업데이트
                 reportTabsContainer.querySelectorAll('button').forEach(btn => {
                     btn.className = 'whitespace-nowrap py-2 px-3 font-medium text-sm rounded-md text-gray-500 hover:text-gray-700 hover:bg-gray-100';
                 });
                 tabButton.className = 'whitespace-nowrap py-2 px-3 font-medium text-sm rounded-md bg-theme-100 text-theme-700';
 
+                // 2. 패널 표시 전환
                 reportContentPanels.forEach(panel => panel.classList.add('hidden'));
                 document.getElementById(tabButton.dataset.target).classList.remove('hidden');
+
+                // 3. 현재 활성 탭 ID 저장
+                currentActiveReportTabId = tab.id;
+
+                // 4. 데이터 렌더링 실행
+                const logsForCurrentMonth = getLogsForCurrentMonth();
+
+                if (['dashboard', 'class-weekly', 'member-weekly', 'member-rank', 'class-popularity'].includes(tab.id)) {
+                    renderMonthDependentReports(logsForCurrentMonth);
+                }
+
+                switch (tab.id) {
+                    case 'dashboard':
+                        renderReport_TrendChart(window.logs);
+                        break;
+                    case 'new-member-trend':
+                        renderReport_NewMemberTrend(window.members);
+                        break;
+                    case 'inactive-members':
+                        renderReport_InactiveMembers(window.members, window.logs);
+                        break;
+                }
             };
             reportTabsContainer.appendChild(tabButton);
         });
 
-        // 탭 초기화 후, 올바른 콘텐츠 패널을 표시
-        reportContentPanels.forEach(panel => panel.classList.add('hidden'));
-        const activePanel = document.getElementById(`report-content-${activeTabId}`);
-        if (activePanel) activePanel.classList.remove('hidden');
+        // 초기 활성 탭 클릭 트리거 (렌더링 수행)
+        const activeBtn = reportTabsContainer.querySelector(`button[data-target="report-content-${activeTabId}"]`);
+        if (activeBtn) {
+            activeBtn.click();
+        }
     };
 
     // --- 기존 리포트 로직을 새 구조에 맞게 재구성 ---
