@@ -894,7 +894,8 @@
             select.appendChild(opt);
         });
         
-        if (currentValue && window.members.some(m => m.id === currentValue)) {
+        // [FIX] Use String comparison for ID matching
+        if (currentValue && window.members.some(m => String(m.id) === String(currentValue))) {
             select.value = currentValue;
         }
     }
@@ -955,7 +956,8 @@
         if (!dateStr) return alert("출석 날짜가 설정되지 않았습니다. 날짜를 선택해주세요.");
         if (!sessionCode) return alert("수업(차수)이 선택되지 않았습니다.");
 
-        const member = members.find(m => m.id === memberId);
+        // [FIX] Use String comparison for ID matching
+        const member = members.find(m => String(m.id) === String(memberId));
         const session = SESSIONS.find(s => s.code === sessionCode);
 
         if (!session || sessionCode === "수업 없음") {
@@ -1165,7 +1167,8 @@
         const memberCounts = {};
         logsForMonth.forEach(log => {
             if (!memberCounts[log.memberId]) {
-                const m = members.find(mem => mem.id === log.memberId);
+                // [FIX] Use String comparison for ID matching
+                const m = members.find(mem => String(mem.id) === String(log.memberId));
                 memberCounts[log.memberId] = { count: 0, name: log.memberName, phone: m ? m.phone : "" };
             }
             memberCounts[log.memberId].count++;
@@ -1954,14 +1957,16 @@
         } else {
             const memberId = document.getElementById('check-user-select').value;
             if(!memberId) return alert('회원을 선택해주세요.');
-            member = members.find(m => m.id === memberId);
+            // [FIX] Use String comparison for ID matching
+            member = members.find(m => String(m.id) === String(memberId));
         }
 
         await confirmAttendanceWithId(member?.id, isNewMember);
     }
 
     window.confirmAttendanceWithId = async function(memberId, isNewMember = false, manualDate = null, manualSessionCode = null) {
-        const member = members.find(m => m.id === memberId);
+        // [FIX] Use String comparison for ID matching
+        const member = members.find(m => String(m.id) === String(memberId));
         if (!member) return alert('회원 정보를 찾을 수 없습니다.');
 
         const dateStr = manualDate || document.getElementById('check-date').value;
@@ -1970,7 +1975,8 @@
         
         if(!session) return alert('유효한 수업(차수)을 선택해주세요.');
 
-        const alreadyChecked = logs.some(log => log.memberId === member.id && log.date === dateStr && log.sessionCode === session.code);
+        // [FIX] Use String comparison for log check
+        const alreadyChecked = logs.some(log => String(log.memberId) === String(member.id) && log.date === dateStr && log.sessionCode === session.code);
         
         if(alreadyChecked) {
             showUndoToast('⚠️ 이미 출석 처리되었습니다.');
@@ -2015,12 +2021,14 @@
 
     // --- 7. History Modal Logic ---
     window.openHistoryModal = function(memberId) {
-        const member = members.find(m => m.id === memberId);
+        // [FIX] Use String comparison for ID matching
+        const member = members.find(m => String(m.id) === String(memberId));
         if(!member) return;
         document.getElementById('history-member-name').innerText = `${member.name} 님의 출석 이력`;
         const list = document.getElementById('history-list');
         list.innerHTML = ''; // Clear previous content
-        const history = logs.filter(l => l.memberId === memberId).sort((a, b) => b.id - a.id);
+        // [FIX] Use String comparison for log filtering
+        const history = logs.filter(l => String(l.memberId) === String(memberId)).sort((a, b) => b.id - a.id);
         if (history.length === 0) {
             list.innerHTML = '<li class="text-center text-gray-400 py-4">출석 기록이 없습니다.</li>';
         } else {
@@ -2153,7 +2161,8 @@
     }
     
     window.deleteMember = async function(id) {
-        const hasHistory = logs.some(log => log.memberId === id);
+        // [FIX] Use String comparison for log check
+        const hasHistory = logs.some(log => String(log.memberId) === String(id));
         if (hasHistory) {
             alert("❌ 삭제 실패\n이 회원의 출석 기록이 존재합니다.\n기록을 유지하기 위해 삭제할 수 없습니다.");
             return;
@@ -2163,8 +2172,8 @@
         if (!isAuthorized) return;
 
         if(confirm('정말 삭제하시겠습니까?')) {
-            await dbHelper.deleteItem('members', id);
-            window.members = window.members.filter(m => m.id !== id);
+            await dbHelper.deleteItem('members', Number(id)); // Ensure number for DB key
+            window.members = window.members.filter(m => String(m.id) !== String(id));
             alert('삭제되었습니다.');
             renderMembers(); // Re-render with current search query
             updateCheckUserSelect();
