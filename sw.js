@@ -1,4 +1,4 @@
-const CACHE_NAME = 'attendance-app-cache-v14'; // 버전을 업데이트하여 캐시를 갱신할 수 있습니다.
+const CACHE_NAME = 'attendance-app-cache-v15'; // 버전을 업데이트하여 캐시를 갱신할 수 있습니다.
 const urlsToCache = [
     './',
     './index.html',
@@ -13,6 +13,7 @@ const urlsToCache = [
 
 // 서비스 워커 설치
 self.addEventListener('install', event => {
+    self.skipWaiting(); // [FIX] 대기 없이 즉시 새로운 버전으로 교체 (강제 업데이트)
     event.waitUntil(
         caches.open(CACHE_NAME)
             .then(cache => {
@@ -42,7 +43,7 @@ self.addEventListener('activate', event => {
                     }
                 })
             );
-        })
+        }).then(() => self.clients.claim()) // [FIX] 현재 열린 페이지들에 즉시 새 버전 적용
     );
 });
 
