@@ -1814,6 +1814,25 @@
         renderMemberGrid();
     }
 
+    // [NEW] Helper for Check Modal Session Options
+    window.updateCheckSessionOptions = function() {
+        const dateStr = document.getElementById('check-date').value;
+        if(!dateStr) return;
+        const [y, m, d] = dateStr.split('-').map(Number);
+        const day = new Date(y, m - 1, d).getDay();
+
+        const select = document.getElementById('check-session-select');
+        select.innerHTML = '';
+        const availableSessions = SESSIONS.filter(s => s.day === day);
+        if(availableSessions.length > 0) {
+            availableSessions.forEach(s => {
+                const opt = document.createElement('option'); opt.value = s.code; opt.innerText = s.name; select.appendChild(opt);
+            });
+        } else {
+            const opt = document.createElement('option'); opt.innerText = "해당 요일엔 수업이 없습니다."; select.appendChild(opt);
+        }
+    }
+
     // --- 6. Attendance Logic (Scan) ---
     window.checkUrlForScan = function(silent = false) {
         const params = new URLSearchParams(window.location.search);
@@ -1862,7 +1881,15 @@
         }
         currentScanSession = session;
         const modal = document.getElementById('user-check-modal');
-        document.getElementById('scan-info').innerText = `[${session.name}]`;
+        
+        // [FIX] Initialize Date and Session for the modal
+        const todayStr = getTodayStr();
+        document.getElementById('check-date').value = todayStr;
+        updateCheckSessionOptions();
+        const sessionSelect = document.getElementById('check-session-select');
+        if (sessionSelect) {
+            sessionSelect.value = session.code;
+        }
         
         // Reset UI
         toggleCheckMode('manual'); // Set manual input as default
