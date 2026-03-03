@@ -1863,7 +1863,11 @@
         const availableSessions = SESSIONS.filter(s => s.day === day);
         if(availableSessions.length > 0) {
             availableSessions.forEach(s => {
-                const opt = document.createElement('option'); opt.value = s.code; opt.innerText = s.name; select.appendChild(opt);
+                const opt = document.createElement('option'); 
+                opt.value = s.code; 
+                const instructor = window.instructors[s.code];
+                opt.innerText = s.name + (instructor ? ` (${instructor} 사범)` : ''); 
+                select.appendChild(opt);
             });
         } else {
             const opt = document.createElement('option'); opt.innerText = "해당 요일엔 수업이 없습니다."; select.appendChild(opt);
@@ -2188,7 +2192,17 @@
 
         list.innerHTML = '';
         filteredMembers.forEach(m => {
-            list.innerHTML += `<li class="py-4 flex justify-between items-center"><div onclick="openHistoryModal('${m.id}')" class="cursor-pointer flex-1 hover:bg-theme-50 p-2 rounded transition"><p class="font-bold text-lg text-gray-800 flex items-center">${m.name} <i class="fas fa-chevron-right text-gray-300 text-xs ml-2"></i></p><p class="text-sm text-gray-400">${m.phone}</p></div><button onclick="deleteMember('${m.id}')" class="text-red-400 text-sm border border-red-200 px-3 py-2 rounded-lg hover:bg-red-50 ml-2">삭제</button></li>`;
+            const regDate = m.registeredAt ? new Date(m.registeredAt).toLocaleDateString() : '';
+            list.innerHTML += `<li class="py-4 flex justify-between items-center">
+                <div onclick="openHistoryModal('${m.id}')" class="cursor-pointer flex-1 hover:bg-theme-50 p-2 rounded transition">
+                    <div class="flex items-center gap-2">
+                        <p class="font-bold text-lg text-gray-800 flex items-center">${m.name} <i class="fas fa-chevron-right text-gray-300 text-xs ml-2"></i></p>
+                        ${regDate ? `<span class="text-xs text-gray-400 bg-gray-100 px-2 py-0.5 rounded">${regDate} 가입</span>` : ''}
+                    </div>
+                    <p class="text-sm text-gray-400">${m.phone}</p>
+                </div>
+                <button onclick="deleteMember('${m.id}')" class="text-red-400 text-sm border border-red-200 px-3 py-2 rounded-lg hover:bg-red-50 ml-2">삭제</button>
+            </li>`;
         });
     }
     
