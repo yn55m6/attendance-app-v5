@@ -12,9 +12,9 @@
     <meta property="og:type" content="website">
     <meta property="og:image" content="app-icon.png">
     <!-- [NEW] PWA Manifest -->
-    <link rel="manifest" href="./manifest.json?v=2">
+    <link rel="manifest" href="./manifest.json?v=3">
     <meta name="theme-color" content="#4f46e5"> <!-- Updated by JS -->
-    <link rel="icon" href="app-icon.png?v=7">
+    <link rel="icon" href="app-icon.png?v=8">
 
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -1288,8 +1288,16 @@
                 const timePart = nameParts.slice(1).join('');
                 const shortName = dayPart + timePart;
 
+                // [NEW] Add Instructor Name
+                const session = SESSIONS.find(s => s.name === item.name);
+                const instructor = session ? window.instructors[session.code] : null;
+                const instructorHtml = instructor ? `<div class="text-xs text-gray-400 font-normal mt-1">(${instructor} 사범)</div>` : '';
+
                 html += `<tr class="bg-white border-b hover:bg-gray-50 animate-fadeInUp" style="animation-delay: ${index * 50}ms">
-                    <td class="px-2 py-4 font-bold text-gray-800 whitespace-nowrap">${shortName}</td>
+                    <td class="px-2 py-4 font-bold text-gray-800 whitespace-nowrap">
+                        ${shortName}
+                        ${instructorHtml}
+                    </td>
                     ${weekCells}
                     ${totalCell}
                 </tr>`;
