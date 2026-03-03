@@ -2346,7 +2346,7 @@
         window.members.sort((a, b) => a.name.localeCompare(b.name));
 
         document.getElementById('new-member-name').value = ''; document.getElementById('new-member-phone').value = '';
-        showAlert('완료', '회원이 등록되었습니다.');
+        showAlert('완료', `${name} 회원이 등록되었습니다.`);
         renderMembers();
         updateCheckUserSelect();
         renderMemberGrid();
