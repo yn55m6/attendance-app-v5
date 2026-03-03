@@ -1148,7 +1148,7 @@
         animateCountUp(document.getElementById('report-monthly-total'), uniqueMembers);
     };
 
-    const renderReport_MemberRank = (logsForMonth, members) => {
+    const renderReport_MemberRank = (logsForMonth) => {
         const container = document.getElementById('report-member-ranking');
         container.innerHTML = ''; // 이전 내용 초기화
         
@@ -1168,7 +1168,7 @@
         logsForMonth.forEach(log => {
             if (!memberCounts[log.memberId]) {
                 // [FIX] Use String comparison for ID matching
-                const m = members.find(mem => String(mem.id) === String(log.memberId));
+                const m = window.members.find(mem => String(mem.id) === String(log.memberId));
                 memberCounts[log.memberId] = { count: 0, name: log.memberName, phone: m ? m.phone : "" };
             }
             memberCounts[log.memberId].count++;
@@ -1467,13 +1467,13 @@
     };
 
     // --- 리포트 렌더링 통합 함수 ---
-    const renderMonthDependentReports = (logsForMonth, allMembers) => {
+    const renderMonthDependentReports = (logsForMonth) => {
         // [FIX] Removed redundant and buggy date filtering. 
         // Now accepts pre-filtered logs directly.
         renderReport_MonthlyTotal(logsForMonth);
         renderReport_ClassWeekly(logsForMonth);
         renderReport_MemberWeekly(logsForMonth);
-        renderReport_MemberRank(logsForMonth, allMembers);
+        renderReport_MemberRank(logsForMonth);
         renderReport_ClassPopularity(logsForMonth);
     };
 
@@ -1486,8 +1486,6 @@
             } catch (e) { console.error("Failed to reload data:", e); }
         }
 
-        const allLogs = window.logs;
-        const allMembers = window.members;
         const monthFilter = document.getElementById('report-month-filter');
         if (!monthFilter.value) {
             const now = new Date();
@@ -1500,7 +1498,7 @@
         const getLogsForCurrentMonth = () => {
             const currentMonth = monthFilter.value;
             // [FIX] Use string comparison for robust date filtering (avoids timezone issues)
-            return allLogs.filter(log => log.date && log.date.startsWith(currentMonth));
+            return window.logs.filter(log => log.date && log.date.startsWith(currentMonth));
         };
 
         // Event listener for month filter change
@@ -1509,15 +1507,15 @@
 
             // Re-render month-dependent reports if the active tab is one of them
             if (['dashboard', 'class-weekly', 'member-weekly', 'member-rank', 'class-popularity'].includes(currentActiveReportTabId)) {
-                renderMonthDependentReports(logsForCurrentMonth, allMembers);
+                renderMonthDependentReports(logsForCurrentMonth);
             }
         };
         
         // Event listener for inactive period selector
-        document.getElementById('inactive-period-selector').onchange = () => renderReport_InactiveMembers(allMembers, allLogs);
+        document.getElementById('inactive-period-selector').onchange = () => renderReport_InactiveMembers(window.members, window.logs);
 
         // Initialize tabs and trigger the initial active tab's rendering
-        initializeReportTabs(activeTabId, allLogs, allMembers, getLogsForCurrentMonth, monthFilter);
+        initializeReportTabs(activeTabId, getLogsForCurrentMonth);
         
         // Let the browser render the tabs before checking overflow
         setTimeout(checkTabOverflow, 0);
