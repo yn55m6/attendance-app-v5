@@ -265,9 +265,12 @@
         <section id="page-home" class="page">
             <div class="card">
                 <h3 class="font-bold text-xl text-gray-700 mb-3"><i class="fas fa-tools mr-2" aria-hidden="true"></i>관리자 도구</h3>
-                <button onclick="manualSyncWithFirebase()" class="w-full mb-4 py-3 bg-blue-600 text-white rounded-lg text-base font-bold hover:bg-blue-700 border border-blue-700 shadow-sm flex items-center justify-center">
+                <button onclick="manualSyncWithFirebase()" class="w-full py-3 bg-blue-600 text-white rounded-lg text-base font-bold hover:bg-blue-700 border border-blue-700 shadow-sm flex items-center justify-center">
                     <i class="fas fa-sync-alt mr-2"></i>서버 데이터 수동 동기화
                 </button>
+                <p id="last-sync-time" class="text-xs text-center text-gray-400 mt-1 mb-4">
+                    마지막 동기화: 기록 없음
+                </p>
                 <button onclick="openPasswordChangeModal()" class="w-full py-3 bg-gray-100 text-gray-600 rounded-lg text-base font-bold hover:bg-gray-200 border border-gray-200">
                     <i class="fas fa-key mr-2"></i>관리자 비밀번호 변경
                 </button>
@@ -3425,6 +3428,21 @@
         }
     }
 
+    // [NEW] Function to display last sync time
+    function updateLastSyncTimeDisplay() {
+        const lastSyncTimeElem = document.getElementById('last-sync-time');
+        if (!lastSyncTimeElem) return;
+
+        const lastSyncTimestamp = localStorage.getItem('lastSyncTime');
+        if (lastSyncTimestamp) {
+            const syncDate = new Date(lastSyncTimestamp);
+            const formattedTime = syncDate.toLocaleString('ko-KR', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' });
+            lastSyncTimeElem.innerText = `마지막 동기화: ${formattedTime}`;
+        } else {
+            lastSyncTimeElem.innerText = '마지막 동기화: 기록 없음';
+        }
+    }
+
     // [NEW] Manual Sync function to reduce Firebase costs
     async function manualSyncWithFirebase() {
         if (!navigator.onLine) {
@@ -3464,6 +3482,11 @@
 
             // 4. Sync any pending local data to server
             await syncPendingData();
+
+            // [NEW] Store and display last sync time
+            const now = new Date().toISOString();
+            localStorage.setItem('lastSyncTime', now);
+            updateLastSyncTimeDisplay();
 
             showSyncStatus('synced', '동기화 완료!');
             showAlert('동기화 완료', '서버로부터 최신 데이터를 가져왔습니다.');
@@ -3576,6 +3599,7 @@
             // DOM이 준비된 후 UI 렌더링
             renderMembers();
             updateCheckUserSelect();
+            updateLastSyncTimeDisplay();
         } catch (error) {
             console.error("Application initialization failed:", error);
             alert("앱을 초기화하는 데 실패했습니다. 페이지를 새로고침 해주세요.");
