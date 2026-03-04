@@ -1580,7 +1580,7 @@
         const currentYear = today.getFullYear();
         const currentMonth = today.getMonth(); // 0-indexed
 
-        for (let i = 11; i >= 0; i--) { // [FIX] Changed from 5 to 11 for 12 months
+        for (let i = 5; i >= 0; i--) { // [FIX] Changed back to 5 for 6 months
             let targetMonth = currentMonth - i;
             let targetYear = currentYear;
             while (targetMonth < 0) {
