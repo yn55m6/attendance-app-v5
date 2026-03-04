@@ -269,6 +269,9 @@
         <section id="page-home" class="page">
             <div class="card">
                 <h3 class="font-bold text-xl text-gray-700 mb-3"><i class="fas fa-tools mr-2" aria-hidden="true"></i>관리자 도구</h3>
+                <button onclick="manualSyncWithFirebase()" class="w-full mb-4 py-3 bg-blue-600 text-white rounded-lg text-base font-bold hover:bg-blue-700 border border-blue-700 shadow-sm flex items-center justify-center">
+                    <i class="fas fa-sync-alt mr-2"></i>서버 데이터 수동 동기화
+                </button>
                 <button onclick="openPasswordChangeModal()" class="w-full py-3 bg-gray-100 text-gray-600 rounded-lg text-base font-bold hover:bg-gray-200 border border-gray-200">
                     <i class="fas fa-key mr-2"></i>관리자 비밀번호 변경
                 </button>
@@ -3422,20 +3425,60 @@
         }
     }
 
-    function listenForRealtimeUpdates() {
-        firebaseHelper.getCollection('logs').onSnapshot(snapshot => {
-            const serverLogs = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-            dbHelper.bulkPut('logs', serverLogs).then(async () => {
-                console.log("Realtime logs updated in IndexedDB.");
-                window.logs = await dbHelper.getAll('logs');
-                window.logs.sort((a, b) => b.id - a.id);
-                // Optionally refresh UI
-                if (document.getElementById('app-main-content').classList.contains('hidden') === false) {
-                    // Only refresh if app is visible
-                }
-            });
-        });
-        // Can do the same for 'members' and 'instructors' if they need to be real-time
+    // [NEW] Manual Sync function to reduce Firebase costs
+    async function manualSyncWithFirebase() {
+        if (!navigator.onLine) {
+            return showAlert('오프라인', '데이터를 동기화하려면 인터넷 연결이 필요합니다.');
+        }
+        if (!firebaseHelper.initFirebase()) {
+            return showAlert('설정 오류', 'Firebase 설정이 올바르지 않아 동기화할 수 없습니다.');
+        }
+
+        showSyncStatus('syncing', '수동 동기화 중...');
+        try {
+            // 1. Fetch all data from Firebase
+            const [membersSnapshot, logsSnapshot, instructorsSnapshot] = await Promise.all([
+                firebaseHelper.getCollection('members').get(),
+                firebaseHelper.getCollection('logs').get(),
+                firebaseHelper.getCollection('instructors').get()
+            ]);
+
+            const membersData = membersSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+            const logsData = logsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+            const instructorsData = instructorsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+
+            // 2. Overwrite local IndexedDB with server data
+            await Promise.all([
+                dbHelper.bulkPut('members', membersData),
+                dbHelper.bulkPut('logs', logsData),
+                dbHelper.bulkPut('instructors', instructorsData.map(d => ({sessionCode: d.id, name: d.name})))
+            ]);
+
+            // 3. Reload data into memory
+            window.members = membersData.sort((a, b) => a.name.localeCompare(b.name));
+            window.logs = logsData.sort((a, b) => b.id - a.id);
+            window.instructors = instructorsData.reduce((acc, curr) => {
+                acc[curr.sessionCode] = curr.name;
+                return acc;
+            }, {});
+
+            // 4. Sync any pending local data to server
+            await syncPendingData();
+
+            showSyncStatus('synced', '동기화 완료!');
+            showAlert('동기화 완료', '서버로부터 최신 데이터를 가져왔습니다.');
+
+            // 5. Refresh current view
+            if (currentMode === 'members') renderMembers();
+            if (currentMode === 'reports') showReports(currentActiveReportTabId);
+            if (currentMode === 'instructors') renderInstructorManagement();
+            if (currentMode === 'member-attendance') renderMemberGrid();
+
+        } catch (error) {
+            console.error("Manual sync failed:", error);
+            showAlert("동기화 실패", "서버와 데이터를 동기화하는 데 실패했습니다.");
+            showSyncStatus('online');
+        }
     }
 
     // [FIX] Ensure Master Key exists on init
@@ -3474,7 +3517,7 @@
                     dbHelper.bulkPut('instructors', instructorsData.map(d => ({sessionCode: d.id, name: d.name})))
                 ]);
                 
-                listenForRealtimeUpdates();
+                // listenForRealtimeUpdates(); // [REMOVED] Disabled to reduce Firebase read costs.
                 await syncPendingData(); // Sync any data from previous offline sessions
                 showSyncStatus('online');
             } else {
