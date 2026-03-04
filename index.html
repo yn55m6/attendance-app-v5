@@ -286,27 +286,29 @@
             </div>
         </section>
 
-        <!-- Page 2: Members -->
-        <section id="page-members" class="page h-[calc(100vh-140px)] flex flex-col">
-            <div class="card flex-none">
-                <h2 class="font-bold text-xl mb-4">회원 등록</h2>
-                <div class="flex gap-3 mb-3">
-                    <input type="text" id="new-member-name" placeholder="이름 (필수)" class="flex-1 p-3 border rounded bg-gray-50 text-lg">
-                    <input type="tel" id="new-member-phone" placeholder="뒷번호 (생략가능)" class="w-1/3 p-3 border rounded bg-gray-50 text-lg">
-                </div>
-                <button onclick="addMember()" class="btn-primary">등록하기</button>
-            </div>
-            <div class="card flex-1 flex flex-col overflow-hidden min-h-0">
-                <div class="flex-none">
-                    <h2 class="font-bold text-xl mb-2">회원 목록 <span id="member-count" class="text-base text-theme-600 font-normal"></span></h2>
-                    <!-- [NEW] Search Input -->
-                    <div class="relative mb-4">
-                        <input type="text" id="member-list-search" oninput="renderMembers()" placeholder="이름 또는 전화번호로 검색" class="w-full p-3 pl-10 border rounded bg-gray-50 text-lg focus:ring-2 focus:ring-theme-200 focus:border-theme-300 outline-none">
-                        <i class="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"></i>
+        <!-- Page 2: Members (Layout structure fixed) -->
+        <section id="page-members" class="page">
+            <div class="h-[calc(100vh-140px)] flex flex-col">
+                <div class="card flex-none">
+                    <h2 class="font-bold text-xl mb-4">회원 등록</h2>
+                    <div class="flex gap-3 mb-3">
+                        <input type="text" id="new-member-name" placeholder="이름 (필수)" class="flex-1 p-3 border rounded bg-gray-50 text-lg">
+                        <input type="tel" id="new-member-phone" placeholder="뒷번호 (생략가능)" class="w-1/3 p-3 border rounded bg-gray-50 text-lg">
                     </div>
-                    <p class="text-xs text-gray-400 mb-2">* 이름을 클릭하면 상세 이력을 볼 수 있습니다.</p>
+                    <button onclick="addMember()" class="btn-primary">등록하기</button>
                 </div>
-                <ul id="member-list" class="divide-y divide-gray-100 flex-1 overflow-y-auto"></ul>
+                <div class="card flex-1 flex flex-col overflow-hidden min-h-0">
+                    <div class="flex-none">
+                        <h2 class="font-bold text-xl mb-2">회원 목록 <span id="member-count" class="text-base text-theme-600 font-normal"></span></h2>
+                        <!-- [NEW] Search Input -->
+                        <div class="relative mb-4">
+                            <input type="text" id="member-list-search" oninput="renderMembers()" placeholder="이름 또는 전화번호로 검색" class="w-full p-3 pl-10 border rounded bg-gray-50 text-lg focus:ring-2 focus:ring-theme-200 focus:border-theme-300 outline-none">
+                            <i class="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"></i>
+                        </div>
+                        <p class="text-xs text-gray-400 mb-2">* 이름을 클릭하면 상세 이력을 볼 수 있습니다.</p>
+                    </div>
+                    <ul id="member-list" class="divide-y divide-gray-100 flex-1 overflow-y-auto"></ul>
+                </div>
             </div>
         </section>
 
