@@ -218,8 +218,15 @@
         <!-- Page: Member Attendance (New) -->
         <section id="page-member-attendance" class="page">
             <div class="card text-center py-6">
-                <h2 class="text-xl sm:text-2xl font-bold text-gray-800 mb-4 leading-relaxed">허리는 세우고,<br>가슴은 펴고,<br>고개는 들자!</h2>
-                <p id="current-session-info" class="text-theme-600 font-bold text-lg sm:text-xl mb-6">현재 진행 중인 수업을 찾는 중...</p>
+                <div class="flex justify-between items-start mb-4">
+                    <div class="text-left">
+                        <h2 class="text-xl sm:text-2xl font-bold text-gray-800 mb-2 leading-relaxed">허리는 세우고,<br>가슴은 펴고,<br>고개는 들자!</h2>
+                        <p id="current-session-info" class="text-theme-600 font-bold text-lg sm:text-xl">현재 진행 중인 수업을 찾는 중...</p>
+                    </div>
+                    <div id="member-view-qr-container" class="flex-shrink-0 ml-4">
+                        <!-- QR code will be rendered here for members to scan -->
+                    </div>
+                </div>
 
                 <!-- [NEW] Date & Session Selection for Member Mode -->
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-4 mb-6 max-w-md mx-auto px-2">
@@ -254,13 +261,6 @@
 
         <!-- Page 1: Home (QR & Tools) -->
         <section id="page-home" class="page">
-            <!-- [NEW] QR Code Card -->
-            <div class="card">
-                <h3 class="font-bold text-xl text-gray-700 mb-3"><i class="fas fa-qrcode mr-2" aria-hidden="true"></i>실시간 출석 QR 코드</h3>
-                <div id="current-session-qr-container" class="flex flex-col items-center justify-center p-4 bg-gray-50 rounded-lg min-h-[240px]">
-                    <!-- QR code will be rendered here by JS -->
-                </div>
-            </div>
             <div class="card">
                 <h3 class="font-bold text-xl text-gray-700 mb-3"><i class="fas fa-tools mr-2" aria-hidden="true"></i>관리자 도구</h3>
                 <button onclick="openPaperInputModal()" class="btn-primary mb-2 bg-gradient-to-r from-green-500 to-emerald-600">
@@ -2855,7 +2855,7 @@
             element.classList.add('active');
             element.querySelector('span').classList.add('font-bold');
         }
-        if (pageId === 'home') renderCurrentSessionQR();
+        // if (pageId === 'home') renderCurrentSessionQR(); // QR code moved to member screen
         if (pageId === 'reports') showReports();
         if (pageId === 'instructors') renderInstructorManagement();
     }
@@ -2940,6 +2940,7 @@
                 if (dateInput) {
                     window.syncMemberModeToNow(true); // true: 자동 실행 모드
                     renderMemberGrid();
+                    renderMemberViewQR(); // [NEW] Render QR on member screen
                 } else if (retryCount < 10) { // 최대 1초간 재시도
                     setTimeout(() => forceInit(retryCount + 1), 100);
                 }
