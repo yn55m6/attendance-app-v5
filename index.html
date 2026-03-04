@@ -903,6 +903,12 @@
         let db;
 
         function initFirebase() {
+            // [FIX] Check if Firebase is already initialized to prevent duplicate app error
+            if (firebase.apps.length) {
+                db = firebase.firestore();
+                return true;
+            }
+
             // ⚠️ IMPORTANT: Fill in your Firebase project configuration here!
             const firebaseConfig = {
                 apiKey: "AIzaSyBeO3VsRM8x7pY9A5tktrUDIZPfCMKGZfQ",
