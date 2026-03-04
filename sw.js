@@ -1,4 +1,4 @@
-const CACHE_NAME = 'attendance-app-cache-v39'; // 버전을 업데이트하여 캐시를 갱신할 수 있습니다.
+const CACHE_NAME = 'attendance-app-cache-v40'; // 버전을 업데이트하여 캐시를 갱신할 수 있습니다.
 const urlsToCache = [
     './',
     './index.html',

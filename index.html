@@ -2849,11 +2849,13 @@
 
         document.querySelectorAll('.nav-item').forEach(n => {
             n.classList.remove('active');
-            n.querySelector('span').classList.remove('font-bold');
+            const span = n.querySelector('span');
+            if (span) span.classList.remove('font-bold');
         });
         if (element) {
             element.classList.add('active');
-            element.querySelector('span').classList.add('font-bold');
+            const span = element.querySelector('span');
+            if (span) span.classList.add('font-bold');
         }
         // if (pageId === 'home') renderCurrentSessionQR(); // QR code moved to member screen
         if (pageId === 'reports') showReports();
