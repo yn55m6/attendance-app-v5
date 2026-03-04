@@ -2527,17 +2527,32 @@
             return showAlert('중복 등록', `⚠️ 이미 등록된 회원입니다.\n(이름: ${name}, 번호: ${phone})`);
         }
         
-        const newMember = { name, phone, registeredAt: new Date().toISOString() };
-        const newId = await dbHelper.add('members', newMember);
-        newMember.id = newId;
-        window.members.push(newMember);
-        window.members.sort((a, b) => a.name.localeCompare(b.name));
+        const newMemberData = { name, phone, registeredAt: new Date().toISOString() };
 
-        document.getElementById('new-member-name').value = ''; document.getElementById('new-member-phone').value = '';
-        showAlert('완료', `${name} 회원이 등록되었습니다.`);
-        renderMembers();
-        updateCheckUserSelect();
-        renderMemberGrid();
+        try {
+            if (navigator.onLine && firebaseHelper.initFirebase()) {
+                // Online: Save to Firebase first, then local
+                const docRef = firebaseHelper.getCollection('members').doc();
+                newMemberData.id = docRef.id;
+                await docRef.set(newMemberData); // Save to Firebase
+                await dbHelper.put('members', newMemberData); // Save to IndexedDB
+            } else {
+                // Offline: Save to local with pending status
+                newMemberData.syncStatus = 'pending';
+                const newId = await dbHelper.add('members', newMemberData);
+                newMemberData.id = newId;
+            }
+
+            window.members.push(newMemberData);
+            window.members.sort((a, b) => a.name.localeCompare(b.name));
+
+            document.getElementById('new-member-name').value = ''; document.getElementById('new-member-phone').value = '';
+            showAlert('완료', `${name} 회원이 등록되었습니다.`);
+            renderMembers(); updateCheckUserSelect(); renderMemberGrid();
+        } catch (error) {
+            console.error("Error adding member:", error);
+            showAlert('등록 오류', `회원 등록 중 오류가 발생했습니다: ${error.message}`);
+        }
     }
 
     window.renderMembers = function() {
@@ -2579,34 +2594,58 @@
     
     window.deleteMember = async function(id) {
         try {
-            const hasHistory = logs.some(log => String(log.memberId) === String(id));
+            const memberToDelete = window.members.find(m => String(m.id) === id);
+            if (!memberToDelete) return showAlert('오류', '삭제할 회원을 찾을 수 없습니다.');
+
+            const memberLogs = window.logs.filter(log => String(log.memberId) === String(id));
+            const hasHistory = memberLogs.length > 0;
+
+            let confirmed = false;
             if (hasHistory) {
-                return showAlert("삭제 실패", "이 회원의 출석 기록이 존재합니다.\n기록을 유지하기 위해 삭제할 수 없습니다.");
+                confirmed = await requestConfirm('⚠️ 기록 포함 삭제', `[${memberToDelete.name}] 님은 ${memberLogs.length}개의 출석 기록이 있습니다.\n\n회원을 삭제하면 모든 출석 기록도 함께 영구적으로 삭제됩니다.\n\n정말 삭제하시겠습니까?`);
+            } else {
+                confirmed = await requestConfirm('회원 삭제', `[${memberToDelete.name}] 님을 삭제하시겠습니까?\n이 작업은 되돌릴 수 없습니다.`);
             }
+
+            if (!confirmed) return;
 
             const isAuthorized = await requestPassword();
             if (!isAuthorized) return;
 
-            const confirmed = await requestConfirm('회원 삭제', '정말 이 회원을 삭제하시겠습니까?\n이 작업은 되돌릴 수 없습니다.');
-            if (!confirmed) return;
-
-            const memberToDelete = window.members.find(m => String(m.id) === id);
-            if (!memberToDelete) return showAlert('오류', '삭제할 회원을 찾을 수 없습니다.');
-            const keyToDelete = memberToDelete.id;
-
-            if (navigator.onLine && firebaseHelper.initFirebase()) {
-                await firebaseHelper.getCollection('members').doc(id).delete();
-            } else {
+            if (!navigator.onLine) {
                 return showAlert('오프라인', '오프라인 상태에서는 회원을 삭제할 수 없습니다.\n인터넷 연결을 확인하고 다시 시도해주세요.');
             }
+            
+            showSyncStatus('syncing', '삭제 중...');
 
-            await dbHelper.deleteItem('members', keyToDelete);
+            // Delete from Firebase
+            if (firebaseHelper.initFirebase()) {
+                const batch = firebase.firestore().batch();
+                batch.delete(firebaseHelper.getCollection('members').doc(id));
+                if (hasHistory) {
+                    const logsQuery = await firebaseHelper.getCollection('logs').where('memberId', '==', id).get();
+                    logsQuery.forEach(doc => batch.delete(doc.ref));
+                }
+                await batch.commit();
+            }
+
+            // Delete from IndexedDB
+            await dbHelper.deleteItem('members', memberToDelete.id);
+            if (hasHistory) {
+                for (const log of memberLogs) { await dbHelper.deleteItem('logs', log.id); }
+            }
+
+            // Update local state
             window.members = window.members.filter(m => String(m.id) !== id);
-            showAlert('완료', '회원이 삭제되었습니다.');
+            if (hasHistory) window.logs = window.logs.filter(log => String(log.memberId) !== String(id));
+
+            showSyncStatus('synced', '삭제 완료');
+            showAlert('완료', '회원 및 관련 데이터가 삭제되었습니다.');
             renderMembers(); updateCheckUserSelect(); renderMemberGrid();
         } catch (error) {
             console.error("Error deleting member:", error);
             showAlert('삭제 오류', `회원 삭제 중 오류가 발생했습니다: ${error.message}`);
+            showSyncStatus('online');
         }
     }
 
@@ -2623,16 +2662,53 @@
 
     window.handleResetFinalConfirm = async function() { 
         const input = document.getElementById('reset-confirm-input').value.trim();
-        if (input === "초기화") {
+        if (input !== "초기화") {
+            return showAlert("입력 오류", "입력값이 일치하지 않습니다.\n'초기화'를 정확히 입력해주세요.");
+        }
+
+        if (!navigator.onLine) {
+            return showAlert("오프라인", "오프라인 상태에서는 전체 데이터를 초기화할 수 없습니다.\n인터넷 연결을 확인하고 다시 시도해주세요.");
+        }
+
+        showSyncStatus('syncing', '전체 데이터 삭제 중...');
+
+        try {
+            // Helper function to delete all documents in a collection
+            const deleteCollection = async (collectionName) => {
+                const collectionRef = firebaseHelper.getCollection(collectionName);
+                const snapshot = await collectionRef.get();
+                if (snapshot.empty) return;
+
+                // Firebase allows up to 500 operations in a single batch
+                const batch = firebase.firestore().batch();
+                snapshot.docs.forEach(doc => {
+                    batch.delete(doc.ref);
+                });
+                await batch.commit();
+            };
+
+            // Delete all data from Firebase
+            await Promise.all([
+                deleteCollection('members'),
+                deleteCollection('logs'),
+                deleteCollection('instructors')
+            ]);
+
+            // Clear local IndexedDB
             await Promise.all([
                 dbHelper.clear('members'),
                 dbHelper.clear('logs'),
                 dbHelper.clear('instructors')
             ]);
-            alert("모든 데이터가 초기화되었습니다.");
-            location.reload(); 
-        } else {
-            alert("입력값이 일치하지 않습니다. '초기화'를 정확히 입력해주세요.");
+
+            showSyncStatus('synced', '초기화 완료');
+            showAlert("초기화 완료", "모든 로컬 및 서버 데이터가 초기화되었습니다.\n앱을 새로고침합니다.");
+            setTimeout(() => location.reload(), 2000);
+
+        } catch (error) {
+            console.error("Data reset failed:", error);
+            showAlert("초기화 오류", `데이터 초기화 중 오류가 발생했습니다: ${error.message}`);
+            showSyncStatus('online'); // Revert status
         }
     }
 
