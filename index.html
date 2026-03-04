@@ -130,6 +130,7 @@
         .focus\:ring-theme-200:focus { --tw-ring-offset-shadow: var(--tw-ring-inset) 0 0 0 var(--tw-ring-offset-width) var(--tw-ring-offset-color); --tw-ring-shadow: var(--tw-ring-inset) 0 0 0 calc(2px + var(--tw-ring-offset-width)) rgba(var(--theme-200-rgb), 1); box-shadow: var(--tw-ring-offset-shadow), var(--tw-ring-shadow), var(--tw-shadow, 0 0 #0000); }
         
         .nav-item.active { color: rgba(var(--theme-600-rgb), 1); }
+        .nav-item.active span { font-weight: 700; } /* [FIX] JS 대신 CSS로 활성 탭 텍스트 굵게 처리 */
 
         @keyframes highlightText {
             0% { transform: scale(1); background-color: transparent; }
@@ -263,14 +264,7 @@
         <section id="page-home" class="page">
             <div class="card">
                 <h3 class="font-bold text-xl text-gray-700 mb-3"><i class="fas fa-tools mr-2" aria-hidden="true"></i>관리자 도구</h3>
-                <button onclick="openPaperInputModal()" class="btn-primary mb-2 bg-gradient-to-r from-green-500 to-emerald-600">
-                    <i class="fas fa-edit mr-2"></i>종이 명부 입력 (텍스트)
-                </button>
-                <p class="text-xs text-gray-400 mt-1">
-                    * 이름만 입력하면 자동 가입/출석 처리됩니다.<br>
-                    * 동명이인은 <strong>이름 번호뒷자리</strong> (예: 김철수 1234)
-                </p>
-                <button onclick="openPasswordChangeModal()" class="w-full mt-4 py-3 bg-gray-100 text-gray-600 rounded-lg text-base font-bold hover:bg-gray-200 border border-gray-200">
+                <button onclick="openPasswordChangeModal()" class="w-full py-3 bg-gray-100 text-gray-600 rounded-lg text-base font-bold hover:bg-gray-200 border border-gray-200">
                     <i class="fas fa-key mr-2"></i>관리자 비밀번호 변경
                 </button>
                 <button onclick="openDataManagementModal()" class="w-full mt-2 py-3 bg-gray-100 text-gray-600 rounded-lg text-base font-bold hover:bg-gray-200 border border-gray-200">
@@ -2849,13 +2843,9 @@
 
         document.querySelectorAll('.nav-item').forEach(n => {
             n.classList.remove('active');
-            const span = n.querySelector('span');
-            if (span) span.classList.remove('font-bold');
         });
         if (element) {
             element.classList.add('active');
-            const span = element.querySelector('span');
-            if (span) span.classList.add('font-bold');
         }
         // if (pageId === 'home') renderCurrentSessionQR(); // QR code moved to member screen
         if (pageId === 'reports') showReports();
