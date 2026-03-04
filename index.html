@@ -3390,15 +3390,49 @@
     async function syncPendingData() {
         if (!navigator.onLine) return;
 
+        // [FIX] Sync members first, then logs
+        const allMembers = await dbHelper.getAll('members');
+        const pendingMembers = allMembers.filter(member => member.syncStatus === 'pending');
+
+        if (pendingMembers.length > 0) {
+            showSyncStatus('syncing', `신규 회원 ${pendingMembers.length}건 동기화...`);
+            try {
+                const membersToSync = pendingMembers.map(member => {
+                    const { syncStatus, ...memberData } = member;
+                    return memberData;
+                });
+                await firebaseHelper.batchWrite('members', membersToSync);
+                const updatedMembers = pendingMembers.map(m => {
+                    delete m.syncStatus;
+                    return m;
+                });
+                await dbHelper.bulkPut('members', updatedMembers);
+                
+                // Update in-memory state
+                pendingMembers.forEach(pendingMember => {
+                    const memberInMemory = window.members.find(m => m.id === pendingMember.id);
+                    if (memberInMemory) delete memberInMemory.syncStatus;
+                });
+                console.log(`${pendingMembers.length} members synced successfully.`);
+            } catch (error) {
+                console.error("Member sync failed:", error);
+                showAlert("동기화 실패", "신규 회원 정보를 서버와 동기화하는 데 실패했습니다.");
+                showSyncStatus('offline');
+                return; // Stop if member sync fails
+            }
+        }
+
         const allLogs = await dbHelper.getAll('logs');
         const pendingLogs = allLogs.filter(log => log.syncStatus === 'pending');
 
         if (pendingLogs.length === 0) {
-            console.log("No pending data to sync.");
+            if (pendingMembers.length === 0) { // Only log if nothing was synced at all
+                console.log("No pending data to sync.");
+            }
             return;
         }
 
-        showSyncStatus('syncing', `${pendingLogs.length}건 동기화 중...`);
+        showSyncStatus('syncing', `출석 기록 ${pendingLogs.length}건 동기화...`);
 
         try {
             // Prepare data for Firebase batch write
