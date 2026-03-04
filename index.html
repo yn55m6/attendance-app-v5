@@ -2893,6 +2893,52 @@
         closePasswordChangeModal();
     }
 
+    // --- [NEW] QR Code Logic ---
+    window.renderMemberViewQR = function() {
+        const container = document.getElementById('member-view-qr-container');
+        if (!container) return;
+
+        const session = getCurrentSession();
+        container.innerHTML = ''; // Clear previous
+
+        if (session) {
+            const url = `${window.location.href.split('?')[0]}?session=${session.code}`;
+            const qrDiv = document.createElement('div');
+            qrDiv.id = 'member-view-qr-code';
+            container.appendChild(qrDiv);
+            new QRCode(qrDiv, {
+                text: url,
+                width: 120,
+                height: 120,
+                colorDark : "#000000",
+                colorLight : "#ffffff",
+                correctLevel : QRCode.CorrectLevel.H
+            });
+        } else {
+            container.innerHTML = `<div class="w-[120px] h-[120px] bg-gray-100 flex items-center justify-center text-center text-xs text-gray-400 p-2 rounded-lg">수업 시간에<br>QR 표시</div>`;
+        }
+    }
+
+    window.showAllQRCodesForPrint = function() {
+        const printArea = document.getElementById('print-area');
+        printArea.innerHTML = ''; // Clear previous
+        const baseUrl = window.location.href.split('?')[0];
+
+        SESSIONS.forEach(session => {
+            const url = `${baseUrl}?session=${session.code}`;
+            const qrWrapper = document.createElement('div');
+            qrWrapper.className = 'text-center border p-4 rounded-lg flex flex-col items-center break-inside-avoid';
+            qrWrapper.innerHTML = `<p class="font-bold mb-2">${session.name}</p><div id="qr-print-${session.code}"></div>`;
+            printArea.appendChild(qrWrapper);
+            new QRCode(document.getElementById(`qr-print-${session.code}`), { text: url, width: 128, height: 128, correctLevel: QRCode.CorrectLevel.H });
+        });
+        document.getElementById('qr-print-modal').classList.remove('hidden');
+    }
+
+    window.closeQrPrintModal = function() {
+        document.getElementById('qr-print-modal').classList.add('hidden');
+    }
+
     // --- 10. App Initialization & Login ---
     window.showLoginScreen = function() {
         document.getElementById('start-screen').classList.remove('hidden');
