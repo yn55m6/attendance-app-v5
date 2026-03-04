@@ -2577,22 +2577,35 @@
     }
     
     window.deleteMember = async function(id) {
-        const hasHistory = logs.some(log => String(log.memberId) === String(id));
-        if (hasHistory) {
-            alert("❌ 삭제 실패\n이 회원의 출석 기록이 존재합니다.\n기록을 유지하기 위해 삭제할 수 없습니다.");
-            return;
-        }
+        try {
+            const hasHistory = logs.some(log => String(log.memberId) === String(id));
+            if (hasHistory) {
+                return showAlert("삭제 실패", "이 회원의 출석 기록이 존재합니다.\n기록을 유지하기 위해 삭제할 수 없습니다.");
+            }
 
-        const isAuthorized = await requestPassword();
-        if (!isAuthorized) return;
+            const isAuthorized = await requestPassword();
+            if (!isAuthorized) return;
 
-        if(confirm('정말 삭제하시겠습니까?')) {
-            await dbHelper.deleteItem('members', Number(id)); // Ensure number for DB key
-            window.members = window.members.filter(m => String(m.id) !== String(id));
-            alert('삭제되었습니다.');
-            renderMembers(); // Re-render with current search query
-            updateCheckUserSelect();
-            renderMemberGrid();
+            const confirmed = await requestConfirm('회원 삭제', '정말 이 회원을 삭제하시겠습니까?\n이 작업은 되돌릴 수 없습니다.');
+            if (!confirmed) return;
+
+            const memberToDelete = window.members.find(m => String(m.id) === id);
+            if (!memberToDelete) return showAlert('오류', '삭제할 회원을 찾을 수 없습니다.');
+            const keyToDelete = memberToDelete.id;
+
+            if (navigator.onLine && firebaseHelper.initFirebase()) {
+                await firebaseHelper.getCollection('members').doc(id).delete();
+            } else {
+                return showAlert('오프라인', '오프라인 상태에서는 회원을 삭제할 수 없습니다.\n인터넷 연결을 확인하고 다시 시도해주세요.');
+            }
+
+            await dbHelper.deleteItem('members', keyToDelete);
+            window.members = window.members.filter(m => String(m.id) !== id);
+            showAlert('완료', '회원이 삭제되었습니다.');
+            renderMembers(); updateCheckUserSelect(); renderMemberGrid();
+        } catch (error) {
+            console.error("Error deleting member:", error);
+            showAlert('삭제 오류', `회원 삭제 중 오류가 발생했습니다: ${error.message}`);
         }
     }
 
@@ -3256,24 +3269,28 @@
         if (!indicator || !icon || !text) return;
 
         indicator.classList.remove('hidden', 'bg-gray-700', 'bg-green-600', 'bg-yellow-600');
-        icon.classList.remove('fa-spin');
 
         switch(status) {
             case 'syncing':
                 indicator.classList.add('bg-yellow-600', 'flex');
-                icon.classList.add('fa-spin');
+                icon.className = 'fas fa-cloud-arrow-up fa-spin';
                 text.innerText = message || '동기화 중...';
                 break;
             case 'synced':
                 indicator.classList.add('bg-green-600', 'flex');
-                icon.classList.remove('fa-spin');
+                icon.className = 'fas fa-circle-check';
                 text.innerText = message || '동기화 완료';
-                setTimeout(() => indicator.classList.add('hidden'), 2000); // Hide after 2s
+                setTimeout(() => showSyncStatus('online'), 2000);
                 break;
             case 'offline':
                 indicator.classList.add('bg-gray-700', 'flex');
-                icon.classList.remove('fa-spin');
+                icon.className = 'fas fa-link-slash';
                 text.innerText = message || '오프라인 모드';
+                break;
+            case 'online':
+                indicator.classList.add('bg-green-600', 'flex');
+                icon.className = 'fas fa-cloud';
+                text.innerText = message || '온라인';
                 break;
             case 'hide':
                 indicator.classList.add('hidden');
@@ -3324,7 +3341,7 @@
         } catch (error) {
             console.error("Sync failed:", error);
             showAlert("동기화 실패", "데이터를 서버와 동기화하는 데 실패했습니다. 인터넷 연결을 확인하고 다시 시도해주세요.");
-            showSyncStatus('hide');
+            showSyncStatus('offline');
         }
     }
 
@@ -3382,7 +3399,7 @@
                 
                 listenForRealtimeUpdates();
                 await syncPendingData(); // Sync any data from previous offline sessions
-                showSyncStatus('hide');
+                showSyncStatus('online');
             } else {
                 // Offline: Just show offline status
                 console.log("Offline mode: App will run with local data.");
