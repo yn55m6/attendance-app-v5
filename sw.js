@@ -1,4 +1,4 @@
-const CACHE_NAME = 'attendance-app-cache-v33'; // 버전을 업데이트하여 캐시를 갱신할 수 있습니다.
+const CACHE_NAME = 'attendance-app-cache-v34'; // 버전을 업데이트하여 캐시를 갱신할 수 있습니다.
 const urlsToCache = [
     './',
     './index.html',
@@ -6,6 +6,7 @@ const urlsToCache = [
     'https://cdn.tailwindcss.com',
     'https://cdn.jsdelivr.net/npm/chart.js',
     'https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.0.0',
+    'https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js',
     'https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css',
     // FontAwesome 폰트 파일 등은 fetch 이벤트에서 동적으로 캐싱됩니다.
 ];
