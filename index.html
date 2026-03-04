@@ -28,6 +28,10 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
     <!-- FontAwesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <!-- [NEW] Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+
 
     <style>
         /* 메쉬 그라데이션 배경 */
@@ -756,6 +760,10 @@
             확인
         </button>
     </div>
+    <div id="sync-status-indicator" class="fixed top-16 right-4 bg-gray-700 text-white text-xs px-3 py-1.5 rounded-full shadow-lg hidden items-center gap-2 z-[120]">
+        <i id="sync-icon" class="fas fa-sync-alt"></i>
+        <span id="sync-text"></span>
+    </div>
 </div>
 
 <!-- [NEW] Custom Confirm Modal -->
@@ -878,6 +886,54 @@
             deleteItem: (storeName, key) => promisifyRequest(getStore(storeName, 'readwrite').delete(key)),
             clear: (storeName) => promisifyRequest(getStore(storeName, 'readwrite').clear()),
             bulkPut
+        };
+    })();
+
+    // =================================================================================
+    // Firebase Helper (데이터베이스 관리 로직)
+    // =================================================================================
+    const firebaseHelper = (() => {
+        let db;
+
+        function initFirebase() {
+            // ⚠️ IMPORTANT: Fill in your Firebase project configuration here!
+            const firebaseConfig = {
+                apiKey: "AIzaSyBeO3VsRM8x7pY9A5tktrUDIZPfCMKGZfQ",
+                authDomain: "smart-attendance-964dc.firebaseapp.com",
+                projectId: "smart-attendance-964dc",
+                storageBucket: "smart-attendance-964dc.firebasestorage.app",
+                messagingSenderId: "409196393524",
+                appId: "1:409196393524:web:f705254e8e62c415488661"
+            };
+
+            // A simple check to see if the config is filled.
+            if (firebaseConfig.apiKey === "YOUR_API_KEY") {
+                console.warn("Firebase is not configured. Please fill in firebaseConfig in index.html.");
+                return false;
+            }
+
+            firebase.initializeApp(firebaseConfig);
+            db = firebase.firestore();
+            return true;
+        }
+
+        const getCollection = (collectionName) => db.collection(collectionName);
+
+        const batchWrite = async (collectionName, items) => {
+            const batch = db.batch();
+            items.forEach(item => {
+                const { id, ...data } = item;
+                // If item has an ID from IndexedDB, use it for Firestore doc ID
+                const docRef = id ? db.collection(collectionName).doc(String(id)) : db.collection(collectionName).doc();
+                batch.set(docRef, data);
+            });
+            return batch.commit();
+        };
+
+        return {
+            initFirebase,
+            getCollection,
+            batchWrite
         };
     })();
 </script>
@@ -2305,7 +2361,7 @@
         if(alreadyChecked) {
             showUndoToast('⚠️ 이미 출석 처리되었습니다.');
         } else {
-            const newLogData = {
+            let newLogData = {
                 memberId: member.id, 
                 memberName: member.name, 
                 date: dateStr, 
@@ -2313,9 +2369,22 @@
                 sessionName: session.name, 
                 timestamp: new Date().toLocaleString()
             };
-            const newId = await dbHelper.add('logs', newLogData);
-            newLogData.id = newId;
-            window.logs.unshift(newLogData);
+
+            let newId;
+            if (navigator.onLine) {
+                // Online: Save to Firebase first, then local
+                const docRef = firebaseHelper.getCollection('logs').doc();
+                newId = docRef.id;
+                newLogData.id = newId;
+                await docRef.set(newLogData); // Save to Firebase
+                await dbHelper.put('logs', newLogData); // Save to IndexedDB
+            } else {
+                // Offline: Save to local with pending status
+                newLogData.syncStatus = 'pending';
+                newId = await dbHelper.add('logs', newLogData);
+                newLogData.id = newId;
+            }
+            window.logs.unshift(newLogData); // Update in-memory state
             
             playSound();
             let message = `✅ ${member.name}님 출석 완료!`;
@@ -2353,11 +2422,24 @@
         list.innerHTML = ''; // Clear previous content
         // [FIX] Use String comparison for log filtering
         const history = logs.filter(l => String(l.memberId) === String(memberId)).sort((a, b) => b.id - a.id);
-        if (history.length === 0) {
+        
+        const pendingStatusHtml = `<span class="text-xs bg-yellow-100 text-yellow-700 px-2 py-0.5 rounded ml-2"><i class="fas fa-clock mr-1"></i>대기중</span>`;
+
+        if (history.length === 0) { 
             list.innerHTML = '<li class="text-center text-gray-400 py-4">출석 기록이 없습니다.</li>';
         } else {
             history.forEach(h => {
-                list.innerHTML += `<li class="bg-gray-50 p-3 rounded border border-gray-100"><div class="flex justify-between items-center mb-1"><span class="font-bold text-gray-700">${h.date}</span><span class="text-xs bg-indigo-100 text-indigo-700 px-2 py-0.5 rounded">${h.sessionName}</span></div><div class="text-xs text-gray-400 text-right">${h.timestamp}</div></li>`;
+                const isPending = h.syncStatus === 'pending';
+                list.innerHTML += `<li class="bg-gray-50 p-3 rounded border border-gray-100">
+                    <div class="flex justify-between items-center mb-1">
+                        <div>
+                            <span class="font-bold text-gray-700">${h.date}</span>
+                            <span class="text-xs bg-indigo-100 text-indigo-700 px-2 py-0.5 rounded ml-2">${h.sessionName}</span>
+                            ${isPending ? pendingStatusHtml : ''}
+                        </div>
+                    </div>
+                    <div class="text-xs text-gray-400 text-right">${h.timestamp}</div>
+                </li>`;
             });
         }
         document.getElementById('history-modal').classList.remove('hidden');
@@ -3166,6 +3248,102 @@
         }
     };
 
+    // --- [NEW] Online/Offline Sync Logic ---
+    function showSyncStatus(status, message) {
+        const indicator = document.getElementById('sync-status-indicator');
+        const icon = document.getElementById('sync-icon');
+        const text = document.getElementById('sync-text');
+        if (!indicator || !icon || !text) return;
+
+        indicator.classList.remove('hidden', 'bg-gray-700', 'bg-green-600', 'bg-yellow-600');
+        icon.classList.remove('fa-spin');
+
+        switch(status) {
+            case 'syncing':
+                indicator.classList.add('bg-yellow-600', 'flex');
+                icon.classList.add('fa-spin');
+                text.innerText = message || '동기화 중...';
+                break;
+            case 'synced':
+                indicator.classList.add('bg-green-600', 'flex');
+                icon.classList.remove('fa-spin');
+                text.innerText = message || '동기화 완료';
+                setTimeout(() => indicator.classList.add('hidden'), 2000); // Hide after 2s
+                break;
+            case 'offline':
+                indicator.classList.add('bg-gray-700', 'flex');
+                icon.classList.remove('fa-spin');
+                text.innerText = message || '오프라인 모드';
+                break;
+            case 'hide':
+                indicator.classList.add('hidden');
+                break;
+        }
+    }
+
+    async function syncPendingData() {
+        if (!navigator.onLine) return;
+
+        const allLogs = await dbHelper.getAll('logs');
+        const pendingLogs = allLogs.filter(log => log.syncStatus === 'pending');
+
+        if (pendingLogs.length === 0) {
+            console.log("No pending data to sync.");
+            return;
+        }
+
+        showSyncStatus('syncing', `${pendingLogs.length}건 동기화 중...`);
+
+        try {
+            // Prepare data for Firebase batch write
+            const logsToSync = pendingLogs.map(log => {
+                const { syncStatus, ...logData } = log; // Remove syncStatus before sending
+                return logData;
+            });
+
+            await firebaseHelper.batchWrite('logs', logsToSync);
+
+            // Update local IndexedDB after successful sync
+            const updatedLogs = pendingLogs.map(log => {
+                delete log.syncStatus; // Remove the pending flag
+                return log;
+            });
+            await dbHelper.bulkPut('logs', updatedLogs);
+
+            // Update in-memory state
+            pendingLogs.forEach(pendingLog => {
+                const logInMemory = window.logs.find(l => l.id === pendingLog.id);
+                if (logInMemory) delete logInMemory.syncStatus;
+            });
+
+            showSyncStatus('synced', `${pendingLogs.length}건 동기화 완료!`);
+            // Refresh UI if needed
+            if (currentMode === 'reports') showReports();
+            if (currentMode === 'members') renderMembers();
+
+        } catch (error) {
+            console.error("Sync failed:", error);
+            showAlert("동기화 실패", "데이터를 서버와 동기화하는 데 실패했습니다. 인터넷 연결을 확인하고 다시 시도해주세요.");
+            showSyncStatus('hide');
+        }
+    }
+
+    function listenForRealtimeUpdates() {
+        firebaseHelper.getCollection('logs').onSnapshot(snapshot => {
+            const serverLogs = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+            dbHelper.bulkPut('logs', serverLogs).then(async () => {
+                console.log("Realtime logs updated in IndexedDB.");
+                window.logs = await dbHelper.getAll('logs');
+                window.logs.sort((a, b) => b.id - a.id);
+                // Optionally refresh UI
+                if (document.getElementById('app-main-content').classList.contains('hidden') === false) {
+                    // Only refresh if app is visible
+                }
+            });
+        });
+        // Can do the same for 'members' and 'instructors' if they need to be real-time
+    }
+
     // [FIX] Ensure Master Key exists on init
     if (!localStorage.getItem('adminMasterKey')) {
         const randomKey = Math.random().toString(36).substring(2, 10).toUpperCase();
@@ -3181,19 +3359,49 @@
 
         try {
             await dbHelper.initDB();
+
+            if (navigator.onLine && firebaseHelper.initFirebase()) {
+                // Online: Fetch from Firebase, update local, then listen
+                console.log("Online mode: Initializing with Firebase data.");
+                showSyncStatus('syncing', '서버와 동기화 중...');
+                const [membersSnapshot, logsSnapshot, instructorsSnapshot] = await Promise.all([
+                    firebaseHelper.getCollection('members').get(),
+                    firebaseHelper.getCollection('logs').get(),
+                    firebaseHelper.getCollection('instructors').get()
+                ]);
+
+                const membersData = membersSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                const logsData = logsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                const instructorsData = instructorsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+
+                await Promise.all([
+                    dbHelper.bulkPut('members', membersData),
+                    dbHelper.bulkPut('logs', logsData),
+                    dbHelper.bulkPut('instructors', instructorsData.map(d => ({sessionCode: d.id, name: d.name})))
+                ]);
+                
+                listenForRealtimeUpdates();
+                await syncPendingData(); // Sync any data from previous offline sessions
+                showSyncStatus('hide');
+            } else {
+                // Offline: Just show offline status
+                console.log("Offline mode: App will run with local data.");
+                showSyncStatus('offline');
+            }
+
+            // Load data from IndexedDB (now the single source of truth for the UI)
             const [membersData, logsData, instructorsData] = await Promise.all([
                 dbHelper.getAll('members'),
                 dbHelper.getAll('logs'),
                 dbHelper.getAll('instructors')
             ]);
-
             window.members = membersData.sort((a, b) => a.name.localeCompare(b.name));
             window.logs = logsData.sort((a, b) => b.id - a.id);
             window.instructors = instructorsData.reduce((acc, curr) => {
                 acc[curr.sessionCode] = curr.name;
                 return acc;
             }, {});
-
+            
             // [NEW] QR Code Handling
             const urlParams = new URLSearchParams(window.location.search);
             const sessionCodeFromQR = urlParams.get('session');
@@ -3243,6 +3451,16 @@
             checkTabOverflow();
         }
     });
+
+    // [NEW] Listen for online/offline status changes
+    window.addEventListener('online', () => {
+        showSyncStatus('syncing', '온라인 상태입니다. 동기화를 시작합니다...');
+        syncPendingData();
+    });
+    window.addEventListener('offline', () => {
+        showSyncStatus('offline');
+    });
+
 
     // --- PWA Service Worker Registration ---
     function showUpdateToast(registration) {
