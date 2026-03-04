@@ -286,6 +286,30 @@
             </div>
         </section>
 
+        <!-- Page 2: Members -->
+        <section id="page-members" class="page h-[calc(100vh-140px)] flex flex-col">
+            <div class="card flex-none">
+                <h2 class="font-bold text-xl mb-4">회원 등록</h2>
+                <div class="flex gap-3 mb-3">
+                    <input type="text" id="new-member-name" placeholder="이름 (필수)" class="flex-1 p-3 border rounded bg-gray-50 text-lg">
+                    <input type="tel" id="new-member-phone" placeholder="뒷번호 (생략가능)" class="w-1/3 p-3 border rounded bg-gray-50 text-lg">
+                </div>
+                <button onclick="addMember()" class="btn-primary">등록하기</button>
+            </div>
+            <div class="card flex-1 flex flex-col overflow-hidden min-h-0">
+                <div class="flex-none">
+                    <h2 class="font-bold text-xl mb-2">회원 목록 <span id="member-count" class="text-base text-theme-600 font-normal"></span></h2>
+                    <!-- [NEW] Search Input -->
+                    <div class="relative mb-4">
+                        <input type="text" id="member-list-search" oninput="renderMembers()" placeholder="이름 또는 전화번호로 검색" class="w-full p-3 pl-10 border rounded bg-gray-50 text-lg focus:ring-2 focus:ring-theme-200 focus:border-theme-300 outline-none">
+                        <i class="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"></i>
+                    </div>
+                    <p class="text-xs text-gray-400 mb-2">* 이름을 클릭하면 상세 이력을 볼 수 있습니다.</p>
+                </div>
+                <ul id="member-list" class="divide-y divide-gray-100 flex-1 overflow-y-auto"></ul>
+            </div>
+        </section>
+
         <!-- Page: Instructors (New) -->
         <section id="page-instructors" class="page">
             <div class="card h-[calc(100vh-140px)] flex flex-col">
@@ -427,14 +451,17 @@
 
         <!-- Navigation Bar -->
         <nav class="nav-bar no-print admin-only" aria-label="하단 네비게이션">
-            <div class="nav-item active" onclick="switchPage(this, 'home')">
-                <i class="fas fa-home" aria-hidden="true"></i><span class="font-bold">홈</span>
+            <div class="nav-item active" onclick="switchPage(this, 'members')">
+                <i class="fas fa-users" aria-hidden="true"></i><span class="font-bold">회원관리</span>
             </div>
             <div class="nav-item admin-only" onclick="switchPage(this, 'instructors')">
                 <i class="fas fa-chalkboard-teacher" aria-hidden="true"></i><span>사범관리</span>
             </div>
             <div class="nav-item" onclick="switchPage(this, 'reports')">
                 <i class="fas fa-chart-bar" aria-hidden="true"></i><span>리포트</span>
+            </div>
+            <div class="nav-item" onclick="switchPage(this, 'home')">
+                <i class="fas fa-cog" aria-hidden="true"></i><span>설정</span>
             </div>
         </nav>
     </main>
@@ -2404,6 +2431,87 @@
         document.getElementById('new-members-modal').classList.add('hidden');
     }
 
+    window.addMember = async function() {
+        const name = document.getElementById('new-member-name').value;
+        let phone = document.getElementById('new-member-phone').value;
+        if (!name) return showAlert('알림', '이름을 입력해주세요.');
+        if (!phone) phone = "0000";
+
+        const isDuplicate = members.some(m => m.name === name && m.phone === phone);
+        if (isDuplicate) {
+            return showAlert('중복 등록', `⚠️ 이미 등록된 회원입니다.\n(이름: ${name}, 번호: ${phone})`);
+        }
+        
+        const newMember = { name, phone, registeredAt: new Date().toISOString() };
+        const newId = await dbHelper.add('members', newMember);
+        newMember.id = newId;
+        window.members.push(newMember);
+        window.members.sort((a, b) => a.name.localeCompare(b.name));
+
+        document.getElementById('new-member-name').value = ''; document.getElementById('new-member-phone').value = '';
+        showAlert('완료', `${name} 회원이 등록되었습니다.`);
+        renderMembers();
+        updateCheckUserSelect();
+        renderMemberGrid();
+    }
+
+    window.renderMembers = function() {
+        const searchInput = document.getElementById('member-list-search');
+        const query = searchInput ? searchInput.value : '';
+        const list = document.getElementById('member-list');
+        const countSpan = document.getElementById('member-count');
+        
+        const trimmedQuery = query.trim().toLowerCase();
+        const filteredMembers = trimmedQuery
+            ? window.members.filter(m => 
+                m.name.toLowerCase().includes(trimmedQuery) || 
+                (m.phone && m.phone.includes(trimmedQuery))
+              )
+            : window.members;
+
+        countSpan.innerText = `(${filteredMembers.length} / 총 ${window.members.length}명)`;
+        
+        if (filteredMembers.length === 0) {
+            list.innerHTML = `<li class="text-center text-gray-400 py-8">${trimmedQuery ? '검색 결과가 없습니다.' : '등록된 회원이 없습니다.'}</li>`;
+            return;
+        }
+
+        list.innerHTML = '';
+        filteredMembers.forEach(m => {
+            const regDate = m.registeredAt ? new Date(m.registeredAt).toLocaleDateString() : '';
+            list.innerHTML += `<li class="py-4 flex justify-between items-center">
+                <div onclick="openHistoryModal('${m.id}')" class="cursor-pointer flex-1 hover:bg-theme-50 p-2 rounded transition">
+                    <div class="flex items-center gap-2">
+                        <p class="font-bold text-lg text-gray-800 flex items-center">${m.name} <i class="fas fa-chevron-right text-gray-300 text-xs ml-2"></i></p>
+                        ${regDate ? `<span class="text-xs text-gray-400 bg-gray-100 px-2 py-0.5 rounded">${regDate} 가입</span>` : ''}
+                    </div>
+                    <p class="text-sm text-gray-400">${m.phone}</p>
+                </div>
+                <button onclick="deleteMember('${m.id}')" class="text-red-400 text-sm border border-red-200 px-3 py-2 rounded-lg hover:bg-red-50 ml-2">삭제</button>
+            </li>`;
+        });
+    }
+    
+    window.deleteMember = async function(id) {
+        const hasHistory = logs.some(log => String(log.memberId) === String(id));
+        if (hasHistory) {
+            alert("❌ 삭제 실패\n이 회원의 출석 기록이 존재합니다.\n기록을 유지하기 위해 삭제할 수 없습니다.");
+            return;
+        }
+
+        const isAuthorized = await requestPassword();
+        if (!isAuthorized) return;
+
+        if(confirm('정말 삭제하시겠습니까?')) {
+            await dbHelper.deleteItem('members', Number(id)); // Ensure number for DB key
+            window.members = window.members.filter(m => String(m.id) !== String(id));
+            alert('삭제되었습니다.');
+            renderMembers(); // Re-render with current search query
+            updateCheckUserSelect();
+            renderMemberGrid();
+        }
+    }
+
     window.resetData = async function() { 
         const isAuthorized = await requestPassword();
         if (!isAuthorized) return;
@@ -2740,6 +2848,7 @@
             element.classList.add('active');
         }
         // if (pageId === 'home') renderCurrentSessionQR(); // QR code moved to member screen
+        if (pageId === 'members') renderMembers();
         if (pageId === 'reports') showReports();
         if (pageId === 'instructors') renderInstructorManagement();
     }
@@ -2879,9 +2988,9 @@
         } else {
             document.querySelectorAll('.admin-only').forEach(el => el.classList.remove('hidden'));
             document.getElementById('btn-exit-member-mode').classList.add('hidden');
-            // 관리자 모드일 때는 홈 페이지로 이동 (안전하게 첫 번째 메뉴 선택)
+            // 관리자 모드일 때는 회원관리 페이지로 이동
             const firstNavItem = document.querySelector('.nav-item');
-            if (firstNavItem) switchPage(firstNavItem, 'home');
+            if (firstNavItem) switchPage(firstNavItem, 'members');
         }
 
         // Run initial setup that requires the DOM to be visible
@@ -3118,6 +3227,7 @@
             }
 
             // DOM이 준비된 후 UI 렌더링
+            renderMembers();
             updateCheckUserSelect();
         } catch (error) {
             console.error("Application initialization failed:", error);
