@@ -213,11 +213,7 @@
             <h1 class="text-lg sm:text-xl font-bold"><i class="fas fa-check-circle mr-2" aria-hidden="true"></i>연신내 출석부</h1>
             <div class="flex items-center gap-1 sm:gap-2">
                 <button id="btn-exit-member-mode" onclick="exitMemberMode()" class="hidden text-base bg-red-600 px-6 py-2.5 rounded-xl hover:bg-red-700 font-bold shadow-md">출석 종료</button>
-                <button onclick="resetData()" class="admin-only text-sm bg-red-600 px-3 sm:px-4 py-2 rounded-lg hover:bg-red-700 flex items-center justify-center">
-                    <i class="fas fa-trash-alt sm:mr-2"></i><span class="hidden sm:inline">초기화</span>
-                </button>
                 <button id="btn-exit-admin-mode" onclick="exitMemberMode()" class="admin-only text-base bg-gray-500 px-6 py-2.5 rounded-xl hover:bg-gray-600 font-bold shadow-md">뒤로가기</button>
-                </button>
             </div>
         </header>
 
@@ -283,6 +279,10 @@
                 </button>
                 <button onclick="showAllQRCodesForPrint()" class="w-full mt-2 py-3 bg-gray-100 text-gray-600 rounded-lg text-base font-bold hover:bg-gray-200 border border-gray-200">
                     <i class="fas fa-print mr-2"></i>차수별 QR 코드 출력
+                </button>
+                <div class="border-t my-4"></div>
+                <button onclick="resetData()" class="w-full py-3 bg-red-100 text-red-700 rounded-lg text-base font-bold hover:bg-red-200 border border-red-200 flex items-center justify-center">
+                    <i class="fas fa-trash-alt mr-2"></i>전체 데이터 초기화
                 </button>
             </div>
             
