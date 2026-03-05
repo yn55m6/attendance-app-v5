@@ -3021,19 +3021,27 @@
     }
 
     window.switchPage = function(element, pageId) {
-        currentMode = pageId; // 현재 모드 설정
+        currentMode = pageId;
         const pages = document.querySelectorAll('.page');
-        pages.forEach(p => p.classList.remove('active'));
-        const targetPage = document.getElementById('page-' + pageId);
-        if (targetPage) targetPage.classList.add('active');
+        const targetPageId = 'page-' + pageId;
 
-        document.querySelectorAll('.nav-item').forEach(n => {
-            n.classList.remove('active');
+        // [FINAL FIX] Use inline styles to forcefully control page visibility,
+        // bypassing any potential CSS rendering bugs.
+        pages.forEach(p => {
+            p.style.display = 'none';
+            p.classList.remove('active');
         });
+
+        const targetPage = document.getElementById(targetPageId);
+        if (targetPage) {
+            targetPage.style.display = 'block';
+            targetPage.classList.add('active'); // Keep for animations/styling
+        }
+
+        document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
         if (element) {
             element.classList.add('active');
         }
-        // if (pageId === 'home') renderCurrentSessionQR(); // QR code moved to member screen
         if (pageId === 'members') renderMembers();
         if (pageId === 'reports') showReports();
         if (pageId === 'instructors') renderInstructorManagement();
