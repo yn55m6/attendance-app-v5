@@ -3697,7 +3697,10 @@
 
     if ('serviceWorker' in navigator) {
         window.addEventListener('load', () => {
-            navigator.serviceWorker.register('./sw.js').then(registration => {
+            // [ULTIMATE FIX] Add a version parameter to the service worker URL.
+            // This forces the browser to bypass its HTTP cache and fetch the new sw.js file,
+            // ensuring the latest caching strategy is applied.
+            navigator.serviceWorker.register('./sw.js?v=66').then(registration => {
                 console.log('ServiceWorker registration successful with scope: ', registration.scope);
 
                 registration.onupdatefound = () => {

@@ -1,4 +1,4 @@
-const CACHE_NAME = 'attendance-app-cache-v65'; // 네트워크 우선 전략 적용 및 캐시 버전 업데이트
+const CACHE_NAME = 'attendance-app-cache-v66'; // 네트워크 전용 전략으로 변경
 const urlsToCache = [
     './',
     './index.html',
@@ -51,27 +51,14 @@ self.addEventListener('activate', event => {
 
 // 요청 가로채기 (네트워크 또는 캐시에서 응답)
 self.addEventListener('fetch', event => {
-    // [FINAL FIX] index.html에 대해서는 '네트워크 우선' 전략을 사용합니다.
-    // 이렇게 하면 사용자는 항상 최신 버전의 앱 셸을 받게 되어, 캐시로 인한 레이아웃 오류를 원천 차단합니다.
+    // [ULTIMATE FIX] 페이지 이동 요청(index.html)에 대해서는 항상 네트워크를 사용합니다.
+    // 캐시를 전혀 사용하지 않음으로써, 오래된 버전의 HTML이 표시되는 문제를 원천적으로 차단합니다.
     if (event.request.mode === 'navigate') {
-        event.respondWith(
-            fetch(event.request)
-                .then(response => {
-                    // 네트워크 요청 성공 시, 응답을 캐시에 저장하고 반환합니다.
-                    return caches.open(CACHE_NAME).then(cache => {
-                        cache.put(event.request.url, response.clone());
-                        return response;
-                    });
-                })
-                .catch(err => {
-                    // 네트워크 실패 시 (오프라인), 캐시에서 가져옵니다.
-                    return caches.match(event.request);
-                })
-        );
+        event.respondWith(fetch(event.request));
         return;
     }
 
-    // 다른 모든 요청(CSS, JS, 이미지 등)은 '캐시 우선' 전략을 사용합니다.
+    // 다른 모든 요청(CSS, JS, 이미지 등)은 '캐시 우선' 전략을 사용하여 성능을 확보합니다.
     event.respondWith(
         caches.match(event.request).then(response => {
             return response || fetch(event.request).then(fetchResponse => {
