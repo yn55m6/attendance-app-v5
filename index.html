@@ -3127,6 +3127,8 @@
         document.getElementById('qr-print-modal').classList.add('hidden');
     }
 
+        }
+
     // --- 10. App Initialization & Login ---
     window.showLoginScreen = function() {
         const startScreen = document.getElementById('start-screen');
@@ -3134,7 +3136,6 @@
         const mainContent = document.getElementById('app-main-content');
         if (mainContent) mainContent.style.display = 'none';
 
-        // [FIX] 항상 모드 선택 버튼이 보이도록 초기화
         document.getElementById('mode-selection').classList.remove('hidden');
         document.getElementById('login-form').classList.add('hidden');
     }
@@ -3150,9 +3151,12 @@
         document.getElementById('login-form').classList.add('hidden');
     }
 
-    window.enterMemberMode = function() {
-        sessionStorage.setItem('appMode', 'member');
-        showApp();
+    window.enterMemberMode = async function() {
+        const success = await initializeAppAndLoadData();
+        if (success) {
+            sessionStorage.setItem('appMode', 'member');
+            showApp();
+        }
     }
 
     window.exitMemberMode = function() {
@@ -3174,14 +3178,13 @@
             document.getElementById('btn-exit-member-mode').classList.remove('hidden');
             switchPage(null, 'member-attendance');
             
-            // [FINAL FIX] DOM이 준비될 때까지 재시도하여 초기화 함수를 확실히 실행
             const forceInit = (retryCount = 0) => {
                 const dateInput = document.getElementById('member-mode-date');
                 if (dateInput) {
-                    window.syncMemberModeToNow(true); // true: 자동 실행 모드
+                    window.syncMemberModeToNow(true);
                     renderMemberGrid();
-                    renderMemberViewQR(); // [NEW] Render QR on member screen
-                } else if (retryCount < 10) { // 최대 1초간 재시도
+                    renderMemberViewQR();
+                } else if (retryCount < 10) {
                     setTimeout(() => forceInit(retryCount + 1), 100);
                 }
             };
@@ -3189,396 +3192,22 @@
         } else {
             document.querySelectorAll('.admin-only').forEach(el => el.classList.remove('hidden'));
             document.getElementById('btn-exit-member-mode').classList.add('hidden');
-            // 관리자 모드일 때는 회원관리 페이지로 이동
             const firstNavItem = document.querySelector('.nav-item');
             if (firstNavItem) switchPage(firstNavItem, 'members');
         }
 
-        // Run initial setup that requires the DOM to be visible
         if (document.getElementById('current-url')) {
             document.getElementById('current-url').innerText = window.location.href.split('?')[0];
         }
     }
 
-    // --- 회원 모드 날짜/수업 동기화 함수 (완전 해결 버전) ---
-    window.syncMemberModeToNow = function(isAuto = false) {
-        const dateInput = document.getElementById('member-mode-date');
-        const sessionSelect = document.getElementById('member-mode-session');
-        const infoText = document.getElementById('current-session-info');
-        const syncIcon = document.getElementById('icon-sync-member');
-
-        if (!dateInput || !sessionSelect || !infoText) return;
-
-        // 시각적 피드백: 아이콘 회전 (자동 실행 시에는 제외)
-        if (!isAuto && syncIcon) syncIcon.classList.add('fa-spin');
-
-        // 1단계: 날짜 설정 및 수업 목록 생성 명령
-        const todayStr = window.getTodayStr();
-        dateInput.value = todayStr;
-        window.updateMemberModeSessionOptions();
-
-        // 2단계: 브라우저가 목록을 그린 후, 값을 선택하도록 순서 보장
-        setTimeout(() => {
-            const now = new Date();
-            const session = window.getCurrentSession();
-
-            if (session && session.day === now.getDay()) {
-                sessionSelect.value = session.code;
-                // [NEW] Check for instructor
-                const instructorName = window.instructors[session.code];
-                const instructorText = instructorName ? ` (${instructorName} 사범)` : '';
-                infoText.innerText = `현재 수업: ${session.name}${instructorText}`;
-                if (!isAuto) showUndoToast(`✅ 현재 시간(${session.name})으로 동기화되었습니다.`);
-            } else {
-                const dayName = window.DAYS ? window.DAYS[now.getDay()] : "";
-                infoText.innerText = `현재 진행 중인 수업이 없습니다. (${dayName}요일 ${now.getHours()}시)`;
-                if (!isAuto) alert("ℹ️ 현재 진행 중인 수업이 없어 날짜만 오늘로 설정되었습니다.");
-            }
-
-            // 아이콘 회전 중지
-            if (!isAuto && syncIcon) setTimeout(() => syncIcon.classList.remove('fa-spin'), 500);
-        }, 50); // DOM 업데이트를 위한 최소한의 지연
-    };
-
-    window.handleLogin = function() {
-        try {
-            const passwordField = document.getElementById('admin-password');
-            const password = passwordField.value.trim();
-            
-            if (!password) return; 
-
-            const storedPw = (localStorage.getItem('adminPassword') || '1234').trim();
-
-            if (password === storedPw) {
-                sessionStorage.setItem('isAdminLoggedIn', 'true');
-                sessionStorage.setItem('appMode', 'admin');
-                showApp();
-            } else {
-                alert('비밀번호가 틀렸습니다.');
-                passwordField.value = '';
-                passwordField.focus();
-            }
-        } catch (e) {
-            alert("로그인 처리 중 오류가 발생했습니다.\n" + e.message);
-        }
-    }
-
-    window.togglePasswordVisibility = function(checkbox) {
-        const passwordField = document.getElementById('admin-password');
-        passwordField.type = passwordField.type === 'password' ? 'text' : 'password';
-    }
-
-    window.toggleRecoveryMode = function() {
-        const isRecovery = document.getElementById('login-input-wrapper').classList.toggle('hidden');
-        document.getElementById('recovery-input-wrapper').classList.toggle('hidden');
-        document.getElementById('btn-admin-login').classList.toggle('hidden');
-        document.getElementById('btn-admin-recovery').classList.toggle('hidden');
-        
-        const link = document.getElementById('link-forgot-pw');
-        link.innerText = isRecovery ? "로그인으로 돌아가기" : "비밀번호를 잊으셨나요?";
-    }
-
-    window.handleMasterKeyReset = function() {
-        const inputKey = document.getElementById('recovery-master-key').value.trim();
-        const storedKey = localStorage.getItem('adminMasterKey');
-
-        if (inputKey === storedKey) {
-            localStorage.setItem('adminPassword', '1234');
-            alert('✅ 비밀번호가 "1234"로 초기화되었습니다.\n새로운 비밀번호로 즉시 변경해 주세요.');
-            location.reload();
-        } else {
-            alert('❌ 복구 코드가 일치하지 않습니다.');
-        }
-    }
-
-    // --- [NEW] Temporary Test Data Generator ---
-    window.generateTestData = async function() {
-        const monthInput = document.getElementById('test-data-month');
-        const selectedMonth = monthInput.value; // "YYYY-MM"
-
-        if (!selectedMonth) {
-            return alert('데이터를 생성할 월을 선택해주세요.');
-        }
-
-        if (!confirm(`[주의] ${selectedMonth}월에 대한 테스트 출석 데이터를 생성합니다.\n이 작업은 되돌릴 수 없습니다. 계속하시겠습니까?`)) {
-            return;
-        }
-
-        alert('데이터 생성을 시작합니다. 완료 시 알림이 표시됩니다. (약 10-20초 소요)');
-
-        const sampleNames = ["김민준", "이서연", "박도윤", "최지우", "정하준", "조서아", "윤은우", "장시아", "임이준", "오하윤", "한선우", "신지아", "서유준", "권아윤", "강지호", "황서윤", "송시우", "안아인", "유지안", "홍채원", "전로하", "고수호", "문이안", "양지유", "손로운", "배아라", "백이현", "허서준", "남소율", "심다은"];
-
-        let tempMembers = [...window.members];
-        const [year, month] = selectedMonth.split('-').map(Number);
-        const daysInMonth = new Date(year, month, 0).getDate();
-        const generatedLogs = new Set(); // To prevent duplicate logs in this run: 'memberId-date-sessionCode'
-
-        try {
-            for (let day = 1; day <= daysInMonth; day++) {
-                const currentDate = new Date(year, month - 1, day);
-                const dayOfWeek = currentDate.getDay(); // 0=Sun, 6=Sat
-
-                if (dayOfWeek === 0) continue; // Skip Sundays
-
-                const dateStr = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-                const sessionsForDay = SESSIONS.filter(s => s.day === dayOfWeek);
-
-                for (const session of sessionsForDay) {
-                    const attendanceCount = Math.floor(Math.random() * 11) + 5; // 5 to 15 attendees
-                    const shuffledNames = [...sampleNames].sort(() => 0.5 - Math.random());
-
-                    for (let i = 0; i < attendanceCount; i++) {
-                        const memberName = shuffledNames[i % shuffledNames.length];
-                        let targetMember = tempMembers.find(m => m.name === memberName);
-
-                        if (!targetMember) {
-                            const randomRegDay = Math.floor(Math.random() * day) + 1;
-                            const regDate = new Date(year, month - 1, randomRegDay);
-                            const newMemberData = { name: memberName, phone: String(Math.floor(1000 + Math.random() * 9000)), registeredAt: regDate.toISOString() };
-                            const newId = await dbHelper.add('members', newMemberData);
-                            targetMember = { id: newId, ...newMemberData };
-                            tempMembers.push(targetMember);
-                        }
-
-                        const logKey = `${targetMember.id}-${dateStr}-${session.code}`;
-                        const alreadyExistsInDB = window.logs.some(l => l.memberId === targetMember.id && l.date === dateStr && l.sessionCode === session.code);
-                        
-                        if (!alreadyExistsInDB && !generatedLogs.has(logKey)) {
-                            const newLogData = { memberId: targetMember.id, memberName: targetMember.name, date: dateStr, sessionCode: session.code, sessionName: session.name, timestamp: new Date(year, month - 1, day, session.start).toLocaleString() + " (테스트)" };
-                            await dbHelper.add('logs', newLogData);
-                            generatedLogs.add(logKey);
-                        }
-                    }
-                }
-            }
-            alert(`✅ 테스트 데이터 생성이 완료되었습니다.\n총 ${generatedLogs.size}개의 출석 기록이 추가되었습니다.`);
-            // [FIX] Reload data from DB to reflect changes in reports immediately
-            try {
-                window.logs = await dbHelper.getAll('logs');
-                window.members = await dbHelper.getAll('members');
-                // Sort logs by ID desc (newest first)
-                window.logs.sort((a, b) => b.id - a.id);
-            } catch (e) { console.error("Failed to reload data:", e); }
-        } catch (error) {
-            console.error("Test data generation failed:", error);
-            alert("❌ 데이터 생성 중 오류가 발생했습니다. 콘솔을 확인해주세요.");
-        }
-    };
-
-    // --- [NEW] Online/Offline Sync Logic ---
-    function showSyncStatus(status, message) {
-        const indicator = document.getElementById('sync-status-indicator');
-        const icon = document.getElementById('sync-icon');
-        const text = document.getElementById('sync-text');
-        if (!indicator || !icon || !text) return;
-
-        indicator.classList.remove('hidden', 'bg-gray-700', 'bg-green-600', 'bg-yellow-600');
-
-        switch(status) {
-            case 'syncing':
-                indicator.classList.add('bg-yellow-600', 'flex');
-                icon.className = 'fas fa-cloud-arrow-up fa-spin';
-                text.innerText = message || '동기화 중...';
-                break;
-            case 'synced':
-                indicator.classList.add('bg-green-600', 'flex');
-                icon.className = 'fas fa-circle-check';
-                text.innerText = message || '동기화 완료';
-                setTimeout(() => showSyncStatus('online'), 2000);
-                break;
-            case 'offline':
-                indicator.classList.add('bg-gray-700', 'flex');
-                icon.className = 'fas fa-link-slash';
-                text.innerText = message || '오프라인 모드';
-                break;
-            case 'online':
-                indicator.classList.add('bg-green-600', 'flex');
-                icon.className = 'fas fa-cloud';
-                text.innerText = message || '온라인';
-                break;
-            case 'hide':
-                indicator.classList.add('hidden');
-                break;
-        }
-    }
-
-    async function syncPendingData() {
-        if (!navigator.onLine) return;
-
-        // [FIX] Sync members first, then logs
-        const allMembers = await dbHelper.getAll('members');
-        const pendingMembers = allMembers.filter(member => member.syncStatus === 'pending');
-
-        if (pendingMembers.length > 0) {
-            showSyncStatus('syncing', `신규 회원 ${pendingMembers.length}건 동기화...`);
-            try {
-                const membersToSync = pendingMembers.map(member => {
-                    const { syncStatus, ...memberData } = member;
-                    return memberData;
-                });
-                await firebaseHelper.batchWrite('members', membersToSync);
-                const updatedMembers = pendingMembers.map(m => {
-                    delete m.syncStatus;
-                    return m;
-                });
-                await dbHelper.bulkPut('members', updatedMembers);
-                
-                // Update in-memory state
-                pendingMembers.forEach(pendingMember => {
-                    const memberInMemory = window.members.find(m => m.id === pendingMember.id);
-                    if (memberInMemory) delete memberInMemory.syncStatus;
-                });
-                console.log(`${pendingMembers.length} members synced successfully.`);
-            } catch (error) {
-                console.error("Member sync failed:", error);
-                showAlert("동기화 실패", "신규 회원 정보를 서버와 동기화하는 데 실패했습니다.");
-                showSyncStatus('offline');
-                return; // Stop if member sync fails
-            }
-        }
-
-        const allLogs = await dbHelper.getAll('logs');
-        const pendingLogs = allLogs.filter(log => log.syncStatus === 'pending');
-
-        if (pendingLogs.length === 0) {
-            if (pendingMembers.length === 0) { // Only log if nothing was synced at all
-                console.log("No pending data to sync.");
-            }
-            return;
-        }
-
-        showSyncStatus('syncing', `출석 기록 ${pendingLogs.length}건 동기화...`);
-
-        try {
-            // Prepare data for Firebase batch write
-            const logsToSync = pendingLogs.map(log => {
-                const { syncStatus, ...logData } = log; // Remove syncStatus before sending
-                return logData;
-            });
-
-            await firebaseHelper.batchWrite('logs', logsToSync);
-
-            // Update local IndexedDB after successful sync
-            const updatedLogs = pendingLogs.map(log => {
-                delete log.syncStatus; // Remove the pending flag
-                return log;
-            });
-            await dbHelper.bulkPut('logs', updatedLogs);
-
-            // Update in-memory state
-            pendingLogs.forEach(pendingLog => {
-                const logInMemory = window.logs.find(l => l.id === pendingLog.id);
-                if (logInMemory) delete logInMemory.syncStatus;
-            });
-
-            showSyncStatus('synced', `${pendingLogs.length}건 동기화 완료!`);
-            // Refresh UI if needed
-            if (currentMode === 'reports') showReports();
-            if (currentMode === 'members') renderMembers();
-
-        } catch (error) {
-            console.error("Sync failed:", error);
-            showAlert("동기화 실패", "데이터를 서버와 동기화하는 데 실패했습니다. 인터넷 연결을 확인하고 다시 시도해주세요.");
-            showSyncStatus('offline');
-        }
-    }
-
-    // [NEW] Function to display last sync time
-    function updateLastSyncTimeDisplay() {
-        const lastSyncTimeElem = document.getElementById('last-sync-time');
-        if (!lastSyncTimeElem) return;
-
-        const lastSyncTimestamp = localStorage.getItem('lastSyncTime');
-        if (lastSyncTimestamp) {
-            const syncDate = new Date(lastSyncTimestamp);
-            const formattedTime = syncDate.toLocaleString('ko-KR', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' });
-            lastSyncTimeElem.innerText = `마지막 동기화: ${formattedTime}`;
-        } else {
-            lastSyncTimeElem.innerText = '마지막 동기화: 기록 없음';
-        }
-    }
-
-    // [NEW] Manual Sync function to reduce Firebase costs
-    async function manualSyncWithFirebase() {
-        if (!navigator.onLine) {
-            return showAlert('오프라인', '데이터를 동기화하려면 인터넷 연결이 필요합니다.');
-        }
-        if (!firebaseHelper.initFirebase()) {
-            return showAlert('설정 오류', 'Firebase 설정이 올바르지 않아 동기화할 수 없습니다.');
-        }
-
-        showSyncStatus('syncing', '수동 동기화 중...');
-        try {
-            // 1. Fetch all data from Firebase
-            const [membersSnapshot, logsSnapshot, instructorsSnapshot] = await Promise.all([
-                firebaseHelper.getCollection('members').get(),
-                firebaseHelper.getCollection('logs').get(),
-                firebaseHelper.getCollection('instructors').get()
-            ]);
-
-            const membersData = membersSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-            const logsData = logsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-            const instructorsData = instructorsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-
-            // 2. Overwrite local IndexedDB with server data
-            await Promise.all([
-                dbHelper.bulkPut('members', membersData),
-                dbHelper.bulkPut('logs', logsData),
-                dbHelper.bulkPut('instructors', instructorsData.map(d => ({sessionCode: d.id, name: d.name})))
-            ]);
-
-            // 3. Reload data into memory
-            window.members = membersData.sort((a, b) => a.name.localeCompare(b.name));
-            window.logs = logsData.sort((a, b) => b.id - a.id);
-            window.instructors = instructorsData.reduce((acc, curr) => {
-                acc[curr.sessionCode] = curr.name;
-                return acc;
-            }, {});
-
-            // 4. Sync any pending local data to server
-            await syncPendingData();
-
-            // [NEW] Store and display last sync time
-            const now = new Date().toISOString();
-            localStorage.setItem('lastSyncTime', now);
-            updateLastSyncTimeDisplay();
-
-            showSyncStatus('synced', '동기화 완료!');
-            showAlert('동기화 완료', '서버로부터 최신 데이터를 가져왔습니다.');
-
-            // 5. Refresh current view
-            if (currentMode === 'members') renderMembers();
-            if (currentMode === 'reports') showReports(currentActiveReportTabId);
-            if (currentMode === 'instructors') renderInstructorManagement();
-            if (currentMode === 'member-attendance') renderMemberGrid();
-
-        } catch (error) {
-            console.error("Manual sync failed:", error);
-            showAlert("동기화 실패", "서버와 데이터를 동기화하는 데 실패했습니다.");
-            showSyncStatus('online');
-        }
-    }
-
-    // [FIX] Ensure Master Key exists on init
-    if (!localStorage.getItem('adminMasterKey')) {
-        const randomKey = Math.random().toString(36).substring(2, 10).toUpperCase();
-        localStorage.setItem('adminMasterKey', `RECOVERY-${randomKey}`);
-    }
-
-    // 앱 초기화 실행
-    window.onload = async () => {
-        // [NEW] Apply saved theme first
-        const savedTheme = localStorage.getItem('appTheme') || 'indigo';
-        document.body.dataset.theme = savedTheme;
-        document.querySelector('meta[name="theme-color"]').setAttribute('content', THEMES[savedTheme]['600']);
-
+    async function initializeAppAndLoadData() {
+        showSyncStatus('syncing', '앱 데이터 로딩 중...');
         try {
             await dbHelper.initDB();
 
             if (navigator.onLine && firebaseHelper.initFirebase()) {
-                // Online: Fetch from Firebase, update local, then listen
                 console.log("Online mode: Initializing with Firebase data.");
-                showSyncStatus('syncing', '서버와 동기화 중...');
                 const [membersSnapshot, logsSnapshot, instructorsSnapshot] = await Promise.all([
                     firebaseHelper.getCollection('members').get(),
                     firebaseHelper.getCollection('logs').get(),
@@ -3595,16 +3224,13 @@
                     dbHelper.bulkPut('instructors', instructorsData.map(d => ({sessionCode: d.id, name: d.name})))
                 ]);
                 
-                // listenForRealtimeUpdates(); // [REMOVED] Disabled to reduce Firebase read costs.
-                await syncPendingData(); // Sync any data from previous offline sessions
+                await syncPendingData();
                 showSyncStatus('online');
             } else {
-                // Offline: Just show offline status
                 console.log("Offline mode: App will run with local data.");
                 showSyncStatus('offline');
             }
 
-            // Load data from IndexedDB (now the single source of truth for the UI)
             const [membersData, logsData, instructorsData] = await Promise.all([
                 dbHelper.getAll('members'),
                 dbHelper.getAll('logs'),
@@ -3617,58 +3243,91 @@
                 return acc;
             }, {});
             
-            // [NEW] QR Code Handling
-            const urlParams = new URLSearchParams(window.location.search);
-            const sessionCodeFromQR = urlParams.get('session');
-
-            if (sessionCodeFromQR) {
-                const session = SESSIONS.find(s => s.code === sessionCodeFromQR);
-                const now = new Date();
-                const day = now.getDay();
-                const hour = now.getHours();
-
-                // Check if session is valid for the current time
-                if (session && session.day === day && hour >= session.start && hour < session.end) {
-                    sessionStorage.setItem('appMode', 'member');
-                    showApp(); // Go to member attendance screen
-
-                    // Pre-fill date and session after a short delay for DOM to be ready
-                    setTimeout(() => {
-                        document.getElementById('member-mode-date').value = getTodayStr();
-                        updateMemberModeSessionOptions();
-                        document.getElementById('member-mode-session').value = sessionCodeFromQR;
-                        
-                        const instructorName = window.instructors[session.code];
-                        const instructorText = instructorName ? ` (${instructorName} 사범)` : '';
-                        document.getElementById('current-session-info').innerText = `현재 수업: ${session.name}${instructorText}`;
-                    }, 100);
-                } else {
-                    showAlert('QR 코드 오류', '유효하지 않은 QR 코드입니다.\n현재 진행 중인 수업의 QR 코드를 스캔해주세요.');
-                    history.replaceState({}, document.title, window.location.pathname);
-                    showLoginScreen();
-                }
-            } else {
-                showLoginScreen();
-            }
-
-            // DOM이 준비된 후 UI 렌더링
             renderMembers();
             updateCheckUserSelect();
             updateLastSyncTimeDisplay();
+            
+            showSyncStatus('hide');
+            return true;
         } catch (error) {
-            console.error("Application initialization failed:", error);
-            alert("앱을 초기화하는 데 실패했습니다. 페이지를 새로고침 해주세요.");
+            console.error("Application data loading failed:", error);
+            alert("앱 데이터를 불러오는 데 실패했습니다. 페이지를 새로고침 해주세요.");
+            showSyncStatus('hide');
+            return false;
+        }
+    }
+
+    window.handleLogin = async function() {
+        try {
+            const passwordField = document.getElementById('admin-password');
+            const password = passwordField.value.trim();
+            
+            if (!password) return; 
+            const storedPw = (localStorage.getItem('adminPassword') || '1234').trim();
+
+            if (password === storedPw) {
+                const success = await initializeAppAndLoadData();
+                if (success) {
+                    sessionStorage.setItem('isAdminLoggedIn', 'true');
+                    sessionStorage.setItem('appMode', 'admin');
+                    showApp();
+                }
+            } else {
+                alert('비밀번호가 틀렸습니다.');
+                passwordField.value = '';
+                passwordField.focus();
+            }
+        } catch (e) {
+            alert("로그인 처리 중 오류가 발생했습니다.\n" + e.message);
+        }
+    }
+
+    window.onload = () => {
+        const savedTheme = localStorage.getItem('appTheme') || 'indigo';
+        document.body.dataset.theme = savedTheme;
+        document.querySelector('meta[name="theme-color"]').setAttribute('content', THEMES[savedTheme]['600']);
+
+        const urlParams = new URLSearchParams(window.location.search);
+        const sessionCodeFromQR = urlParams.get('session');
+
+        if (sessionCodeFromQR) {
+            (async () => {
+                const success = await initializeAppAndLoadData();
+                if (success) {
+                    const session = SESSIONS.find(s => s.code === sessionCodeFromQR);
+                    const now = new Date();
+                    const day = now.getDay();
+                    const hour = now.getHours();
+
+                    if (session && session.day === day && hour >= session.start && hour < session.end) {
+                        sessionStorage.setItem('appMode', 'member');
+                        showApp();
+                        setTimeout(() => {
+                            document.getElementById('member-mode-date').value = getTodayStr();
+                            updateMemberModeSessionOptions();
+                            document.getElementById('member-mode-session').value = sessionCodeFromQR;
+                            const instructorName = window.instructors[session.code];
+                            const instructorText = instructorName ? ` (${instructorName} 사범)` : '';
+                            document.getElementById('current-session-info').innerText = `현재 수업: ${session.name}${instructorText}`;
+                        }, 100);
+                    } else {
+                        showAlert('QR 코드 오류', '유효하지 않은 QR 코드입니다.\n현재 진행 중인 수업의 QR 코드를 스캔해주세요.');
+                        history.replaceState({}, document.title, window.location.pathname);
+                        showLoginScreen();
+                    }
+                }
+            })();
+        } else {
+            showLoginScreen();
         }
     };
 
-    // [NEW] Add resize listener for report tabs
     window.addEventListener('resize', () => {
         if (currentMode === 'reports') {
             checkTabOverflow();
         }
     });
 
-    // [NEW] Listen for online/offline status changes
     window.addEventListener('online', () => {
         showSyncStatus('syncing', '온라인 상태입니다. 동기화를 시작합니다...');
         syncPendingData();
@@ -3677,8 +3336,6 @@
         showSyncStatus('offline');
     });
 
-
-    // --- PWA Service Worker Registration ---
     function showUpdateToast(registration) {
         const toast = document.getElementById('update-toast');
         const updateButton = document.getElementById('update-now-button');
@@ -3695,9 +3352,10 @@
         toast.classList.remove('hidden');
     }
 
+    /*
+    // [DEFINITIVE FIX] Service Worker is temporarily disabled to resolve caching issues.
+    // This block can be re-enabled once the core layout bug is confirmed to be fixed.
     if ('serviceWorker' in navigator) {
-        // [FINAL SOLUTION] Force unregister all service workers to clear corrupted cache.
-        // This will run once, force a reload, and then register the new service worker.
         if (!sessionStorage.getItem('sw_force_reloaded_v2')) {
             navigator.serviceWorker.getRegistrations().then(registrations => {
                 if (registrations.length > 0) {
@@ -3714,7 +3372,6 @@
                 window.location.reload();
             });
         } else {
-            // This block runs only AFTER the page has been reloaded once.
             window.addEventListener('load', () => {
                 navigator.serviceWorker.register('./sw.js?v=67').then(registration => {
                     console.log('ServiceWorker registration successful with scope: ', registration.scope);
@@ -3743,6 +3400,8 @@
             });
         }
     }
+    */
 </script>
 </body>
 </html>
+
