@@ -1,4 +1,4 @@
-const CACHE_NAME = 'attendance-app-cache-v67'; // 캐시 완전 초기화를 위한 버전업
+const CACHE_NAME = 'attendance-app-cache-v68'; // 캐시 완전 초기화를 위한 버전업
 const urlsToCache = [
     './',
     './index.html',
