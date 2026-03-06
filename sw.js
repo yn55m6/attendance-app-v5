@@ -1,4 +1,4 @@
-const CACHE_NAME = 'attendance-app-cache-v64'; // 버전을 업데이트하여 캐시를 갱신할 수 있습니다.
+const CACHE_NAME = 'attendance-app-cache-v65'; // 네트워크 우선 전략 적용 및 캐시 버전 업데이트
 const urlsToCache = [
     './',
     './index.html',
@@ -51,28 +51,38 @@ self.addEventListener('activate', event => {
 
 // 요청 가로채기 (네트워크 또는 캐시에서 응답)
 self.addEventListener('fetch', event => {
-    event.respondWith(
-        caches.match(event.request)
-            .then(response => {
-                // 캐시에 응답이 있으면 그것을 반환
-                if (response) {
-                    return response;
-                }
-
-                // 캐시에 없으면 네트워크에서 가져옴
-                return fetch(event.request).then(
-                    response => {
-                        // 유효한 응답이 아니면 그대로 반환
-                        if (!response || response.status !== 200 || (response.type !== 'basic' && response.type !== 'cors')) {
-                            return response;
-                        }
-
-                        // 유효한 응답이면 복제해서 캐시에 저장하고, 원본은 앱으로 반환
-                        const responseToCache = response.clone();
-                        caches.open(CACHE_NAME).then(cache => cache.put(event.request, responseToCache));
+    // [FINAL FIX] index.html에 대해서는 '네트워크 우선' 전략을 사용합니다.
+    // 이렇게 하면 사용자는 항상 최신 버전의 앱 셸을 받게 되어, 캐시로 인한 레이아웃 오류를 원천 차단합니다.
+    if (event.request.mode === 'navigate') {
+        event.respondWith(
+            fetch(event.request)
+                .then(response => {
+                    // 네트워크 요청 성공 시, 응답을 캐시에 저장하고 반환합니다.
+                    return caches.open(CACHE_NAME).then(cache => {
+                        cache.put(event.request.url, response.clone());
                         return response;
+                    });
+                })
+                .catch(err => {
+                    // 네트워크 실패 시 (오프라인), 캐시에서 가져옵니다.
+                    return caches.match(event.request);
+                })
+        );
+        return;
+    }
+
+    // 다른 모든 요청(CSS, JS, 이미지 등)은 '캐시 우선' 전략을 사용합니다.
+    event.respondWith(
+        caches.match(event.request).then(response => {
+            return response || fetch(event.request).then(fetchResponse => {
+                return caches.open(CACHE_NAME).then(cache => {
+                    // CORS 요청이 아닌 경우에만 캐싱 (예: 폰트 파일)
+                    if (fetchResponse.type === 'basic' || fetchResponse.type === 'cors') {
+                        cache.put(event.request, fetchResponse.clone());
                     }
-                );
-            })
+                    return fetchResponse;
+                });
+            });
+        })
     );
 });
