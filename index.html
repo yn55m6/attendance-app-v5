@@ -207,7 +207,7 @@
     </section>
 
     <!-- Main App Wrapper -->
-    <main id="app-main-content" class="hidden">
+    <main id="app-main-content" class="hidden" style="display: none;">
         <!-- App Version: v49 -->
         <!-- Header -->
         <header class="bg-theme-600 text-white p-4 sticky top-0 z-40 shadow-md flex justify-between items-center no-print">
@@ -3023,18 +3023,22 @@
 
     w    }
 
+        }
+
     window.switchPage = function(element, pageId) {
-        currentMode = pageId;
+        currentMode = pageId; // 현재 모드 설정
         const pages = document.querySelectorAll('.page');
         const targetPage = document.getElementById('page-' + pageId);
 
-        // [FINAL FIX] Deactivate all pages by removing the 'active' class.
-        // The CSS rule `display: none !important` will then hide them.
-        pages.forEach(p => p.classList.remove('active'));
+        // [DEFINITIVE FIX] Forcefully control visibility using inline styles
+        // to prevent any rendering race conditions or CSS conflicts.
+        pages.forEach(p => {
+            p.style.display = 'none';
+            p.classList.remove('active'); // Also remove active class for animations
+        });
 
-        // Activate the target page by adding the 'active' class.
-        // The CSS rule `.page.active { display: block !important }` will show it.
         if (targetPage) {
+            targetPage.style.display = 'block';
             targetPage.classList.add('active');
         }
 
@@ -3045,6 +3049,7 @@
         if (pageId === 'members') renderMembers();
         if (pageId === 'reports') showReports();
         if (pageId === 'instructors') renderInstructorManagement();
+
     }
 
     // --- 11. Password Management ---
@@ -3128,8 +3133,11 @@
 
     // --- 10. App Initialization & Login ---
     window.showLoginScreen = function() {
-        document.getElementById('start-screen').classList.remove('hidden');
-        document.getElementById('app-main-content').classList.add('hidden');
+        const startScreen = document.getElementById('start-screen');
+        if (startScreen) startScreen.style.display = 'flex';
+        const mainContent = document.getElementById('app-main-content');
+        if (mainContent) mainContent.style.display = 'none';
+
         // [FIX] 항상 모드 선택 버튼이 보이도록 초기화
         document.getElementById('mode-selection').classList.remove('hidden');
         document.getElementById('login-form').classList.add('hidden');
@@ -3159,8 +3167,11 @@
 
     window.showApp = function() {
         const mode = sessionStorage.getItem('appMode') || (sessionStorage.getItem('isAdminLoggedIn') === 'true' ? 'admin' : null);
-        document.getElementById('start-screen').classList.add('hidden');
-        document.getElementById('app-main-content').classList.remove('hidden');
+        
+        const startScreen = document.getElementById('start-screen');
+        if (startScreen) startScreen.style.display = 'none';
+        const mainContent = document.getElementById('app-main-content');
+        if (mainContent) mainContent.style.display = 'block';
         
         if (mode === 'member') {
             document.querySelectorAll('.admin-only').forEach(el => el.classList.add('hidden'));
