@@ -3696,39 +3696,52 @@
     }
 
     if ('serviceWorker' in navigator) {
-        window.addEventListener('load', () => {
-            // [ULTIMATE FIX] Add a version parameter to the service worker URL.
-            // This forces the browser to bypass its HTTP cache and fetch the new sw.js file,
-            // ensuring the latest caching strategy is applied.
-            navigator.serviceWorker.register('./sw.js?v=66').then(registration => {
-                console.log('ServiceWorker registration successful with scope: ', registration.scope);
-
-                registration.onupdatefound = () => {
-                    const installingWorker = registration.installing;
-                    if (installingWorker == null) return;
-                    
-                    installingWorker.onstatechange = () => {
-                        if (installingWorker.state === 'installed') {
-                            if (navigator.serviceWorker.controller) {
-                                console.log('New content is available; please refresh.');
-                                showUpdateToast(registration);
-                            } else {
-                                console.log('Content is cached for offline use.');
-                            }
-                        }
-                    };
-                };
-            }, err => {
-                console.log('ServiceWorker registration failed: ', err);
+        // [FINAL SOLUTION] Force unregister all service workers to clear corrupted cache.
+        // This will run once, force a reload, and then register the new service worker.
+        if (!sessionStorage.getItem('sw_force_reloaded_v2')) {
+            navigator.serviceWorker.getRegistrations().then(registrations => {
+                if (registrations.length > 0) {
+                    console.log('Unregistering ALL service workers to fix cache issue.');
+                    return Promise.all(registrations.map(reg => reg.unregister()));
+                }
+            }).then(() => {
+                sessionStorage.setItem('sw_force_reloaded_v2', 'true');
+                alert('앱의 캐시를 강제로 초기화합니다. 확인을 누르면 페이지가 새로고침됩니다.');
+                window.location.reload();
+            }).catch(error => {
+                console.error('Failed to unregister SW:', error);
+                sessionStorage.setItem('sw_force_reloaded_v2', 'true');
+                window.location.reload();
             });
+        } else {
+            // This block runs only AFTER the page has been reloaded once.
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('./sw.js?v=67').then(registration => {
+                    console.log('ServiceWorker registration successful with scope: ', registration.scope);
 
+                    registration.onupdatefound = () => {
+                        const installingWorker = registration.installing;
+                        if (installingWorker == null) return;
+                        
+                        installingWorker.onstatechange = () => {
+                            if (installingWorker.state === 'installed') {
+                                if (navigator.serviceWorker.controller) {
+                                    showUpdateToast(registration);
+                                } else {
+                                    console.log('Content is cached for offline use.');
+                                }
+                            }
+                        };
+                    };
+                }, err => { console.log('ServiceWorker registration failed: ', err); });
+            });
             let refreshing;
             navigator.serviceWorker.addEventListener('controllerchange', () => {
                 if (refreshing) return;
                 window.location.reload();
                 refreshing = true;
             });
-        });
+        }
     }
 </script>
 </body>
